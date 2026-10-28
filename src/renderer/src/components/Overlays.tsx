@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CustomCommand, RecentConversation } from '../../../shared/types'
+import type { CustomCommand, RecentConversation, TranscriptEntry } from '../../../shared/types'
 import * as A from '../actions'
 import { sessionStatus, statusLine, store, useStore } from '../store'
 import { isMac } from '../terminals'
@@ -316,6 +316,54 @@ export function Inbox() {
             </div>
           ))}
           {!list.length && <div className="muted">Nothing yet. Agents that finish, need you or send a notification show up here.</div>}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+/** A subagent's transcript, following along while it works. */
+export function AgentDialog() {
+  const target = useStore((s) => s.ui.agent)
+  const agent = useStore((s) => (target ? Object.values(s.agents).flat().find((a) => a.id === target.id && a.claudeId === target.claudeId) : undefined))
+  const [entries, setEntries] = useState<TranscriptEntry[]>([])
+  const list = useRef<HTMLDivElement>(null)
+  const stick = useRef(true)
+
+  useEffect(() => {
+    if (!target) return setEntries([])
+    let alive = true
+    const load = () => window.tz.agentTranscript(target.claudeId, target.id).then((e) => alive && setEntries(e))
+    load()
+    const t = setInterval(load, 1500)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [target])
+  useEffect(() => {
+    const el = list.current
+    if (el && stick.current) el.scrollTop = el.scrollHeight
+  }, [entries])
+
+  if (!target) return null
+  const close = () => store().setUI({ agent: undefined })
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog transcript">
+        <div className="head">
+          <span className={`dot ${agent?.running ? 'working' : 'done'}`} style={{ marginTop: 0 }} />
+          <b>{agent?.description ?? target.id}</b>
+          <span className="kbd">{agent ? `${agent.type} · ${agent.toolUses} tools` : ''}</span>
+        </div>
+        <div className="steps" ref={list} onScroll={(e) => {
+          const el = e.currentTarget
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+        }}>
+          {entries.map((e, i) => (
+            <div key={i} className={`step ${e.kind}`}>{e.text}</div>
+          ))}
+          {!entries.length && <div className="muted">Nothing written yet.</div>}
         </div>
       </div>
     </Scrim>

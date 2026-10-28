@@ -92,6 +92,8 @@ export interface StatusRecord {
 /** A subagent found in Claude Code's transcript folder. */
 export interface SubAgent {
   id: string
+  /** The conversation it belongs to. */
+  claudeId: string
   type: string
   description: string
   /** Last tool it used: "Read src/app.tsx". */
@@ -99,6 +101,13 @@ export interface SubAgent {
   running: boolean
   toolUses: number
   updatedAt: number
+}
+
+/** One step of an agent's transcript. */
+export interface TranscriptEntry {
+  kind: 'prompt' | 'text' | 'tool' | 'result' | 'error'
+  text: string
+  at?: number
 }
 
 export interface UsageLimit {
@@ -161,6 +170,7 @@ export interface Api {
   pickFolder(): Promise<string | undefined>
   claudeHasConversation(id: string): Promise<boolean>
   subagents(claudeId: string): Promise<SubAgent[]>
+  agentTranscript(claudeId: string, agentId: string): Promise<TranscriptEntry[]>
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<UsageLimit[] | null>
 

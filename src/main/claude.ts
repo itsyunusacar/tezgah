@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
-import type { RecentConversation, SubAgent, UsageLimit } from '../shared/types'
+import type { RecentConversation, SubAgent, TranscriptEntry, UsageLimit } from '../shared/types'
 
 /** Claude Code's data folder (respects CLAUDE_CONFIG_DIR). */
 function claudeDir(): string {
@@ -111,6 +111,7 @@ export function subagents(claudeId: string): SubAgent[] {
         const p = readNew(transcript)
         out.push({
           id,
+          claudeId,
           type: meta.agentType ?? 'agent',
           description: meta.description ?? id,
           activity: p.activity,
@@ -123,6 +124,64 @@ export function subagents(claudeId: string): SubAgent[] {
       }
     }
     return out.sort((a, b) => a.updatedAt - b.updatedAt)
+  }
+  return []
+}
+
+/** Turns transcript lines into what a person reads: the task, Claude's words, its tool calls and their results. */
+export function parseTranscript(lines: string[]): TranscriptEntry[] {
+  const out: TranscriptEntry[] = []
+  const clip = (t: string, n: number) => (t.length > n ? t.slice(0, n) + '…' : t)
+  for (const line of lines) {
+    let obj
+    try {
+      obj = JSON.parse(line)
+    } catch {
+      continue
+    }
+    const content = obj.message?.content
+    const at = obj.timestamp ? Date.parse(obj.timestamp) : undefined
+    if (obj.type === 'user') {
+      if (typeof content === 'string') out.push({ kind: 'prompt', text: clip(content.trim(), 4000), at })
+      else
+        for (const item of content ?? []) {
+          if (item.type === 'text' && item.text?.trim()) out.push({ kind: 'prompt', text: clip(item.text.trim(), 4000), at })
+          if (item.type === 'tool_result') {
+            const raw = typeof item.content === 'string' ? item.content : (item.content ?? []).map((c: { text?: string }) => c.text ?? '').join('\n')
+            const lines = String(raw).trim().split('\n')
+            const text = lines.slice(0, 6).join('\n') + (lines.length > 6 ? `\n… ${lines.length - 6} more lines` : '')
+            out.push({ kind: item.is_error ? 'error' : 'result', text: clip(text, 1200), at })
+          }
+        }
+    } else if (obj.type === 'assistant') {
+      for (const item of content ?? []) {
+        if (item.type === 'text' && item.text?.trim()) out.push({ kind: 'text', text: clip(item.text.trim(), 4000), at })
+        if (item.type === 'tool_use') out.push({ kind: 'tool', text: toolSummary(item.name ?? 'Tool', item.input ?? {}), at })
+      }
+    }
+  }
+  return out
+}
+
+/** A subagent's transcript, its last few hundred steps. */
+export function agentTranscript(claudeId: string, agentId: string): TranscriptEntry[] {
+  if (!/^[\w-]+$/.test(claudeId) || !/^[\w-]+$/.test(agentId)) return []
+  for (const dir of listDirs(projectsDir())) {
+    const file = path.join(projectsDir(), dir, claudeId, 'subagents', `${agentId}.jsonl`)
+    if (!fs.existsSync(file)) continue
+    try {
+      const size = fs.statSync(file).size
+      const start = Math.max(0, size - (4 << 20))
+      const fd = fs.openSync(file, 'r')
+      const buf = Buffer.alloc(size - start)
+      fs.readSync(fd, buf, 0, buf.length, start)
+      fs.closeSync(fd)
+      const lines = buf.toString('utf8').split('\n')
+      if (start > 0) lines.shift()
+      return parseTranscript(lines).slice(-400)
+    } catch {
+      return []
+    }
   }
   return []
 }

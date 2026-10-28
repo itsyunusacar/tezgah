@@ -23,6 +23,7 @@ const api: Api = {
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   claudeHasConversation: (id) => ipcRenderer.invoke('claude-has', id),
   subagents: (id) => ipcRenderer.invoke('subagents', id),
+  agentTranscript: (claudeId, agentId) => ipcRenderer.invoke('agent-transcript', claudeId, agentId),
   recentConversations: () => ipcRenderer.invoke('recent'),
   usage: () => ipcRenderer.invoke('usage'),
 

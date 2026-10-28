@@ -5,7 +5,7 @@ import * as terms from './terminals'
 import { startControl } from './control'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
-import { ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
+import { AgentDialog, ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
 import { Mark } from './components/Icons'
 import { label, type Command } from '../../shared/shortcuts'
 
@@ -46,6 +46,7 @@ export function App() {
       <RecentDialog />
       <SettingsDialog />
       <Inbox />
+      <AgentDialog />
       <PromptDialog />
       <ConfirmDialog />
       <Toast />

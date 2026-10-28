@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseUsage, toolSummary } from '../src/main/claude'
+import { parseTranscript, parseUsage, toolSummary } from '../src/main/claude'
 
 describe('usage', () => {
   it('reads the limits list, skipping inactive ones', () => {
@@ -26,5 +26,24 @@ describe('tool summaries', () => {
     expect(toolSummary('Bash', { command: 'npm   test\n--watch' })).toBe('Bash npm test --watch')
     expect(toolSummary('Grep', { pattern: 'useTheme' })).toBe('Grep "useTheme"')
     expect(toolSummary('Task', {})).toBe('Task')
+  })
+})
+
+describe('parseTranscript', () => {
+  it('reads the task, words, tool calls and results', () => {
+    const lines = [
+      JSON.stringify({ type: 'user', message: { content: 'Find the login bug' } }),
+      JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'Looking.' }, { type: 'tool_use', name: 'Read', input: { file_path: '/a/login.ts' } }] } }),
+      JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: 'line1\nline2' }] } }),
+      JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', is_error: true, content: [{ type: 'text', text: 'boom' }] }] } }),
+      'not json',
+    ]
+    expect(parseTranscript(lines).map((e) => [e.kind, e.text])).toEqual([
+      ['prompt', 'Find the login bug'],
+      ['text', 'Looking.'],
+      ['tool', 'Read login.ts'],
+      ['result', 'line1\nline2'],
+      ['error', 'boom'],
+    ])
   })
 })

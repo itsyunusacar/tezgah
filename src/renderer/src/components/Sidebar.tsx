@@ -175,7 +175,12 @@ export function AgentRows({ agents, limit = 6 }: { agents: SubAgent[]; limit?: n
   return (
     <div className="agent-rows">
       {shown.map((a) => (
-        <div className="agent-row" key={a.id} title={`${a.type} · ${a.description}${a.activity ? '\n' + a.activity : ''}`}>
+        <div
+          className="agent-row"
+          key={a.id}
+          title={`${a.type} · ${a.description}${a.activity ? '\n' + a.activity : ''}\nClick to follow along`}
+          onClick={(e) => (e.stopPropagation(), useStore.getState().setUI({ agent: { claudeId: a.claudeId, id: a.id } }))}
+        >
           <span className={`dot ${a.running ? 'working' : 'done'}`} />
           <span className="what">{a.description}</span>
           <span className="tool">{a.running ? a.activity?.split(' ')[0] ?? 'starting' : 'done'}</span>

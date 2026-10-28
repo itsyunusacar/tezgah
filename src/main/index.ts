@@ -225,6 +225,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('claude-has', (_e, id: string) => Boolean(claude.conversationFile(id)))
   ipcMain.handle('subagents', (_e, id: string) => claude.subagents(id))
+  ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => claude.usage())
 

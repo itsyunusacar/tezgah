@@ -40,6 +40,8 @@ interface UI {
   settings: boolean
   /** The notification panel. */
   inbox: boolean
+  /** The subagent whose transcript is open. */
+  agent?: { claudeId: string; id: string }
   /** The pane whose find bar is open. */
   find?: string
   /** A small prompt dialog (rename, branch name…). */
