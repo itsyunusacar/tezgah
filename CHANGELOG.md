@@ -4,6 +4,10 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
+### Changed
+
+- The Tezgah mark at the bottom of the sidebar opens [tezgah.itsyunusacar.com](https://tezgah.itsyunusacar.com); Settings is the gear at the top.
+
 ## [1.0.3] - 2026-10-28
 
 ### Added

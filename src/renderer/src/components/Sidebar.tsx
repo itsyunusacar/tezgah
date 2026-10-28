@@ -195,7 +195,7 @@ export function Sidebar() {
             <span className="go">{t('Download')}</span>
           </button>
         )}
-        <button className="signature" title={t('Settings')} onClick={() => setUI({ settings: true })}>
+        <button className="signature" title="tezgah.itsyunusacar.com" onClick={() => window.tz.openExternal('https://tezgah.itsyunusacar.com')}>
           <Mark size={12} />
           <span>{t('tezgah')}</span>
           <span className="version">{version}</span>
