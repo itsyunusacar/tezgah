@@ -36,6 +36,7 @@ A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on 
 - Changes panel with line notes you can send to Claude, and commit, push and open a pull request (with the GitHub CLI) from it.
 - Plan limits for Claude (live) and Codex (from its logs), with reset times and pace.
 - Find in terminal, drop or paste files and screenshots as paths, custom commands, a + menu, quick switcher, recent conversations.
+- A short animated tour on first launch, in Turkish or English, skippable and replayable from Settings.
 - A first-run checklist: Claude Code, signing in, git and the GitHub CLI, with how to get what's missing.
 - A note in the sidebar when a newer Tezgah is out, with a link to download it (Settings can turn the check off).
 - Change any keyboard shortcut in Settings → Keyboard Shortcuts (conflicts are caught; each goes back to its default).

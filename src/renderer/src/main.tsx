@@ -12,6 +12,8 @@ window.tz.load().then(({ workspace, settings, version }) => {
     version,
     ready: true,
   })
+  // First run: the tour, before anything else.
+  if (!settings?.introSeen) useStore.getState().setUI({ intro: true })
 })
 
 createRoot(document.getElementById('root')!).render(<App />)

@@ -76,6 +76,8 @@ export interface Settings {
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
   layouts: SavedLayout[]
+  /** The first-run tour has been seen (or skipped). */
+  introSeen: boolean
   /** Your own keyboard shortcuts, by command ("" turns one off). */
   shortcuts: Record<string, string>
   /** Look for a newer Tezgah on GitHub now and then. */
@@ -114,7 +116,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true, shortcuts: {} }
+export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true, shortcuts: {}, introSeen: false }
 
 // Live status, reported by Claude Code through OSC 7501.
 

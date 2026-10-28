@@ -189,6 +189,7 @@ export function Palette() {
     { key: 'inbox', text: t('Notifications'), hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
     { key: 'find', text: t('Find in terminal'), hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
     { key: 'ssh', text: t('New SSH session…'), run: () => A.newSshSession() },
+    { key: 'intro', text: t('Show the Introduction'), run: () => store().setUI({ intro: true }) },
     { key: 'shortcuts', text: t('Keyboard Shortcuts'), run: () => store().setUI({ shortcuts: true }) },
     { key: 'settings', text: t('Settings'), hint: key('settings'), run: () => store().setUI({ settings: true }) },
   ]
@@ -323,6 +324,10 @@ export function SettingsDialog() {
                 )
               })}
             </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Introduction')}</b><span>{t('The short tour shown on first launch.')}</span></div>
+            <button className="pill" onClick={() => store().setUI({ settings: false, intro: true })}>{t('Show Again')}</button>
           </div>
           <div className="row">
             <div className="l"><b>{t('Keyboard Shortcuts')}</b><span>{t('Change any of them.')}</span></div>

@@ -10,6 +10,7 @@ import { SessionView } from './components/SessionView'
 import { AgentDialog, ConfirmDialog, Inbox, ShortcutsDialog, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
 import { Mark } from './components/Icons'
 import { BrowserLayer } from './components/Browser'
+import { Intro } from './components/Intro'
 import { label, setOverrides, type Command } from '../../shared/shortcuts'
 
 const key = (c: Command) => label(c, terms.isMac)
@@ -71,6 +72,7 @@ export function App() {
       <RecentDialog />
       <SettingsDialog />
       <ShortcutsDialog />
+      <Intro />
       <Inbox />
       <AgentDialog />
       <PromptDialog />

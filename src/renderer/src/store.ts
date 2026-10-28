@@ -41,6 +41,8 @@ interface UI {
   settings: boolean
   /** The notification panel. */
   inbox: boolean
+  /** The first-run tour. */
+  intro?: boolean
   /** The keyboard shortcut editor. */
   shortcuts?: boolean
   /** The subagent whose transcript is open. */

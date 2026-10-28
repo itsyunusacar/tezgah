@@ -482,3 +482,145 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 }
 .shortcut-row .keys.changed { color: var(--ink); border-color: var(--secondary); }
 .shortcut-row.recording .keys { border-color: var(--working); color: var(--working); }
+
+/* First-run tour */
+
+.intro-scrim { position: fixed; inset: 0; z-index: 90; background: rgba(12, 11, 10, 0.35); display: grid; place-items: center; padding: 24px; animation: fade-in 0.25s ease; }
+.intro {
+  width: 820px; max-width: 100%; max-height: 100%; background: var(--raised); border: 1px solid var(--border); border-radius: 20px;
+  box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
+}
+.intro .stage {
+  height: 340px; flex: none; position: relative; overflow: hidden; background: var(--sidebar); border-bottom: 1px solid var(--border);
+  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px; animation: fade-in 0.35s ease;
+}
+.intro .copy { padding: 22px 30px 24px; }
+.intro .steps { display: flex; gap: 6px; margin-bottom: 14px; }
+.intro .steps button { width: 22px; height: 4px; border-radius: 4px; border: 0; background: var(--subtle); padding: 0; cursor: default; }
+.intro .steps button.on { background: var(--ink); width: 34px; }
+.intro h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.4px; font-weight: 600; }
+.intro p { margin: 0; color: var(--secondary); font-size: 14px; line-height: 1.55; max-width: 600px; }
+.intro .buttons { display: flex; gap: 8px; margin-top: 22px; align-items: center; }
+.intro .buttons .grow { flex: 1; }
+.intro .pill { height: 32px; padding: 0 16px; font-size: 13px; }
+.pill.ghost { background: transparent; border-color: transparent; color: var(--secondary); }
+@keyframes fade-in { from { opacity: 0; } }
+
+.scene { position: absolute; inset: 0; display: grid; place-items: center; }
+
+/* 1 · welcome */
+.scene.welcome { align-content: center; gap: 10px; }
+.scene.welcome .mark { color: var(--ink); animation: rise 0.7s cubic-bezier(.2,.8,.2,1) both; }
+.scene.welcome .word { font-size: 30px; font-weight: 600; letter-spacing: -0.8px; animation: rise 0.7s 0.12s cubic-bezier(.2,.8,.2,1) both; }
+.scene.welcome .chips { display: flex; gap: 8px; margin-top: 10px; }
+.scene.welcome .chips span {
+  padding: 5px 12px; border-radius: 999px; background: var(--raised); border: 1px solid var(--border); font-size: 12.5px; font-weight: 500;
+  animation: rise 0.6s cubic-bezier(.2,.8,.2,1) both, bob 3s ease-in-out infinite;
+}
+.scene.welcome .chips span:nth-child(1) { animation-delay: 0.3s, 1s; }
+.scene.welcome .chips span:nth-child(2) { animation-delay: 0.4s, 1.4s; }
+.scene.welcome .chips span:nth-child(3) { animation-delay: 0.5s, 1.8s; }
+.scene.welcome .chips span:nth-child(4) { animation-delay: 0.6s, 2.2s; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+
+/* Shared mini UI */
+.mini-sidebar {
+  width: 360px; background: var(--sidebar); border: 1px solid var(--border); border-radius: 14px; padding: 8px; box-shadow: var(--shadow);
+  animation: rise 0.5s cubic-bezier(.2,.8,.2,1) both;
+}
+.mini-project { font-size: 11.5px; color: var(--secondary); font-weight: 500; padding: 8px 10px 4px; }
+.mini-row { display: flex; gap: 10px; padding: 9px 10px; border-radius: 10px; }
+.mini-row b { font-weight: 500; font-size: 13px; display: block; }
+.mini-row .dot { margin-top: 5px; }
+.mini-row .sub { font-size: 12px; color: var(--secondary); margin-top: 2px; }
+.mini-row .lines { position: relative; height: 16px; margin-top: 2px; font-size: 12px; color: var(--secondary); }
+.mini-row .lines span { position: absolute; left: 0; white-space: nowrap; opacity: 0; animation: line 6s infinite; }
+@keyframes line { 0%, 30% { opacity: 1; } 33.3%, 100% { opacity: 0; } }
+
+/* 2 · sessions: dots cycle through states in step with the lines */
+.dot.cycle { opacity: 1; }
+.dot.cycle.a { animation: dot-a 6s infinite; }
+.dot.cycle.b { animation: dot-b 6s infinite; }
+.dot.cycle.c { animation: dot-c 6s infinite; }
+.dot.cycle.d { animation: dot-d 6s infinite; }
+@keyframes dot-a { 0%, 32% { background: var(--working); } 33%, 65% { background: var(--waiting); } 66%, 100% { background: var(--done); } }
+@keyframes dot-b { 0%, 32% { background: var(--done); } 33%, 100% { background: var(--working); } }
+@keyframes dot-c { 0%, 32% { background: var(--waiting); } 33%, 65% { background: var(--done); } 66%, 100% { background: var(--working); } }
+@keyframes dot-d { 0%, 65% { background: var(--working); } 66%, 100% { background: var(--done); } }
+.scene.sessions .mini-row:nth-of-type(2) .lines span:nth-child(2) { animation-delay: 2s; }
+
+/* 3 · answer: a cursor clicks Allow, the row starts working, a notification slides in */
+.scene.answer .mini-sidebar { position: relative; height: 120px; }
+.scene.answer .mini-row { position: absolute; left: 8px; right: 8px; top: 8px; background: var(--raised); box-shadow: 0 0 0 1px var(--border); }
+.scene.answer .mini-row.ask { animation: ask 5s infinite; }
+.scene.answer .mini-row.after { opacity: 0; animation: after 5s infinite; }
+.scene.answer .pills { display: flex; gap: 6px; margin-top: 8px; }
+.scene.answer .allow { animation: press 5s infinite; }
+@keyframes ask { 0%, 52% { opacity: 1; } 56%, 100% { opacity: 0; } }
+@keyframes after { 0%, 52% { opacity: 0; } 56%, 100% { opacity: 1; } }
+@keyframes press { 0%, 44% { transform: none; } 47% { transform: scale(0.92); } 50%, 100% { transform: none; } }
+.scene.answer .cursor {
+  position: absolute; width: 14px; height: 20px; left: 50%; top: 50%;
+  background: var(--ink); clip-path: polygon(0 0, 0 75%, 26% 58%, 44% 100%, 58% 94%, 40% 54%, 72% 54%);
+  animation: cursor 5s infinite;
+}
+@keyframes cursor { 0% { transform: translate(120px, 90px); } 40%, 52% { transform: translate(-112px, 18px); } 70%, 100% { transform: translate(140px, 110px); } }
+.scene.answer .toast-note {
+  position: absolute; right: 22px; top: 18px; background: var(--raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 10px 14px; display: flex; flex-direction: column; font-size: 12px; min-width: 170px; animation: toast 5s infinite;
+}
+.scene.answer .toast-note b { font-weight: 600; }
+.scene.answer .toast-note span { color: var(--secondary); }
+@keyframes toast { 0%, 62% { opacity: 0; transform: translateX(30px); } 70%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+/* 4 · browser: commands run, the field fills, the button is pressed, the page answers */
+.scene.browser { grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 34px; }
+.mini-term {
+  background: #0E0D0C; color: #EDEAE6; border-radius: 12px; padding: 14px; font: 11px/1.9 var(--mono); height: 210px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; overflow: hidden; animation: rise 0.5s both;
+}
+.mini-term span { opacity: 0; white-space: nowrap; animation: appear 7s infinite; }
+.mini-term .c2 { animation-delay: 0s; animation-name: appear2; }
+.mini-term .c3 { animation-name: appear3; }
+.mini-term .c4 { animation-name: appear4; color: #63C174; }
+@keyframes appear { 0%, 4% { opacity: 0; } 6%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes appear2 { 0%, 22% { opacity: 0; } 24%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes appear3 { 0%, 50% { opacity: 0; } 52%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes appear4 { 0%, 62% { opacity: 0; } 64%, 96% { opacity: 1; } 100% { opacity: 0; } }
+.mini-browser { background: var(--raised); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 210px; box-shadow: var(--shadow); animation: rise 0.5s 0.1s both; }
+.mini-browser .bar { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-bottom: 1px solid var(--border); font: 10.5px var(--mono); color: var(--secondary); }
+.mini-browser .bar i { width: 7px; height: 7px; border-radius: 50%; background: var(--subtle); }
+.mini-browser .bar span { margin-left: 8px; }
+.mini-browser .page { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: #1A1918; background: #fff; height: 100%; }
+.mini-browser .page b { font-size: 16px; }
+.mini-browser .input-mock { background: #fff; border: 1px solid #DDD8D2; border-radius: 6px; height: 28px; padding: 0 8px; display: flex; align-items: center; font-size: 12px; overflow: hidden; }
+.mini-browser .typed { display: inline-block; overflow: hidden; white-space: nowrap; width: 0; animation: type 7s steps(15) infinite; }
+@keyframes type { 0%, 24% { width: 0; } 44%, 96% { width: 15ch; } 100% { width: 0; } }
+.mini-browser .btn { align-self: flex-start; background: #2F5FD0; color: #fff; border-radius: 6px; padding: 6px 14px; font-weight: 500; animation: btn 7s infinite; }
+@keyframes btn { 0%, 52% { transform: none; } 54% { transform: scale(0.94); } 57%, 100% { transform: none; } }
+.mini-browser .ok { color: #2E7D46; font-weight: 500; opacity: 0; animation: appear4 7s infinite; }
+
+/* 5 · ship */
+.mini-diff {
+  width: 470px; background: var(--raised); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
+  font: 11.5px/1.7 var(--mono); animation: rise 0.5s both;
+}
+.mini-diff .file { padding: 9px 14px; border-bottom: 1px solid var(--border); font-family: var(--sans); font-weight: 500; font-size: 12.5px; }
+.mini-diff .file .add { color: var(--add); } .mini-diff .file .del { color: var(--del); }
+.mini-diff .ln { padding: 0 14px; white-space: pre; }
+.mini-diff .ln.add { background: var(--add-bg); } .mini-diff .ln.del { background: var(--del-bg); }
+.mini-diff .note {
+  margin: 8px 14px 4px 34px; padding: 7px 10px; border-radius: 9px; background: var(--sidebar); border: 1px solid var(--border);
+  font-family: var(--sans); font-size: 12px; opacity: 0; animation: appear2 6s infinite;
+}
+.mini-diff .foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); margin-top: 8px; font-family: var(--sans); }
+.mini-diff .foot .msg { flex: 1; color: var(--secondary); font-size: 12px; overflow: hidden; white-space: nowrap; animation: type2 6s steps(20) infinite; width: 0; }
+@keyframes type2 { 0%, 30% { width: 0; } 50%, 100% { width: 22ch; } }
+.mini-diff .commit { animation: btn 6s infinite; animation-delay: 0.6s; }
+.mini-diff .pr { opacity: 0; animation: appear4 6s infinite; animation-delay: 0.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro *, .intro *::before { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+}

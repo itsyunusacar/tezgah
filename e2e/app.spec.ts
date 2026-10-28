@@ -15,7 +15,7 @@ let project: string
 test.beforeEach(async () => {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tezgah-e2e-'))
   project = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'tezgah-project-')))
-  fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ language: 'en', checkUpdates: false, notify: false, agentTools: false }))
+  fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ language: 'en', checkUpdates: false, notify: false, agentTools: false, introSeen: true }))
   app = await electron.launch({ args: ['.'], env: { ...process.env, TEZGAH_USER_DATA: profile } as Record<string, string> })
   page = await app.firstWindow()
   await page.waitForFunction(() => (window as never as { __tezgah?: unknown }).__tezgah !== undefined)
@@ -84,6 +84,16 @@ test('agents can drive the browser pane', async () => {
   await type(pane, `tezgah browser open '${html}' && tezgah browser click text=Go && tezgah browser eval document.title`)
   await screen(pane, /clicked-ok/)
   await expect(page.locator('webview')).toHaveCount(1)
+})
+
+test('shows the tour on first launch, and it can be skipped', async () => {
+  await page.evaluate(() => (window as never as { __tezgah: any }).__tezgah.store.getState().setUI({ intro: true }))
+  await expect(page.getByRole('heading', { name: 'Welcome to Tezgah' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByRole('heading', { name: 'Every agent at a glance' })).toBeVisible()
+  await page.getByRole('button', { name: 'Skip' }).click()
+  await expect(page.locator('.intro')).toHaveCount(0)
+  expect(await page.evaluate(() => (window as never as { __tezgah: any }).__tezgah.store.getState().settings.introSeen)).toBe(true)
 })
 
 test('speaks Turkish', async () => {
