@@ -590,9 +590,17 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 @keyframes appear3 { 0%, 50% { opacity: 0; } 52%, 96% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes appear4 { 0%, 62% { opacity: 0; } 64%, 96% { opacity: 1; } 100% { opacity: 0; } }
 .mini-browser { background: var(--raised); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 210px; box-shadow: var(--shadow); animation: rise 0.5s 0.1s both; }
-.mini-browser .bar { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-bottom: 1px solid var(--border); font: 10.5px var(--mono); color: var(--secondary); }
-.mini-browser .bar i { width: 7px; height: 7px; border-radius: 50%; background: var(--subtle); }
-.mini-browser .bar span { margin-left: 8px; }
+.mini-browser .bar {
+  height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--sidebar);
+}
+.mini-browser .bar i { display: block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--subtle); }
+.mini-browser .bar i:nth-child(1) { background: #FF5F57; }
+.mini-browser .bar i:nth-child(2) { background: #FEBC2E; }
+.mini-browser .bar i:nth-child(3) { background: #28C840; }
+.mini-browser .bar span {
+  flex: 1; margin: 0 26px 0 10px; height: 20px; border-radius: 6px; background: var(--canvas); border: 1px solid var(--border);
+  display: grid; place-items: center; font: 10.5px var(--mono); color: var(--secondary);
+}
 .mini-browser .page { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: #1A1918; background: #fff; height: 100%; }
 .mini-browser .page b { font-size: 16px; }
 .mini-browser .input-mock { background: #fff; border: 1px solid #DDD8D2; border-radius: 6px; height: 28px; padding: 0 8px; display: flex; align-items: center; font-size: 12px; overflow: hidden; }
