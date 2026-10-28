@@ -267,34 +267,35 @@ export function SettingsDialog() {
               <button onClick={() => setSettings({ fontSize: Math.min(24, settings.fontSize + 1) })}>+</button>
             </div>
           </div>
+          {(ghostty || settings.terminalLook === 'ghostty') && (
           <div className="row">
-            <div className="l"><b>Terminal look</b><span>{ghostty === null ? 'No Ghostty config found' : 'Font and colors from your Ghostty config'}</span></div>
-            <div className="seg">
-              <button className={settings.terminalLook !== 'ghostty' ? 'on' : ''} onClick={() => setSettings({ terminalLook: 'tezgah' })}>Tezgah</button>
-              <button
-                className={settings.terminalLook === 'ghostty' ? 'on' : ''}
-                disabled={ghostty === null}
-                onClick={() => setSettings({ terminalLook: 'ghostty', ...(ghostty?.fontSize ? { fontSize: ghostty.fontSize } : {}) })}
-              >
-                Ghostty
-              </button>
+              <div className="l"><b>Terminal look</b><span>{ghostty ? 'Use the font and colors from your Ghostty config' : 'No Ghostty config found'}</span></div>
+              <div className="seg">
+                <button className={settings.terminalLook !== 'ghostty' ? 'on' : ''} onClick={() => setSettings({ terminalLook: 'tezgah' })}>Tezgah</button>
+                <button
+                  className={settings.terminalLook === 'ghostty' ? 'on' : ''}
+                  disabled={ghostty === null}
+                  onClick={() => setSettings({ terminalLook: 'ghostty', ...(ghostty?.fontSize ? { fontSize: ghostty.fontSize } : {}) })}
+                >
+                  Ghostty
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="row">
             <div className="l">
               <b>Plan limits in the sidebar</b>
-              <span>Claude live; Codex from its last run, while you're signed in or used it this week. Gemini and Grok don't keep their limits on your computer. Right-click the limits to change this too.</span>
+              <span>Gemini and Grok keep their limits on their servers only, so Tezgah can't show them.</span>
             </div>
             <div className="seg">
-              {usageProviders.map((p) => {
-                const on = !p.unavailable && !settings.hiddenUsage.includes(p.id)
+              {usageProviders.filter((p) => !p.unavailable).map((p) => {
+                const on = !settings.hiddenUsage.includes(p.id)
                 const has = usage.some((u) => u.id === p.id)
                 return (
                   <button
                     key={p.id}
                     className={on ? 'on' : ''}
-                    disabled={!!p.unavailable}
-                    title={p.unavailable ?? (has ? undefined : `No ${p.name} limits found right now`)}
+                    title={has ? undefined : p.id === 'codex' ? 'Shows while Codex is signed in or was used this week' : `No ${p.name} limits found right now`}
                     onClick={() => setSettings({ hiddenUsage: on ? [...settings.hiddenUsage, p.id] : settings.hiddenUsage.filter((x) => x !== p.id) })}
                   >
                     {p.name}
