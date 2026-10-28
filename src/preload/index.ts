@@ -1,0 +1,44 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import type { Api } from '../shared/types'
+
+function listen<A extends unknown[]>(channel: string, cb: (...args: A) => void): () => void {
+  const handler = (_e: unknown, ...args: unknown[]) => cb(...(args as A))
+  ipcRenderer.on(channel, handler)
+  return () => ipcRenderer.removeListener(channel, handler)
+}
+
+const api: Api = {
+  platform: process.platform,
+  load: () => ipcRenderer.invoke('load'),
+  saveWorkspace: (ws) => ipcRenderer.send('save-workspace', ws),
+  saveSettings: (s) => ipcRenderer.send('save-settings', s),
+
+  ptyStart: (opts) => ipcRenderer.invoke('pty-start', opts),
+  ptyWrite: (id, data) => ipcRenderer.send('pty-write', id, data),
+  ptyResize: (id, cols, rows) => ipcRenderer.send('pty-resize', id, cols, rows),
+  ptyKill: (id) => ipcRenderer.send('pty-kill', id),
+  onPtyData: (cb) => listen('pty:data', cb),
+  onPtyExit: (cb) => listen('pty:exit', cb),
+
+  pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  claudeHasConversation: (id) => ipcRenderer.invoke('claude-has', id),
+  subagents: (id) => ipcRenderer.invoke('subagents', id),
+  recentConversations: () => ipcRenderer.invoke('recent'),
+  usage: () => ipcRenderer.invoke('usage'),
+
+  diff: (cwd, base) => ipcRenderer.invoke('diff', cwd, base),
+  isGitRepo: (cwd) => ipcRenderer.invoke('is-repo', cwd),
+  worktreeAdd: (repo, branch) => ipcRenderer.invoke('wt-add', repo, branch),
+  worktreeRemove: (repo, wt, del) => ipcRenderer.invoke('wt-remove', repo, wt, del),
+  worktreeMerge: (repo, wt) => ipcRenderer.invoke('wt-merge', repo, wt),
+
+  setBadge: (n) => ipcRenderer.send('badge', n),
+  notify: (title, body, sessionId) => ipcRenderer.send('notify', title, body, sessionId),
+  onNotificationClick: (cb) => listen('notification-click', cb),
+  onMenu: (cb) => listen('menu', cb),
+  openExternal: (url) => ipcRenderer.send('open-external', url),
+  revealPath: (p) => ipcRenderer.send('reveal', p),
+  onOpenFolder: (cb) => listen('open-folder', cb),
+}
+
+contextBridge.exposeInMainWorld('tz', api)

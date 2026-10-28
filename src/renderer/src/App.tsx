@@ -1,0 +1,192 @@
+import { useEffect, useRef } from 'react'
+import * as A from './actions'
+import { sessionStatus, statusLine, store, useStore } from './store'
+import * as terms from './terminals'
+import { Sidebar } from './components/Sidebar'
+import { SessionView } from './components/SessionView'
+import { ConfirmDialog, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
+import { Mark } from './components/Icons'
+import { label, type Command } from '../../shared/shortcuts'
+
+const key = (c: Command) => label(c, terms.isMac)
+
+export function App() {
+  const ready = useStore((s) => s.ready)
+  const sidebar = useStore((s) => s.ui.sidebar)
+  const selectedId = useStore((s) => s.ws.selectedSession)
+  const session = useStore((s) => s.ws.sessions.find((x) => x.id === s.ws.selectedSession))
+  const theme = useStore((s) => s.settings.theme)
+  const fontSize = useStore((s) => s.settings.fontSize)
+
+  useTheme(theme)
+  useEffect(() => terms.applyFontSize(fontSize), [fontSize])
+  useMenu()
+  useWatchers()
+
+  useEffect(() => {
+    if (selectedId) A.select(selectedId)
+  }, [selectedId])
+
+  if (!ready) return null
+  const platform = terms.isMac ? 'mac' : window.tz.platform === 'win32' ? 'win' : 'linux'
+  return (
+    <div className={`app ${platform}`}>
+      {sidebar && <Sidebar />}
+      {session ? <SessionView key={session.id} session={session} /> : <Empty />}
+      <Palette />
+      <RecentDialog />
+      <SettingsDialog />
+      <PromptDialog />
+      <ConfirmDialog />
+      <Toast />
+    </div>
+  )
+}
+
+function Empty() {
+  const hasProjects = useStore((s) => s.ws.projects.length > 0)
+  return (
+    <div className="main">
+      <div className="header" />
+      <div className="empty" style={{ position: 'relative' }}>
+        <div className="grid-paper" style={{ position: 'absolute', inset: 0, opacity: 0.6 }} />
+        <div style={{ position: 'relative' }}>
+          <Mark size={56} />
+          <h1>Tezgah</h1>
+          <p>Your projects and AI agents, on one bench.</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="pill primary" onClick={() => A.openFolder()}>Open a Folder</button>
+            {hasProjects && <button className="pill" onClick={() => A.newSession(undefined, 'claude')}>New Session</button>}
+            <button className="pill" onClick={() => store().setUI({ recent: true })}>Recent Conversations</button>
+          </div>
+          <div className="keys" style={{ display: 'inline-grid' }}>
+            <span>New Claude session</span><span className="kbd">{key('new-claude')}</span>
+            <span>New shell session</span><span className="kbd">{key('new-shell')}</span>
+            <span>Go to session</span><span className="kbd">{key('palette')}</span>
+            <span>Next one that needs you</span><span className="kbd">{key('next-waiting')}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function useTheme(theme: 'system' | 'light' | 'dark') {
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => {
+      const dark = theme === 'dark' || (theme === 'system' && media.matches)
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      terms.applyTheme()
+    }
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [theme])
+}
+
+function useMenu() {
+  useEffect(() => {
+    const off = window.tz.onMenu((action) => {
+      const s = A.selected()
+      const ui = store().ui
+      if (action.startsWith('goto-')) {
+        const list = A.orderedSessions()
+        const target = list[Number(action.slice(5))]
+        if (target) A.select(target.id)
+        return
+      }
+      switch (action) {
+        case 'new-claude': return void A.newSession(s?.projectId, 'claude')
+        case 'new-shell': return void A.newSession(s?.projectId, 'shell')
+        case 'new-worktree': return A.newWorktreeSession(s?.projectId)
+        case 'open-folder': return void A.openFolder()
+        case 'recent': return store().setUI({ recent: true })
+        case 'settings': return store().setUI({ settings: true })
+        case 'palette': return store().setUI({ palette: !ui.palette })
+        case 'changes': return store().setUI({ changes: !ui.changes })
+        case 'sidebar': return store().setUI({ sidebar: !ui.sidebar })
+        case 'close-pane': return A.closePane()
+        case 'close-session': return s && A.closeSession(s.id)
+        case 'split-row': return A.split('row')
+        case 'split-column': return A.split('column')
+        case 'next': return A.move(1)
+        case 'prev': return A.move(-1)
+        case 'next-waiting': return A.nextWaiting()
+        case 'allow': return A.answer(s?.id, true)
+        case 'deny': return A.answer(s?.id, false)
+        case 'interrupt': return A.interrupt()
+        case 'restart': return void A.restartPane()
+        case 'clear': return s && terms.clear(s.focusedPane)
+        case 'font-up': return store().setSettings({ fontSize: Math.min(24, store().settings.fontSize + 1) })
+        case 'font-down': return store().setSettings({ fontSize: Math.max(9, store().settings.fontSize - 1) })
+        case 'font-reset': return store().setSettings({ fontSize: 13 })
+      }
+    })
+    const offFolder = window.tz.onOpenFolder((p) => A.openFolder(p))
+    const offClick = window.tz.onNotificationClick((id) => A.select(id))
+    return () => {
+      off()
+      offFolder()
+      offClick()
+    }
+  }, [])
+}
+
+/** Background work: subagents, usage limits, the dock badge and notifications. */
+function useWatchers() {
+  const panes = useStore((s) => s.panes)
+  const sessions = useStore((s) => s.ws.sessions)
+  const previous = useRef<Record<string, string | undefined>>({})
+
+  // Status changes → "unseen done" marks, notifications, badge.
+  useEffect(() => {
+    const { ws, settings, unseen } = store()
+    const nextUnseen = { ...unseen }
+    let waiting = 0
+    for (const s of ws.sessions) {
+      const status = sessionStatus(s, panes)
+      const before = previous.current[s.id]
+      previous.current[s.id] = status
+      if (status === 'blocked') waiting++
+      if (status === before || before === undefined) continue
+      const visible = document.hasFocus() && ws.selectedSession === s.id
+      if (status === 'done' && !visible) nextUnseen[s.id] = true
+      if ((status === 'blocked' || status === 'done') && !visible && settings.notify) {
+        const line = statusLine(s, panes)
+        window.tz.notify(s.title, status === 'blocked' ? line || 'Needs you' : 'Finished', s.id)
+      }
+    }
+    if (Object.keys(nextUnseen).length !== Object.keys(unseen).length) useStore.setState({ unseen: nextUnseen })
+    window.tz.setBadge(waiting)
+  }, [panes, sessions])
+
+  // Subagents of sessions whose Claude is busy (and briefly after).
+  useEffect(() => {
+    const poll = async () => {
+      const { ws, panes, agents } = store()
+      const next: typeof agents = {}
+      for (const s of ws.sessions) {
+        const status = sessionStatus(s, panes)
+        const active = status === 'working' || status === 'blocked' || (agents[s.id]?.length ?? 0) > 0
+        if (!active) continue
+        const ids = s.panes.filter((p) => p.claudeId).map((p) => p.claudeId!)
+        const lists = await Promise.all(ids.map((id) => window.tz.subagents(id)))
+        const list = lists.flat()
+        if (list.length) next[s.id] = list
+      }
+      useStore.setState({ agents: next })
+    }
+    poll()
+    const t = setInterval(poll, 2000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Claude plan usage every three minutes.
+  useEffect(() => {
+    const load = () => window.tz.usage().then((usage) => useStore.setState({ usage }))
+    load()
+    const t = setInterval(load, 180_000)
+    return () => clearInterval(t)
+  }, [])
+}
