@@ -92,6 +92,8 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
   const permission = blocked && session.panes.some((p) => panes[p.id]?.records.find((r) => r.id === '')?.kind === 'permission')
   const line = statusLine(session, panes, agents)
   const activity = !selected && session.panes.some((p) => panes[p.id]?.activity)
+  const ring = !blocked && session.panes.some((p) => panes[p.id]?.attention)
+  const lastNote = useStore((s) => s.notes.findLast((n) => n.sessionId === session.id && n.kind === 'notice'))
 
   const menu = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -117,6 +119,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       onDoubleClick={() => A.renameSession(session.id)}
       onContextMenu={menu}
     >
+      {ring && <span className="ring" />}
       <span className={`dot ${status === 'done' && !unseen ? '' : status ?? ''}`} />
       <div className="body">
         <div className="title">{session.title}</div>
@@ -127,7 +130,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
               {line ? ' · ' : ''}
             </span>
           )}
-          {line || (activity ? 'New output' : session.panes[0]?.kind === 'shell' && !session.worktree ? 'Shell' : '')}
+          {line || lastNote?.body || (activity ? 'New output' : session.panes[0]?.kind === 'shell' && !session.worktree ? 'Shell' : '')}
         </div>
         {blocked && permission && (
           <div className="actions">

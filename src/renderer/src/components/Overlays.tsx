@@ -176,13 +176,16 @@ export function Palette() {
     { key: 'open', text: 'Open folder…', hint: key('open-folder'), run: () => A.openFolder() },
     { key: 'recent', text: 'Recent conversations…', hint: key('recent'), run: () => store().setUI({ recent: true }) },
     { key: 'wt', text: 'New session in a worktree…', hint: key('new-worktree'), run: () => A.newWorktreeSession() },
+    { key: 'inbox', text: 'Notifications', hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
+    { key: 'find', text: 'Find in terminal', hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
     { key: 'settings', text: 'Settings', hint: key('settings'), run: () => store().setUI({ settings: true }) },
   ]
   return <Picker placeholder="Go to a session or run a command" rows={rows} onClose={() => store().setUI({ palette: false })} empty="No match" />
 }
 
-function ago(t: number): string {
+export function ago(t: number): string {
   const m = Math.round((Date.now() - t) / 60000)
+  if (m < 1) return 'now'
   if (m < 60) return `${m}m ago`
   if (m < 1440) return `${Math.round(m / 60)}h ago`
   return `${Math.round(m / 1440)}d ago`
@@ -254,6 +257,39 @@ export function SettingsDialog() {
         </div>
         <div className="dialog-actions">
           <button className="pill primary" onClick={close}>Done</button>
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+export function Inbox() {
+  const open = useStore((s) => s.ui.inbox)
+  const notes = useStore((s) => s.notes)
+  const sessions = useStore((s) => s.ws.sessions)
+  if (!open) return null
+  const close = () => store().setUI({ inbox: false })
+  const live = new Set(sessions.map((s) => s.id))
+  const list = [...notes].reverse().filter((n) => live.has(n.sessionId))
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog inbox">
+        <div className="head">
+          <b>Notifications</b>
+          <span className="kbd">{key('jump-unread')} latest unread</span>
+          {list.some((n) => !n.read) && <button className="pill small" onClick={() => A.markAllRead()}>Mark All Read</button>}
+        </div>
+        <div className="items">
+          {list.map((n) => (
+            <div key={n.id} className={`note-item ${n.read ? 'read' : ''}`} onClick={() => (close(), A.openNote(n))}>
+              <span className={`dot ${n.read ? '' : n.kind === 'blocked' ? 'blocked' : n.kind === 'done' ? 'done' : 'working'}`} style={n.read || n.kind !== 'notice' ? undefined : { animation: 'none' }} />
+              <div className="body">
+                <div className="t"><span>{n.title}</span><span className="when">{ago(n.at)}</span></div>
+                {n.body && <div className="b">{n.body}</div>}
+              </div>
+            </div>
+          ))}
+          {!list.length && <div className="muted">Nothing yet. Agents that finish, need you or send a notification show up here.</div>}
         </div>
       </div>
     </Scrim>

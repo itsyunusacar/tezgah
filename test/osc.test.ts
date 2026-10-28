@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyReport, parseOsc7501 } from '../src/renderer/src/osc'
+import { applyReport, parseNotice, parseOsc7501 } from '../src/renderer/src/osc'
 
 const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64')
 
@@ -42,5 +42,28 @@ describe('OSC 7501', () => {
     recs = applyReport(recs, { clear: true, id: 'a' })
     expect(recs.map((r) => r.id)).toEqual([''])
     expect(applyReport(recs, { clear: true, id: '' })).toEqual([])
+  })
+})
+
+describe('parseNotice', () => {
+  it('reads OSC 9 and skips progress reports', () => {
+    expect(parseNotice(9, 'Build finished')).toEqual({ body: 'Build finished' })
+    expect(parseNotice(9, '4;1;50')).toBeUndefined()
+  })
+
+  it('reads OSC 777 notify', () => {
+    expect(parseNotice(777, 'notify;Codex;Task complete')).toEqual({ title: 'Codex', body: 'Task complete' })
+    expect(parseNotice(777, 'notify;Only a title')).toEqual({ title: undefined, body: 'Only a title' })
+    expect(parseNotice(777, 'preexec')).toBeUndefined()
+  })
+
+  it('reads kitty OSC 99, plain and base64', () => {
+    expect(parseNotice(99, 'i=1:d=0;Hello')).toEqual({ body: 'Hello' })
+    expect(parseNotice(99, 'p=title;Agent')).toEqual({ title: 'Agent', body: '' })
+    expect(parseNotice(99, `e=1;${btoa('Done')}`)).toEqual({ body: 'Done' })
+  })
+
+  it('strips control characters', () => {
+    expect(parseNotice(9, 'a\x1b[31mb')?.body).toBe('a [31mb')
   })
 })

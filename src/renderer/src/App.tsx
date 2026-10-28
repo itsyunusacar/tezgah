@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import * as A from './actions'
-import { sessionStatus, statusLine, store, useStore } from './store'
+import { rootRecord, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
-import { ConfirmDialog, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
+import { ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
 import { Mark } from './components/Icons'
 import { label, type Command } from '../../shared/shortcuts'
 
@@ -27,6 +27,12 @@ export function App() {
     if (selectedId) A.select(selectedId)
   }, [selectedId])
 
+  useEffect(() =>
+    terms.onNotice((paneId, n) => {
+      const s = A.sessionOfPane(paneId)
+      if (s) A.addNote(s.id, paneId, 'notice', n.title || s.title, n.body || n.title || '')
+    }), [])
+
   if (!ready) return null
   const platform = terms.isMac ? 'mac' : window.tz.platform === 'win32' ? 'win' : 'linux'
   return (
@@ -36,6 +42,7 @@ export function App() {
       <Palette />
       <RecentDialog />
       <SettingsDialog />
+      <Inbox />
       <PromptDialog />
       <ConfirmDialog />
       <Toast />
@@ -113,6 +120,9 @@ function useMenu() {
         case 'next': return A.move(1)
         case 'prev': return A.move(-1)
         case 'next-waiting': return A.nextWaiting()
+        case 'jump-unread': return A.jumpToUnread()
+        case 'inbox': return store().setUI({ inbox: !ui.inbox })
+        case 'find': return s && store().setUI({ find: ui.find === s.focusedPane ? undefined : s.focusedPane })
         case 'allow': return A.answer(s?.id, true)
         case 'deny': return A.answer(s?.id, false)
         case 'interrupt': return A.interrupt()
@@ -130,9 +140,15 @@ function useMenu() {
         case 'font-reset': return store().setSettings({ fontSize: 13 })
       }
     })
+    const onFocus = () => {
+      const s = A.selected()
+      if (s) A.seenPane(s.focusedPane)
+    }
+    window.addEventListener('focus', onFocus)
     const offFolder = window.tz.onOpenFolder((p) => A.openFolder(p))
     const offClick = window.tz.onNotificationClick((id) => A.select(id))
     return () => {
+      window.removeEventListener('focus', onFocus)
       off()
       offFolder()
       offClick()
@@ -148,7 +164,7 @@ function useWatchers() {
 
   // Status changes → "unseen done" marks, notifications, badge.
   useEffect(() => {
-    const { ws, settings, unseen } = store()
+    const { ws, unseen } = store()
     const nextUnseen = { ...unseen }
     let waiting = 0
     for (const s of ws.sessions) {
@@ -159,9 +175,9 @@ function useWatchers() {
       if (status === before || before === undefined) continue
       const visible = document.hasFocus() && ws.selectedSession === s.id
       if (status === 'done' && !visible) nextUnseen[s.id] = true
-      if ((status === 'blocked' || status === 'done') && !visible && settings.notify) {
-        const line = statusLine(s, panes)
-        window.tz.notify(s.title, status === 'blocked' ? line || 'Needs you' : 'Finished', s.id)
+      if (status === 'blocked' || status === 'done') {
+        const pane = s.panes.find((p) => rootRecord(panes[p.id])?.state === status)
+        A.addNote(s.id, pane?.id, status, s.title, status === 'blocked' ? statusLine(s, panes) || 'Needs you' : 'Finished')
       }
     }
     if (Object.keys(nextUnseen).length !== Object.keys(unseen).length) useStore.setState({ unseen: nextUnseen })

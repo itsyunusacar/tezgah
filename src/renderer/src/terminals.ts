@@ -3,7 +3,9 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
-import { applyReport, parseOsc7501 } from './osc'
+import { SearchAddon } from '@xterm/addon-search'
+import { SerializeAddon } from '@xterm/addon-serialize'
+import { applyReport, parseNotice, parseOsc7501, type Notice } from './osc'
 import { shellPath } from './paths'
 import { store } from './store'
 
@@ -14,12 +16,20 @@ import { store } from './store'
 interface Entry {
   term: Terminal
   fit: FitAddon
+  search: SearchAddon
+  serialize: SerializeAddon
   el: HTMLDivElement
   started: boolean
   visible: boolean
 }
 
 const entries = new Map<string, Entry>()
+let noticeHandler: (paneId: string, notice: Notice) => void = () => undefined
+
+/** Called when a program in a pane sends a desktop notification (OSC 9, 777 or 99). */
+export function onNotice(cb: (paneId: string, notice: Notice) => void): void {
+  noticeHandler = cb
+}
 let parking: HTMLDivElement | undefined
 
 export const isMac = window.tz.platform === 'darwin'
@@ -68,6 +78,10 @@ function create(paneId: string): Entry {
   })
   const fit = new FitAddon()
   term.loadAddon(fit)
+  const search = new SearchAddon()
+  term.loadAddon(search)
+  const serialize = new SerializeAddon()
+  term.loadAddon(serialize)
   term.loadAddon(new Unicode11Addon())
   term.unicode.activeVersion = '11'
   term.loadAddon(new WebLinksAddon((e, url) => {
@@ -94,8 +108,19 @@ function create(paneId: string): Entry {
     if (report) store().setPane(paneId, (p) => ({ records: applyReport(p.records, report) }))
     return true
   })
+  for (const code of [9, 777, 99]) {
+    term.parser.registerOscHandler(code, (data) => {
+      const notice = parseNotice(code, data)
+      if (notice) noticeHandler(paneId, notice)
+      return true
+    })
+  }
   term.onTitleChange((title) => store().setPane(paneId, { title }))
-  term.onData((data) => window.tz.ptyWrite(paneId, data))
+  term.onData((data) => {
+    window.tz.ptyWrite(paneId, data)
+    // Typing into a pane means you've seen it.
+    if (store().panes[paneId]?.attention) store().setPane(paneId, { attention: false })
+  })
   term.onResize(({ cols, rows }) => window.tz.ptyResize(paneId, cols, rows))
 
   // On Windows and Linux, Ctrl+C copies when there is a selection; otherwise it's SIGINT.
@@ -114,7 +139,7 @@ function create(paneId: string): Entry {
     return true
   })
 
-  const entry: Entry = { term, fit, el, started: false, visible: false }
+  const entry: Entry = { term, fit, search, serialize, el, started: false, visible: false }
   entries.set(paneId, entry)
   return entry
 }
@@ -200,6 +225,45 @@ export async function pasteClipboard(paneId: string): Promise<void> {
   const { paths, text } = await window.tz.clipboardPaste()
   if (paths.length) insertPaths(paneId, paths)
   else if (text) entries.get(paneId)?.term.paste(text)
+}
+
+const searchColors = () => ({
+  matchBackground: isDark() ? '#4A3F1E' : '#FBE7A1',
+  activeMatchBackground: isDark() ? '#8A6A12' : '#F5C542',
+  matchOverviewRuler: '#D9A400',
+  activeMatchColorOverviewRuler: '#F5A524',
+})
+
+/** Finds `query` in the pane's scrollback; returns whether it was found. */
+export function find(paneId: string, query: string, backwards = false, opts: { caseSensitive?: boolean; regex?: boolean } = {}): boolean {
+  const entry = entries.get(paneId)
+  if (!entry || !query) return false
+  const options = { ...opts, decorations: searchColors() }
+  return backwards ? entry.search.findPrevious(query, options) : entry.search.findNext(query, options)
+}
+
+export function onSearchResults(paneId: string, cb: (index: number, count: number) => void): () => void {
+  const entry = entries.get(paneId)
+  if (!entry) return () => undefined
+  const sub = entry.search.onDidChangeResults(({ resultIndex, resultCount }) => cb(resultIndex, resultCount))
+  return () => sub.dispose()
+}
+
+export function endFind(paneId: string): void {
+  const entry = entries.get(paneId)
+  entry?.search.clearDecorations()
+  entry?.term.clearSelection()
+}
+
+/** What the pane shows: the last `lines` lines as plain text. */
+export function screenText(paneId: string, lines = 200): string {
+  const entry = entries.get(paneId)
+  if (!entry) return ''
+  const buf = entry.term.buffer.active
+  const out: string[] = []
+  for (let i = Math.max(0, buf.length - lines); i < buf.length; i++) out.push(buf.getLine(i)?.translateToString(true) ?? '')
+  while (out.length && !out[out.length - 1]) out.pop()
+  return out.join('\n')
 }
 
 export function clear(paneId: string): void {

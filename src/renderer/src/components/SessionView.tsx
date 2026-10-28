@@ -3,7 +3,7 @@ import type { Diff, Layout, Session } from '../../../shared/types'
 import * as A from '../actions'
 import { rootRecord, sessionStatus, statusLine, useStore } from '../store'
 import * as terms from '../terminals'
-import { Branch, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
+import { Branch, Close, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
 import { ChangesPanel } from './Changes'
 
 export function SessionView({ session }: { session: Session }) {
@@ -176,10 +176,12 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
   }, [title, pane?.kind, session.id])
 
   const blocked = rootRecord(rt)?.state === 'blocked'
+  const ring = !blocked && rt?.attention
+  const finding = useStore((s) => s.ui.find === paneId)
   const [dropping, setDropping] = useState(false)
   return (
     <div
-      className={`pane ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${dropping ? 'dropping' : ''}`}
+      className={`pane ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
       onMouseDown={() => A.focusPane(session.id, paneId)}
       onDragOver={(e) => {
         if (!e.dataTransfer.types.includes('Files')) return
@@ -197,12 +199,59 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
       }}
     >
       <div className="term-slot" ref={slot} />
+      {finding && <FindBar paneId={paneId} />}
       {rt?.exited && (
         <div className="exited">
           <span>{pane?.kind === 'claude' ? 'Claude exited' : 'Process exited'}</span>
           <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>Restart</button>
         </div>
       )}
+    </div>
+  )
+}
+
+function FindBar({ paneId }: { paneId: string }) {
+  const [query, setQuery] = useState('')
+  const [caseSensitive, setCase] = useState(false)
+  const [result, setResult] = useState<{ index: number; count: number }>()
+  const input = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    input.current?.focus()
+    const off = terms.onSearchResults(paneId, (index, count) => setResult({ index, count }))
+    return () => {
+      off()
+      terms.endFind(paneId)
+    }
+  }, [paneId])
+  useEffect(() => {
+    if (!query) {
+      terms.endFind(paneId)
+      setResult(undefined)
+    } else terms.find(paneId, query, false, { caseSensitive })
+  }, [query, caseSensitive, paneId])
+
+  const close = () => {
+    useStore.getState().setUI({ find: undefined })
+    terms.focus(paneId)
+  }
+  return (
+    <div className="find-bar" onMouseDown={(e) => e.stopPropagation()}>
+      <input
+        ref={input}
+        value={query}
+        placeholder="Find"
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') close()
+          if (e.key === 'Enter') terms.find(paneId, query, e.shiftKey, { caseSensitive })
+        }}
+      />
+      <span className="count">{query ? (result && result.count > 0 ? `${result.index + 1}/${result.count}` : 'No results') : ''}</span>
+      <button className={`icon-btn small ${caseSensitive ? 'active' : ''}`} title="Match case" onClick={() => setCase(!caseSensitive)}>Aa</button>
+      <button className="icon-btn small" title="Previous (Shift+Enter)" onClick={() => terms.find(paneId, query, true, { caseSensitive })}>↑</button>
+      <button className="icon-btn small" title="Next (Enter)" onClick={() => terms.find(paneId, query, false, { caseSensitive })}>↓</button>
+      <button className="icon-btn small" title="Close (Esc)" onClick={close}><Close size={11} /></button>
     </div>
   )
 }

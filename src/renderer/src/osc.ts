@@ -61,3 +61,48 @@ export function applyReport(records: StatusRecord[], report: OscReport): StatusR
   }
   return [...records.filter((r) => r.id !== report.record.id), report.record].slice(-256)
 }
+
+// Desktop notifications other programs send (Codex, Gemini CLI, scripts…):
+//   OSC 9 ; body                      iTerm2 / Windows Terminal ("9;4;…" is a progress bar, not a notification)
+//   OSC 777 ; notify ; title ; body   rxvt / Ghostty
+//   OSC 99 ; key=value:… ; payload    kitty (p=title or p=body; d=0 means more chunks follow)
+
+export interface Notice {
+  title?: string
+  body: string
+}
+
+const clean = (s: string, limit: number) => s.replace(/[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]/g, ' ').trim().slice(0, limit)
+
+export function parseNotice(code: number, data: string): Notice | undefined {
+  if (data.length > 4096) return undefined
+  if (code === 9) {
+    if (/^\d+(;|$)/.test(data)) return undefined
+    const body = clean(data, 512)
+    return body ? { body } : undefined
+  }
+  if (code === 777) {
+    const [kind, title = '', ...rest] = data.split(';')
+    if (kind !== 'notify') return undefined
+    const body = clean(rest.join(';'), 512)
+    const t = clean(title, 128)
+    return body || t ? { title: body ? t || undefined : undefined, body: body || t } : undefined
+  }
+  if (code === 99) {
+    const semi = data.indexOf(';')
+    if (semi < 0) return undefined
+    const meta = Object.fromEntries(data.slice(0, semi).split(':').map((kv) => kv.split('=') as [string, string]))
+    let payload = data.slice(semi + 1)
+    if (meta.e === '1') {
+      try {
+        payload = new TextDecoder().decode(Uint8Array.from(atob(payload), (c) => c.charCodeAt(0)))
+      } catch {
+        return undefined
+      }
+    }
+    const text = clean(payload, 512)
+    if (!text) return undefined
+    return meta.p === 'title' ? { title: text, body: '' } : { body: text }
+  }
+  return undefined
+}

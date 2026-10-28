@@ -13,6 +13,20 @@ export interface PaneRuntime {
   exited: boolean
   /** Output arrived while the pane wasn't on screen. */
   activity: boolean
+  /** Finished, asked for you or sent a notification while you were looking elsewhere: draws a ring. */
+  attention: boolean
+}
+
+/** One entry in the notification panel. */
+export interface Note {
+  id: string
+  sessionId: string
+  paneId?: string
+  title: string
+  body: string
+  kind: 'blocked' | 'done' | 'notice'
+  at: number
+  read: boolean
 }
 
 /** The state a session shows: the most urgent of its panes. */
@@ -24,6 +38,10 @@ interface UI {
   palette: boolean
   recent: boolean
   settings: boolean
+  /** The notification panel. */
+  inbox: boolean
+  /** The pane whose find bar is open. */
+  find?: string
   /** A small prompt dialog (rename, branch name…). */
   prompt?: { title: string; placeholder?: string; value: string; confirm: string; onSubmit: (v: string) => void }
   confirm?: { title: string; body: string; actions: { label: string; danger?: boolean; run: () => void }[] }
@@ -39,6 +57,8 @@ interface State {
   usage: UsageLimit[] | null
   /** Sessions whose "done" you haven't looked at yet. */
   unseen: Record<string, boolean>
+  /** Newest last. */
+  notes: Note[]
   ui: UI
 
   setWs(fn: (ws: Workspace) => Workspace): void
@@ -47,7 +67,7 @@ interface State {
   setPane(id: string, patch: Partial<PaneRuntime> | ((p: PaneRuntime) => Partial<PaneRuntime>)): void
 }
 
-const emptyPane = (): PaneRuntime => ({ records: [], title: '', exited: false, activity: false })
+const emptyPane = (): PaneRuntime => ({ records: [], title: '', exited: false, activity: false, attention: false })
 
 export const useStore = create<State>((set) => ({
   ready: false,
@@ -57,7 +77,8 @@ export const useStore = create<State>((set) => ({
   agents: {},
   usage: null,
   unseen: {},
-  ui: { sidebar: true, changes: false, palette: false, recent: false, settings: false },
+  notes: [],
+  ui: { sidebar: true, changes: false, palette: false, recent: false, settings: false, inbox: false },
 
   setWs: (fn) =>
     set((s) => {

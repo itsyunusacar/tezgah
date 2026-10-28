@@ -1,6 +1,6 @@
 import type { Pane, PaneKind, Project, Session } from '../../shared/types'
 import {
-  blockedPane, layoutPanes, newPane, removeFromLayout, sessionCwd, sessionStatus, splitLayout, store, uid, useStore,
+  type Note, blockedPane, layoutPanes, newPane, removeFromLayout, sessionCwd, sessionStatus, splitLayout, store, uid, useStore,
 } from './store'
 import * as terms from './terminals'
 
@@ -75,6 +75,8 @@ export function toggleProject(id: string): void {
 export function select(id: string | undefined): void {
   store().setWs((ws) => ({ ...ws, selectedSession: id }))
   if (id) useSeen(id)
+  const s = session(id)
+  if (s) seenPane(s.focusedPane)
 }
 
 function useSeen(id: string): void {
@@ -237,6 +239,56 @@ export function split(dir: 'row' | 'column', kind: PaneKind = 'shell'): void {
 
 export function focusPane(sessionId: string, paneId: string): void {
   if (session(sessionId)?.focusedPane !== paneId) updateSession(sessionId, (x) => ({ ...x, focusedPane: paneId }))
+  seenPane(paneId)
+}
+
+/** The session a pane belongs to. */
+export function sessionOfPane(paneId: string): Session | undefined {
+  return store().ws.sessions.find((s) => s.panes.some((p) => p.id === paneId))
+}
+
+/** Whether you are looking at this pane right now. */
+export function paneInView(paneId: string): boolean {
+  const s = selected()
+  return document.hasFocus() && !!s && s.focusedPane === paneId
+}
+
+/** You've looked at the pane: drop its ring and mark its notifications read. */
+export function seenPane(paneId: string): void {
+  if (store().panes[paneId]?.attention) store().setPane(paneId, { attention: false })
+  if (store().notes.some((n) => n.paneId === paneId && !n.read))
+    useStore.setState({ notes: store().notes.map((n) => (n.paneId === paneId ? { ...n, read: true } : n)) })
+}
+
+// Notifications
+
+/** Records a notification; rings the pane and tells the OS when you aren't looking at it. */
+export function addNote(sessionId: string, paneId: string | undefined, kind: Note['kind'], title: string, body: string): void {
+  const inView = paneId ? paneInView(paneId) : document.hasFocus() && store().ws.selectedSession === sessionId
+  const note: Note = { id: uid(), sessionId, paneId, kind, title, body, at: Date.now(), read: inView }
+  useStore.setState({ notes: [...store().notes, note].slice(-200) })
+  if (inView) return
+  if (paneId) store().setPane(paneId, { attention: true })
+  if (store().settings.notify) window.tz.notify(title, body, sessionId)
+}
+
+export function openNote(note: Note): void {
+  select(note.sessionId)
+  if (note.paneId && session(note.sessionId)?.panes.some((p) => p.id === note.paneId)) focusPane(note.sessionId, note.paneId)
+  useStore.setState({ notes: store().notes.map((n) => (n.id === note.id ? { ...n, read: true } : n)) })
+}
+
+/** Jumps to the newest notification you haven't read. */
+export function jumpToUnread(): void {
+  const live = new Set(store().ws.sessions.map((s) => s.id))
+  const note = [...store().notes].reverse().find((n) => !n.read && live.has(n.sessionId))
+  if (note) openNote(note)
+  else nextWaiting()
+}
+
+export function markAllRead(): void {
+  useStore.setState({ notes: store().notes.map((n) => ({ ...n, read: true })) })
+  for (const [id, p] of Object.entries(store().panes)) if (p.attention) store().setPane(id, { attention: false })
 }
 
 export function closePane(): void {
