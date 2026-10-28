@@ -4,3 +4,12 @@ export function shellPath(p: string, windows: boolean): string {
   if (windows) return /[\s&()^%!;,]/.test(p) ? `"${p}"` : p
   return p.replace(/([^A-Za-z0-9_\-.,:/@+=%~])/g, '\\$1')
 }
+
+/** Normalizes what someone typed in an address bar: "localhost:3000" → http, "example.com" → https. */
+export function normalizeUrl(input: string): string {
+  const t = input.trim()
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t) || t.startsWith('about:')) return t
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/.test(t)) return `http://${t}`
+  if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/|$)/.test(t)) return `https://${t}`
+  return `https://duckduckgo.com/?q=${encodeURIComponent(t)}`
+}

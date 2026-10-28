@@ -14,6 +14,7 @@ export const shortcuts = {
   palette: ['Cmd+P', 'Ctrl+Shift+P'],
   changes: ['Cmd+Shift+D', 'Ctrl+Shift+G'],
   sidebar: ['Cmd+B', 'Ctrl+Shift+B'],
+  browser: ['Cmd+Shift+L', 'Ctrl+Shift+Y'],
   'split-row': ['Cmd+D', 'Alt+Shift+='],
   'split-column': ['Cmd+Alt+D', 'Alt+Shift+-'],
   next: ['Cmd+Shift+]', 'Ctrl+Tab'],

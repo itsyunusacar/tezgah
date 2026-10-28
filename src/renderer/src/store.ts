@@ -190,8 +190,8 @@ export function removeFromLayout(l: Layout, paneId: string): Layout | undefined 
   return { ...l, children: kept, sizes }
 }
 
-export function newPane(kind: PaneKind): Pane {
-  return kind === 'claude' ? { id: uid(), kind, claudeId: uid() } : { id: uid(), kind }
+export function newPane(kind: PaneKind, extra: Partial<Pane> = {}): Pane {
+  return kind === 'claude' ? { id: uid(), kind, claudeId: uid(), ...extra } : { id: uid(), kind, ...extra }
 }
 
 export function sessionCwd(session: Session, project?: Project): string {

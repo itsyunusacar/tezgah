@@ -176,6 +176,7 @@ export function Palette() {
     { key: 'open', text: 'Open folder…', hint: key('open-folder'), run: () => A.openFolder() },
     { key: 'recent', text: 'Recent conversations…', hint: key('recent'), run: () => store().setUI({ recent: true }) },
     { key: 'wt', text: 'New session in a worktree…', hint: key('new-worktree'), run: () => A.newWorktreeSession() },
+    { key: 'browser', text: 'Open browser', hint: key('browser'), run: () => A.openBrowserHere() },
     { key: 'inbox', text: 'Notifications', hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
     { key: 'find', text: 'Find in terminal', hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
     { key: 'settings', text: 'Settings', hint: key('settings'), run: () => store().setUI({ settings: true }) },

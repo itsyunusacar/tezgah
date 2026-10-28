@@ -3,6 +3,9 @@ import {
   type Note, blockedPane, layoutPanes, newPane, removeFromLayout, sessionCwd, sessionStatus, splitLayout, store, uid, useStore,
 } from './store'
 import * as terms from './terminals'
+import { normalizeUrl } from './paths'
+
+export const normalizeAddress = normalizeUrl
 
 const basename = (p: string) => p.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || p
 
@@ -24,6 +27,7 @@ function updateSession(id: string, fn: (s: Session) => Session): void {
 
 /** What a pane runs at start: a Claude conversation it can resume, or just the shell. */
 export async function startCommand(pane: Pane): Promise<string | undefined> {
+  if (pane.kind === 'shell') return pane.command
   if (pane.kind !== 'claude' || !pane.claudeId) return undefined
   const exists = await window.tz.claudeHasConversation(pane.claudeId)
   const extra = store().settings.claudeArgs.trim()
@@ -225,16 +229,35 @@ export function nextWaiting(): void {
 
 // Panes
 
-export function split(dir: 'row' | 'column', kind: PaneKind = 'shell'): void {
-  const s = selected()
-  if (!s) return
-  const pane = newPane(kind)
+export function split(dir: 'row' | 'column', kind: PaneKind = 'shell', extra: Partial<Pane> = {}, sessionId?: string): Pane | undefined {
+  const s = session(sessionId) ?? selected()
+  if (!s) return undefined
+  const pane = newPane(kind, extra)
   updateSession(s.id, (x) => ({
     ...x,
     panes: [...x.panes, pane],
     layout: splitLayout(x.layout, x.focusedPane, pane.id, dir),
     focusedPane: pane.id,
   }))
+  return pane
+}
+
+export function updatePane(sessionId: string, paneId: string, patch: Partial<Pane>): void {
+  updateSession(sessionId, (x) => ({ ...x, panes: x.panes.map((p) => (p.id === paneId ? { ...p, ...patch } : p)) }))
+}
+
+/** Opens a page in a browser pane beside the session's terminal, reusing one that's already open. */
+export function openBrowser(url: string, sessionId?: string): void {
+  const s = session(sessionId) ?? selected()
+  if (!s) return
+  select(s.id)
+  const existing = s.panes.find((p) => p.kind === 'browser')
+  if (existing) {
+    updatePane(s.id, existing.id, { url: normalizeUrl(url) })
+    focusPane(s.id, existing.id)
+    return
+  }
+  split('row', 'browser', { url: normalizeUrl(url) }, s.id)
 }
 
 export function focusPane(sessionId: string, paneId: string): void {
@@ -319,7 +342,7 @@ export function setSizes(sessionId: string, path: number[], sizes: number[]): vo
 export async function restartPane(sessionId?: string, paneId?: string): Promise<void> {
   const s = session(sessionId) ?? selected()
   const pane = s?.panes.find((p) => p.id === (paneId ?? s.focusedPane))
-  if (!s || !pane) return
+  if (!s || !pane || pane.kind === 'browser') return
   const command = await startCommand(pane)
   terms.restart(pane.id, paneStart(s.id, pane.id, command))
 }
@@ -341,7 +364,8 @@ export function interrupt(): void {
 export function sendToClaude(sessionId: string, text: string): void {
   const s = session(sessionId)
   if (!s) return
-  const pane = s.panes.find((p) => p.kind === 'claude') ?? s.panes[0]
+  const pane = s.panes.find((p) => p.kind === 'claude') ?? s.panes.find((p) => p.kind !== 'browser')
+  if (!pane) return
   terms.paste(pane.id, text, true)
   focusPane(s.id, pane.id)
   terms.focus(pane.id)
@@ -366,9 +390,17 @@ export function openConversation(id: string, cwd: string): void {
   newSession(p.id, 'claude', undefined, id)
 }
 
+/** A browser beside the focused terminal: on the session's dev server if it runs one. */
+export function openBrowserHere(): void {
+  const s = selected()
+  if (!s) return
+  const port = store().meta[s.id]?.ports[0]
+  openBrowser(port ? `http://localhost:${port}` : 'about:blank', s.id)
+}
+
 /** Opens a port one of the session's programs listens on. */
-export function openPort(_sessionId: string, port: number): void {
-  window.tz.openExternal(`http://localhost:${port}`)
+export function openPort(sessionId: string, port: number): void {
+  openBrowser(`http://localhost:${port}`, sessionId)
 }
 
 // Feedback

@@ -10,8 +10,8 @@ export interface Project {
   collapsed?: boolean
 }
 
-/** What a pane runs when it starts. */
-export type PaneKind = 'claude' | 'shell'
+/** What a pane holds: Claude Code, a shell, or a web page. */
+export type PaneKind = 'claude' | 'shell' | 'browser'
 
 /** One terminal inside a session. */
 export interface Pane {
@@ -19,6 +19,10 @@ export interface Pane {
   kind: PaneKind
   /** Claude Code conversation id, so the pane resumes the same conversation after a relaunch. */
   claudeId?: string
+  /** Typed into the shell when it starts (custom commands, ssh…). */
+  command?: string
+  /** A browser pane's page. */
+  url?: string
 }
 
 /** Panes split horizontally (side by side) or vertically (stacked). */

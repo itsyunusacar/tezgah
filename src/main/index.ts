@@ -59,6 +59,7 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
+      webviewTag: true,
     },
   })
   win.once('ready-to-show', () => win?.show())
@@ -158,6 +159,7 @@ function buildMenu(): void {
         sep,
         item('Split Right', 'split-row'),
         item('Split Down', 'split-column'),
+        item('Open Browser', 'browser'),
         sep,
         item('Bigger', 'font-up'),
         item('Smaller', 'font-down'),
@@ -302,6 +304,23 @@ function clipboardPaste(): { paths: string[]; text: string } {
   }
   return { paths: [], text }
 }
+
+// Browser panes: plain web pages, without Node or Tezgah's API, opening new windows in place.
+app.on('web-contents-created', (_e, contents) => {
+  contents.on('will-attach-webview', (e, prefs, params) => {
+    delete prefs.preload
+    prefs.nodeIntegration = false
+    prefs.contextIsolation = true
+    prefs.sandbox = true
+    if (!/^(https?:|file:|about:blank)/.test(params.src)) e.preventDefault()
+  })
+  if (contents.getType() === 'webview') {
+    contents.setWindowOpenHandler(({ url }) => {
+      if (/^https?:/.test(url)) contents.loadURL(url)
+      return { action: 'deny' }
+    })
+  }
+})
 
 // App lifecycle
 

@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { Diff, Layout, Session } from '../../../shared/types'
+import type { Diff, Layout, Pane, Session } from '../../../shared/types'
 import * as A from '../actions'
 import { rootRecord, sessionStatus, statusLine, useStore } from '../store'
 import * as terms from '../terminals'
-import { Branch, Close, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
+import { Branch, Close, Globe, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
 import { ChangesPanel } from './Changes'
+import { BrowserPane } from './Browser'
 
 export function SessionView({ session }: { session: Session }) {
   const panes = useStore((s) => s.panes)
@@ -62,6 +63,9 @@ export function SessionView({ session }: { session: Session }) {
             </span>
           </button>
         )}
+        <button className="icon-btn" title="Open browser" onClick={() => A.openBrowserHere()}>
+          <Globe />
+        </button>
         <button className="icon-btn" title="Split right" onClick={() => A.split('row')}>
           <SplitRow />
         </button>
@@ -137,16 +141,63 @@ function Cell({ grow, divider, onDrag, children }: { grow: number; divider: bool
 }
 
 function PaneView({ session, paneId }: { session: Session; paneId: string }) {
-  const slot = useRef<HTMLDivElement>(null)
   const rt = useStore((s) => s.panes[paneId])
-  const fontSize = useStore((s) => s.settings.fontSize)
   const focused = session.focusedPane === paneId
   const multi = session.panes.length > 1
   const pane = session.panes.find((p) => p.id === paneId)
 
+  // Claude's conversation title becomes the session title.
+  const title = rootRecord(rt)?.title ?? rt?.title
+  useEffect(() => {
+    if (pane?.kind === 'claude' && title) A.adoptTitle(session.id, title)
+  }, [title, pane?.kind, session.id])
+
+  const blocked = rootRecord(rt)?.state === 'blocked'
+  const ring = !blocked && rt?.attention
+  const finding = useStore((s) => s.ui.find === paneId)
+  const [dropping, setDropping] = useState(false)
+  if (!pane) return null
+  const browser = pane.kind === 'browser'
+  return (
+    <div
+      className={`pane ${browser ? 'web' : ''} ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
+      onMouseDown={() => A.focusPane(session.id, paneId)}
+      onDragOver={(e) => {
+        if (browser || !e.dataTransfer.types.includes('Files')) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+        setDropping(true)
+      }}
+      onDragLeave={() => setDropping(false)}
+      onDrop={(e) => {
+        if (browser) return
+        e.preventDefault()
+        setDropping(false)
+        const paths = [...e.dataTransfer.files].map((f) => window.tz.pathForFile(f)).filter(Boolean)
+        A.focusPane(session.id, paneId)
+        terms.insertPaths(paneId, paths)
+      }}
+    >
+      {browser ? <BrowserPane session={session} pane={pane} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}
+      {finding && !browser && <FindBar paneId={paneId} />}
+      {rt?.exited && (
+        <div className="exited">
+          <span>{pane.kind === 'claude' ? 'Claude exited' : 'Process exited'}</span>
+          <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>Restart</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TerminalSlot({ session, pane, focused }: { session: Session; pane: Pane; focused: boolean }) {
+  const slot = useRef<HTMLDivElement>(null)
+  const fontSize = useStore((s) => s.settings.fontSize)
+  const paneId = pane.id
+
   useLayoutEffect(() => {
     const el = slot.current
-    if (!el || !pane) return
+    if (!el) return
     let cancelled = false
     // The startup command needs an async check (does the conversation exist yet?), so resolve it first.
     A.startCommand(pane).then((command) => {
@@ -169,45 +220,7 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
   }, [focused, paneId])
   useEffect(() => terms.fit(paneId), [fontSize, paneId])
 
-  // Claude's conversation title becomes the session title.
-  const title = rootRecord(rt)?.title ?? rt?.title
-  useEffect(() => {
-    if (pane?.kind === 'claude' && title) A.adoptTitle(session.id, title)
-  }, [title, pane?.kind, session.id])
-
-  const blocked = rootRecord(rt)?.state === 'blocked'
-  const ring = !blocked && rt?.attention
-  const finding = useStore((s) => s.ui.find === paneId)
-  const [dropping, setDropping] = useState(false)
-  return (
-    <div
-      className={`pane ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
-      onMouseDown={() => A.focusPane(session.id, paneId)}
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes('Files')) return
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-        setDropping(true)
-      }}
-      onDragLeave={() => setDropping(false)}
-      onDrop={(e) => {
-        e.preventDefault()
-        setDropping(false)
-        const paths = [...e.dataTransfer.files].map((f) => window.tz.pathForFile(f)).filter(Boolean)
-        A.focusPane(session.id, paneId)
-        terms.insertPaths(paneId, paths)
-      }}
-    >
-      <div className="term-slot" ref={slot} />
-      {finding && <FindBar paneId={paneId} />}
-      {rt?.exited && (
-        <div className="exited">
-          <span>{pane?.kind === 'claude' ? 'Claude exited' : 'Process exited'}</span>
-          <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>Restart</button>
-        </div>
-      )}
-    </div>
-  )
+  return <div className="term-slot" ref={slot} />
 }
 
 function FindBar({ paneId }: { paneId: string }) {
