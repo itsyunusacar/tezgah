@@ -200,9 +200,11 @@ function TerminalSlot({ session, pane, focused }: { session: Session; pane: Pane
     if (!el) return
     let cancelled = false
     // The startup command needs an async check (does the conversation exist yet?), so resolve it first.
-    A.startCommand(pane).then((command) => {
+    // Shells come back with what they showed last time; Claude restores its own conversation.
+    const restore = pane.kind === 'claude' ? Promise.resolve(undefined) : window.tz.loadScrollback(paneId)
+    Promise.all([A.startCommand(pane), restore]).then(([command, saved]) => {
       if (cancelled) return
-      terms.attach(paneId, el, A.paneStart(session.id, paneId, command))
+      terms.attach(paneId, el, A.paneStart(session.id, paneId, command), saved)
       if (focused) terms.focus(paneId)
     })
     const ro = new ResizeObserver(() => terms.fit(paneId))

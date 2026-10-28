@@ -30,6 +30,16 @@ export function App() {
 
   useEffect(() => startControl(), [])
 
+  // Shell screens survive a relaunch.
+  useEffect(() => {
+    window.addEventListener('beforeunload', terms.saveScrollback)
+    const t = setInterval(terms.saveScrollback, 60_000)
+    return () => {
+      window.removeEventListener('beforeunload', terms.saveScrollback)
+      clearInterval(t)
+    }
+  }, [])
+
   useEffect(() =>
     terms.onNotice((paneId, n) => {
       const s = A.sessionOfPane(paneId)

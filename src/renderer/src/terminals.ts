@@ -21,6 +21,8 @@ interface Entry {
   el: HTMLDivElement
   started: boolean
   visible: boolean
+  /** Its screen is saved for the next launch (shells; Claude restores its own conversation). */
+  keep: boolean
 }
 
 const entries = new Map<string, Entry>()
@@ -139,14 +141,19 @@ function create(paneId: string): Entry {
     return true
   })
 
-  const entry: Entry = { term, fit, search, serialize, el, started: false, visible: false }
+  const entry: Entry = { term, fit, search, serialize, el, started: false, visible: false, keep: false }
   entries.set(paneId, entry)
   return entry
 }
 
-/** Starts the pane's process the first time it is shown. */
-export function attach(paneId: string, container: HTMLElement, start: () => { cwd: string; command?: string }): void {
+/** Starts the pane's process the first time it is shown, after replaying what it showed last time. */
+export function attach(paneId: string, container: HTMLElement, start: () => { cwd: string; command?: string }, restore?: string | null): void {
+  const fresh = !entries.has(paneId)
   const entry = entries.get(paneId) ?? create(paneId)
+  if (fresh && restore !== undefined) {
+    entry.keep = true
+    if (restore) entry.term.write(restore.replace(/\n+$/, '') + '\r\n\x1b[2m── restored ──\x1b[0m\r\n')
+  }
   container.appendChild(entry.el)
   entry.visible = true
   store().setPane(paneId, { activity: false })
@@ -192,9 +199,22 @@ export function restart(paneId: string, start: () => { cwd: string; command?: st
   window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: !isDark() })
 }
 
+/** Saves the screens of shell panes; called on quit and now and then. */
+export function saveScrollback(): void {
+  for (const [id, entry] of entries) {
+    if (!entry.keep || !entry.started) continue
+    try {
+      window.tz.saveScrollback(id, entry.serialize.serialize({ scrollback: 2000, excludeAltBuffer: true, excludeModes: true }))
+    } catch {
+      // A terminal mid-teardown.
+    }
+  }
+}
+
 export function dispose(paneId: string): void {
   const entry = entries.get(paneId)
   window.tz.ptyKill(paneId)
+  window.tz.dropScrollback(paneId)
   if (!entry) return
   entry.term.dispose()
   entry.el.remove()
@@ -260,9 +280,12 @@ export function screenText(paneId: string, lines = 200): string {
   const entry = entries.get(paneId)
   if (!entry) return ''
   const buf = entry.term.buffer.active
+  const text = (i: number) => buf.getLine(i)?.translateToString(true) ?? ''
+  // Count back from the last line with something on it; a short screen ends in blank rows.
+  let end = buf.length - 1
+  while (end >= 0 && !text(end)) end--
   const out: string[] = []
-  for (let i = Math.max(0, buf.length - lines); i < buf.length; i++) out.push(buf.getLine(i)?.translateToString(true) ?? '')
-  while (out.length && !out[out.length - 1]) out.pop()
+  for (let i = Math.max(0, end - lines + 1); i <= end; i++) out.push(text(i))
   return out.join('\n')
 }
 

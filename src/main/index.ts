@@ -214,6 +214,31 @@ function registerIpc(): void {
     nativeTheme.themeSource = s.theme
   })
 
+  const scrollbackFile = (id: string) => (/^[\w-]{8,64}$/.test(id) ? path.join(dataDir(), 'scrollback', `${id}.txt`) : undefined)
+  ipcMain.on('save-scrollback', (e, id: string, data: string) => {
+    const f = scrollbackFile(id)
+    try {
+      if (f) {
+        fs.mkdirSync(path.dirname(f), { recursive: true })
+        fs.writeFileSync(f, data.slice(-(2 << 20)))
+      }
+    } catch {
+      // Best effort.
+    }
+    e.returnValue = true
+  })
+  ipcMain.handle('load-scrollback', (_e, id: string) => {
+    const f = scrollbackFile(id)
+    try {
+      return f ? fs.readFileSync(f, 'utf8') : null
+    } catch {
+      return null
+    }
+  })
+  ipcMain.on('drop-scrollback', (_e, id: string) => {
+    const f = scrollbackFile(id)
+    if (f) fs.rmSync(f, { force: true })
+  })
   ipcMain.handle('pty-start', (e, opts) => pty.start(e.sender, opts))
   ipcMain.on('pty-write', (_e, id: string, data: string) => pty.write(id, data))
   ipcMain.on('pty-resize', (_e, id: string, cols: number, rows: number) => pty.resize(id, cols, rows))
@@ -356,6 +381,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', (_e, argv) => {
+    if (!win) createWindow()
     foldersIn(argv).forEach(openFolder)
     win?.show()
     win?.focus()

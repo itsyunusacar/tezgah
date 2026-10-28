@@ -14,6 +14,10 @@ const api: Api = {
   saveSettings: (s) => ipcRenderer.send('save-settings', s),
 
   ptyStart: (opts) => ipcRenderer.invoke('pty-start', opts),
+  // Synchronous so it completes while the window is closing.
+  saveScrollback: (id, data) => void ipcRenderer.sendSync('save-scrollback', id, data),
+  loadScrollback: (id) => ipcRenderer.invoke('load-scrollback', id),
+  dropScrollback: (id) => ipcRenderer.send('drop-scrollback', id),
   ptyWrite: (id, data) => ipcRenderer.send('pty-write', id, data),
   ptyResize: (id, cols, rows) => ipcRenderer.send('pty-resize', id, cols, rows),
   ptyKill: (id) => ipcRenderer.send('pty-kill', id),

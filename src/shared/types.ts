@@ -161,6 +161,10 @@ export interface Api {
 
   /** `light`: the terminal has a light background (told to programs through COLORFGBG). */
   ptyStart(opts: { paneId: string; cwd: string; command?: string; cols: number; rows: number; light?: boolean }): Promise<void>
+  /** A shell pane's screen, kept across relaunches. */
+  saveScrollback(paneId: string, data: string): void
+  loadScrollback(paneId: string): Promise<string | null>
+  dropScrollback(paneId: string): void
   ptyWrite(paneId: string, data: string): void
   ptyResize(paneId: string, cols: number, rows: number): void
   ptyKill(paneId: string): void
