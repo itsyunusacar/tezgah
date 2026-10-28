@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/images/cover.png" alt="Tezgah — a terminal for working with AI coding agents" width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/itsyunusacar/tezgah/releases"><img alt="Download" src="https://img.shields.io/github/v/release/itsyunusacar/tezgah?include_prereleases&label=download&color=1A1918"></a>
+  <a href="https://github.com/itsyunusacar/tezgah/releases"><img alt="Download" src="https://img.shields.io/github/v/release/itsyunusacar/tezgah?label=download&color=1A1918"></a>
   <a href="https://github.com/itsyunusacar/tezgah/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/itsyunusacar/tezgah/ci.yml?branch=main&label=tests"></a>
   <img alt="macOS · Windows · Linux" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-777169">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-777169"></a>
@@ -9,7 +9,7 @@
 
 <p align="center"><b>English</b> · <a href="README.tr.md">Türkçe</a></p>
 
-**Tezgah** (*tezgâh*, Turkish for workbench) is a terminal for working with AI coding agents. Your projects sit in a sidebar with the sessions you run in each one, and every agent in them — [Claude Code](https://claude.com/claude-code), Codex, Gemini, Grok and others — shows what it's doing: working, waiting for you, done. Keep several going and still know where to look.
+**Tezgah 1.0** is out. Tezgah (*tezgâh*, Turkish for workbench) is a terminal for working with AI coding agents. Your projects sit in a sidebar with the sessions you run in each one, and every agent in them — [Claude Code](https://claude.com/claude-code), Codex, Gemini, Grok and others — shows what it's doing: working, waiting for you, done. Keep several going and still know where to look.
 
 <p align="center"><img src="docs/images/demo.gif" alt="Allowing Claude and Codex from the sidebar, then reading the notifications" width="100%"></p>
 
@@ -27,10 +27,7 @@ Builds aren't signed yet. On macOS, the first time, right-click Tezgah in Applic
 
 ## Every agent at a glance
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img alt="Tezgah with six sessions across three projects, a Claude session asking to run tests, and the app beside it in a browser pane" src="docs/images/hero-light.png">
-</picture>
+<p align="center"><img alt="Tezgah with six sessions across three projects, a Claude session asking to run tests, and the app beside it in a browser pane" src="docs/images/hero.png"></p>
 
 - **Live status, no setup.** Claude Code reports its state itself; Codex through hooks Tezgah passes when you run it (Codex asks you to trust them once); Gemini, Grok, Aider, OpenCode and others are read from what they do. Each session says *Working*, *Needs you* or *Done*, with what it's doing right now.
 - **Answer without switching.** Allow or deny a permission request right from the sidebar. A ring marks the pane that needs you, the bell counts what you missed, and the menu bar icon shows who's waiting.
@@ -46,7 +43,7 @@ Open your dev server beside the terminal. Agents read the page as text with elem
 
 ## Review, commit, ship
 
-<img alt="The Changes panel with a note for Claude on a line, a commit message and Commit All" src="docs/images/changes.png">
+<p align="center"><img alt="The Changes panel with a note for Claude on a line, a commit message and Commit All" src="docs/images/changes.png"></p>
 
 See every change the session made, click a line to leave a note, and send all notes to Claude in one message. Then commit, push and open a pull request from the same panel.
 

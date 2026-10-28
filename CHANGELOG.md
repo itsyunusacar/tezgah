@@ -4,18 +4,9 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
-### Added
+## [1.0.0] - 2026-10-28
 
-- A short animated tour on first launch, in Turkish or English, skippable and replayable from Settings.
-- A pane is named after the agent reporting from it, Claude included, even when started by hand.
-
-### Fixed
-
-- Settings no longer run off the bottom of the window: the list scrolls, with the title and Done always in view.
-
-## [1.0.0-alpha.1] - 2026-10-28
-
-A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on macOS, Windows and Linux.
+The first release of the new Tezgah: a rewrite of the macOS-only app ([tezgah-legacy](https://github.com/itsyunusacar/tezgah-legacy)) on Electron, xterm.js and node-pty. Smaller, and it runs on macOS, Windows and Linux.
 
 ### Sessions and agents
 
@@ -24,6 +15,7 @@ A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on 
 - Status for other agents too. Codex reports exactly through hooks Tezgah passes when you run `codex` in it (Codex asks you to trust them once; your Codex config isn't changed). Grok, Gemini, Aider, OpenCode, Amp and others are read from what they do: output while working, a question when they need you, quiet when done (macOS and Linux).
 - Subagents listed under their session; click one to follow its transcript.
 - Drag sessions and projects to reorder them, pin sessions to the top, and archive ones you're done with (their conversation resumes when you restore them; the quick switcher finds them too).
+- Each pane is named after the agent working in it, Claude included.
 - Split panes with a bar for each (status, split, close), layouts you can save and reopen, worktree sessions with merge, SSH sessions that upload dropped files.
 - Each session shows its git branch, the ports its programs listen on and its pull request (with the GitHub CLI).
 
@@ -45,6 +37,7 @@ A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on 
 - Changes panel with line notes you can send to Claude, and commit, push and open a pull request (with the GitHub CLI) from it.
 - Plan limits for Claude (live) and Codex (from its logs), with reset times and pace.
 - Find in terminal, drop or paste files and screenshots as paths, custom commands, a + menu, quick switcher, recent conversations.
+- A short animated tour on first launch, skippable and replayable from Settings.
 - A first-run checklist: Claude Code, signing in, git and the GitHub CLI, with how to get what's missing.
 - A note in the sidebar when a newer Tezgah is out, with a link to download it (Settings can turn the check off).
 - Change any keyboard shortcut in Settings → Keyboard Shortcuts (conflicts are caught; each goes back to its default).

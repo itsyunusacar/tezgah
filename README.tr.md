@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/images/cover-tr.png" alt="Tezgah — yapay zekâ kodlama ajanlarıyla çalışmak için bir terminal" width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/itsyunusacar/tezgah/releases"><img alt="İndir" src="https://img.shields.io/github/v/release/itsyunusacar/tezgah?include_prereleases&label=indir&color=1A1918"></a>
+  <a href="https://github.com/itsyunusacar/tezgah/releases"><img alt="İndir" src="https://img.shields.io/github/v/release/itsyunusacar/tezgah?label=indir&color=1A1918"></a>
   <a href="https://github.com/itsyunusacar/tezgah/actions/workflows/ci.yml"><img alt="Testler" src="https://img.shields.io/github/actions/workflow/status/itsyunusacar/tezgah/ci.yml?branch=main&label=testler"></a>
   <img alt="macOS · Windows · Linux" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-777169">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/lisans-MIT-777169"></a>
@@ -9,11 +9,11 @@
 
 <p align="center"><a href="README.md">English</a> · <b>Türkçe</b></p>
 
-**Tezgah**, yapay zekâ kodlama ajanlarıyla çalışmak için bir terminal. Projelerin kenar çubuğunda, her birinde açtığın oturumlarla birlikte duruyor. İçlerindeki her ajan — [Claude Code](https://claude.com/claude-code), Codex, Gemini, Grok ve diğerleri — ne yaptığını gösteriyor: çalışıyor, seni bekliyor, bitti. Aynı anda birkaçını çalıştırıp yine de nereye bakacağını bilirsin.
+**Tezgah 1.0** çıktı. Tezgah, yapay zekâ kodlama ajanlarıyla çalışmak için bir terminal. Projelerin kenar çubuğunda, her birinde açtığın oturumlarla birlikte duruyor. İçlerindeki her ajan — [Claude Code](https://claude.com/claude-code), Codex, Gemini, Grok ve diğerleri — ne yaptığını gösteriyor: çalışıyor, seni bekliyor, bitti. Aynı anda birkaçını çalıştırıp yine de nereye bakacağını bilirsin.
 
-<p align="center"><img src="docs/images/demo.gif" alt="Claude ve Codex'e kenar çubuğundan izin verip bildirimlere bakmak" width="100%"></p>
+<p align="center"><img src="docs/images/demo-tr.gif" alt="Claude ve Codex'e kenar çubuğundan izin verip bildirimlere bakmak" width="100%"></p>
 
-<p align="center"><sub><a href="docs/images/demo.mp4">Tam kalitede izle</a></sub></p>
+<p align="center"><sub><a href="docs/images/demo-tr.mp4">Tam kalitede izle</a></sub></p>
 
 ## İndir
 
@@ -27,7 +27,7 @@ Sürümler henüz imzalı değil. macOS'te ilk açılışta Uygulamalar klasör�
 
 ## Tüm ajanlar bir bakışta
 
-<img alt="Üç projede altı oturum, testleri çalıştırmak için izin isteyen bir Claude oturumu ve yanında tarayıcı panelinde açık uygulama" src="docs/images/hero-dark-tr.png">
+<p align="center"><img alt="Üç projede altı oturum, testleri çalıştırmak için izin isteyen bir Claude oturumu ve yanında tarayıcı panelinde açık uygulama" src="docs/images/hero-tr.png"></p>
 
 - **Kurulumsuz canlı durum.** Claude Code durumunu kendisi bildirir; Codex, Tezgah içinde çalıştırdığında verilen kancalarla bildirir (kancalara bir kez güvenip güvenmediğini sorar); Gemini, Grok, Aider, OpenCode ve diğerlerinin durumu ne yaptıklarından okunur. Her oturum *Çalışıyor*, *Seni bekliyor* ya da *Bitti* der ve o an ne yaptığını gösterir.
 - **Geçiş yapmadan yanıtla.** İzin isteklerine doğrudan kenar çubuğundan izin ver ya da reddet. Seni bekleyen panelin etrafında bir halka çıkar, zil kaçırdıklarını sayar, menü çubuğu simgesi kimin beklediğini gösterir.
@@ -43,13 +43,13 @@ Geliştirme sunucunu terminalin yanında aç. Ajanlar sayfayı öğe numaraları
 
 ## İncele, commit'le, yayınla
 
-<img alt="Bir satıra Claude için not bırakılmış, commit mesajı yazılmış Değişiklikler paneli" src="docs/images/changes.png">
+<p align="center"><img alt="Bir satıra Claude için not bırakılmış, commit mesajı yazılmış Değişiklikler paneli" src="docs/images/changes-tr.png"></p>
 
 Oturumun yaptığı her değişikliği gör, not bırakmak için bir satıra tıkla ve tüm notları Claude'a tek mesajda gönder. Sonra aynı panelden commit'le, gönder ve PR aç.
 
 ## Rahat etmen için
 
-<p align="center"><img src="docs/images/tour.png" alt="İlk açılış turu" width="70%"></p>
+<p align="center"><img src="docs/images/tour-tr.png" alt="İlk açılış turu" width="70%"></p>
 
 İlk açılışta kısa bir tur; Türkçe ve İngilizce; açık ve koyu tema; terminalde arama; dosya ve ekran görüntülerini sürükleyip bırakarak ya da yapıştırarak yollarını yazma; SSH oturumları; + menüsünde ve hızlı geçişte kendi komutların; değiştirilebilen her kısayol; yeni sürüm çıktığında sessiz bir not.
 

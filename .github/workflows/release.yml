@@ -28,7 +28,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # Downloads (npm, Electron headers for node-pty) fail now and then on hosted runners; try again.
+      - name: Install
+        shell: bash
+        run: npm ci || (sleep 15 && npm ci) || (sleep 45 && npm ci)
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
       - run: npm test
       - run: npx electron-vite build
       - run: npx electron-builder ${{ matrix.args }} --publish never
