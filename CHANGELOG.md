@@ -4,6 +4,13 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-28
+
+### Fixed
+
+- Pasting works again: text, links, copied files and images (Cmd+V on macOS, Ctrl+Shift+V on Windows and Linux). Nothing pasted in 1.0.1.
+- Pasting into a page in a browser pane goes to that page.
+
 ## [1.0.1] - 2026-10-28
 
 ### Added
