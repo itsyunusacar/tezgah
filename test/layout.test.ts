@@ -11,10 +11,10 @@ describe('layout', () => {
     expect(l).toEqual({ type: 'split', dir: 'row', children: [pane('a'), pane('b')], sizes: [1, 1] })
   })
 
-  it('adds a sibling when splitting in the same direction, halving the target', () => {
+  it('adds a sibling when splitting in the same direction, sharing the space equally', () => {
     const l = splitLayout(splitLayout(pane('a'), 'a', 'b', 'row'), 'a', 'c', 'row')
     expect(layoutPanes(l)).toEqual(['a', 'c', 'b'])
-    expect(l.type === 'split' && l.sizes).toEqual([0.5, 0.5, 1])
+    expect(l.type === 'split' && l.sizes).toEqual([1, 1, 1])
   })
 
   it('nests when splitting in the other direction', () => {

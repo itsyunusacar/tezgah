@@ -130,7 +130,7 @@ function SplitView({ session, layout, path }: { session: Session; layout: Extrac
   return (
     <div className={`split dir-${layout.dir}`} ref={ref}>
       {layout.children.map((child, i) => (
-        <Cell key={child.type === 'pane' ? child.paneId : i} grow={layout.sizes[i] / total} divider={i < layout.children.length - 1} onDrag={drag(i)}>
+        <Cell key={child.type === 'pane' ? child.paneId : i} grow={layout.sizes[i] / total} divider={i < layout.children.length - 1} onDrag={drag(i)} onEven={() => A.evenOut(session.id)}>
           <LayoutView session={session} layout={child} path={[...path, i]} />
         </Cell>
       ))}
@@ -138,11 +138,11 @@ function SplitView({ session, layout, path }: { session: Session; layout: Extrac
   )
 }
 
-function Cell({ grow, divider, onDrag, children }: { grow: number; divider: boolean; onDrag: (e: React.MouseEvent) => void; children: React.ReactNode }) {
+function Cell({ grow, divider, onDrag, onEven, children }: { grow: number; divider: boolean; onDrag: (e: React.MouseEvent) => void; onEven: () => void; children: React.ReactNode }) {
   return (
     <>
       <div className="cell" style={{ flex: `${grow} 1 0` }}>{children}</div>
-      {divider && <div className="divider" onMouseDown={onDrag} />}
+      {divider && <div className="divider" title="Drag to resize · double-click to even out" onMouseDown={onDrag} onDoubleClick={onEven} />}
     </>
   )
 }
@@ -168,6 +168,7 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
   const browser = pane.kind === 'browser'
   return (
     <div
+      data-pane={paneId}
       onContextMenu={(e) => {
         if (browser) return
         e.preventDefault()
@@ -203,6 +204,7 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
             { label: 'Split Right', hint: key('split-row'), run: () => A.split('row', 'shell', {}, session.id) },
             { label: 'Split Down', hint: key('split-column'), run: () => A.split('column', 'shell', {}, session.id) },
             { label: 'Open Browser Beside', hint: key('browser'), run: () => A.openBrowserHere() },
+            ...(multi ? [{ label: 'Even Out Panes', run: () => A.evenOut(session.id) }] : []),
             'divider',
             { label: 'Find…', hint: key('find'), run: () => useStore.getState().setUI({ find: paneId }) },
             { label: 'Clear', hint: key('clear'), run: () => terms.clear(paneId) },
@@ -241,16 +243,19 @@ function PaneBar({ session, pane }: { session: Session; pane: Pane }) {
   return (
     <div className={`pane-bar ${focused ? 'focused' : ''}`} onDoubleClick={() => A.split('row', 'shell', {}, session.id)}>
       <span className={`dot ${state ?? ''}`} />
-      <span className="name">{paneName(pane, rt)}</span>
-      {rec?.message && <span className="msg">{rec.message}</span>}
-      <span className="grow" />
-      <button className="icon-btn tiny" title="Split right" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
-        <SplitRow size={12} />
-      </button>
-      <button className="icon-btn tiny" title="Split down" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
-        <SplitCol size={12} />
-      </button>
-      <button className="icon-btn tiny" title={`Close pane (${key('close-pane')})`} onClick={(e) => (e.stopPropagation(), A.closePaneById(session.id, pane.id))}>
+      <span className="label" title={[paneName(pane, rt), rec?.message].filter(Boolean).join(' · ')}>
+        <span className="name">{paneName(pane, rt)}</span>
+        {rec?.message && <span className="msg">{rec.message}</span>}
+      </span>
+      <span className="tools">
+        <button className="icon-btn tiny" title="Split right" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
+          <SplitRow size={12} />
+        </button>
+        <button className="icon-btn tiny" title="Split down" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
+          <SplitCol size={12} />
+        </button>
+      </span>
+      <button className="icon-btn tiny close" title={`Close pane (${key('close-pane')})`} onClick={(e) => (e.stopPropagation(), A.closePaneById(session.id, pane.id))}>
         <Close size={10} />
       </button>
     </div>

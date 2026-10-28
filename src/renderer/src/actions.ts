@@ -283,9 +283,44 @@ export function nextWaiting(): void {
 
 // Panes
 
+/** The split directly holding a pane, if any. */
+function parentSplit(l: Session['layout'], paneId: string): Extract<Session['layout'], { type: 'split' }> | undefined {
+  if (l.type === 'pane') return undefined
+  if (l.children.some((c) => c.type === 'pane' && c.paneId === paneId)) return l
+  for (const c of l.children) {
+    const hit = parentSplit(c, paneId)
+    if (hit) return hit
+  }
+  return undefined
+}
+
+/** Gives every pane in the session an equal share again. */
+export function evenOut(sessionId?: string): void {
+  const s = session(sessionId) ?? selected()
+  if (!s) return
+  const even = (l: Session['layout']): Session['layout'] => (l.type === 'pane' ? l : { ...l, sizes: l.children.map(() => 1), children: l.children.map(even) })
+  updateSession(s.id, (x) => ({ ...x, layout: even(x.layout) }))
+}
+
+/** Narrowest and shortest a pane may become by splitting; smaller ones can't show a usable terminal. */
+const MIN_PANE = { row: 180, column: 110 }
+
 export function split(dir: 'row' | 'column', kind: PaneKind = 'shell', extra: Partial<Pane> = {}, sessionId?: string): Pane | undefined {
   const s = session(sessionId) ?? selected()
   if (!s) return undefined
+  // Splitting a pane that's already narrow would leave two unusable ones.
+  const el = document.querySelector<HTMLElement>(`[data-pane="${s.focusedPane}"]`)
+  if (el && s.id === store().ws.selectedSession) {
+    // A split in the same direction shares its row equally (splitLayout); otherwise the pane halves.
+    const parent = parentSplit(s.layout, s.focusedPane)
+    const row = el.closest('.split')
+    const size = (e: Element) => (dir === 'row' ? (e as HTMLElement).offsetWidth : (e as HTMLElement).offsetHeight)
+    const room = parent?.dir === dir && row ? size(row) / (parent.children.length + 1) : size(el) / 2
+    if (room < MIN_PANE[dir]) {
+      toast(dir === 'row' ? 'Not enough room beside this pane. Split down, close a pane, or widen the window.' : 'Not enough room below this pane.')
+      return undefined
+    }
+  }
   const pane = newPane(kind, extra)
   updateSession(s.id, (x) => ({
     ...x,

@@ -168,10 +168,8 @@ export function splitLayout(l: Layout, target: string, newId: string, dir: 'row'
   if (i >= 0 && l.dir === dir) {
     const children = [...l.children]
     children.splice(i + 1, 0, { type: 'pane', paneId: newId })
-    const sizes = [...l.sizes]
-    const half = sizes[i] / 2
-    sizes.splice(i, 1, half, half)
-    return { ...l, children, sizes }
+    // Everything in the row (or column) shares the space equally, so repeated splits don't shrink one corner.
+    return { ...l, children, sizes: children.map(() => 1) }
   }
   return { ...l, children: l.children.map((c) => splitLayout(c, target, newId, dir)) }
 }

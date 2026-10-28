@@ -37,6 +37,7 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 ### Fixed
 
 - Terminals could draw garbled letters after moving between sessions or splits, or go blank after the GPU context was lost; they now redraw cleanly and fall back to the DOM renderer.
+- With many panes side by side, the close button disappeared. It now always stays (labels and split buttons give way first), splitting shares a row equally instead of halving one pane, a split that would leave panes too narrow is refused with a hint, and Even Out Panes (pane menu, or double-click a divider) fixes squeezed layouts.
 - Sessions of the same kind in a project are numbered (Shell, Shell 2…) instead of all looking alike.
 
 - In `npm run dev` on macOS, the Desktop, Documents and Downloads folders were silently unreadable because the development Electron app had no folder usage descriptions. A postinstall script now adds them.
