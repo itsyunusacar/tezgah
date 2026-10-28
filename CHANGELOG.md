@@ -35,5 +35,6 @@ A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on 
 - Changes panel with line notes you can send to Claude.
 - Plan limits for Claude (live) and Codex (from its logs), with reset times and pace.
 - Find in terminal, drop or paste files and screenshots as paths, custom commands, a + menu, quick switcher, recent conversations.
+- A note in the sidebar when a newer Tezgah is out, with a link to download it (Settings can turn the check off).
 - Turkish and English, following the system language or chosen in Settings.
 - Light and dark themes, Geist type, optional font and colors from your Ghostty config.

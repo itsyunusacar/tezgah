@@ -71,6 +71,8 @@ export interface Settings {
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
   layouts: SavedLayout[]
+  /** Look for a newer Tezgah on GitHub now and then. */
+  checkUpdates: boolean
   /** Agents whose limits you don't want in the sidebar. */
   hiddenUsage: string[]
   /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
@@ -105,7 +107,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [] }
+export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -251,6 +253,8 @@ export interface Api {
   conversationStats(claudeId: string): Promise<ConversationStats | null>
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<ProviderUsage[]>
+  /** A newer Tezgah release on GitHub, if there is one. */
+  checkUpdate(): Promise<{ version: string; url: string } | null>
   ghosttyLook(): Promise<TerminalLook | null>
   /** Writes the MCP config that gives a Claude pane Tezgah's tools; returns its path. */
   mcpConfig(paneId: string): Promise<string>

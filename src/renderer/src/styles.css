@@ -147,6 +147,13 @@ input, textarea { font: inherit; color: var(--ink); user-select: text; }
 
 .sidebar-foot { flex: none; border-top: 1px solid var(--border); }
 .sidebar-bottom { padding: 11px 14px 4px; }
+.update {
+  display: flex; align-items: center; gap: 8px; width: calc(100% - 16px); margin: 8px 8px 0; padding: 7px 10px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--raised); font-size: 11.5px; font-weight: 500; cursor: default; text-align: left;
+}
+.update .dot { margin: 0; width: 7px; height: 7px; background: var(--working); opacity: 1; }
+.update .go { margin-left: auto; color: var(--working); }
+.update:hover { background: var(--hover); }
 /* A quiet signature at the very bottom: the mark, the name, the version. */
 .signature {
   display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; cursor: default;

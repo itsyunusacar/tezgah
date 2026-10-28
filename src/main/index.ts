@@ -12,6 +12,7 @@ import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
 import * as browser from './browser'
 import { allUsage } from './usage'
+import * as updates from './updates'
 import { createTray, refreshTray, updateTray } from './tray'
 import { language, resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
@@ -269,6 +270,7 @@ function registerIpc(): void {
   ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => allUsage())
+  ipcMain.handle('check-update', () => updates.check())
   ipcMain.handle('mcp-config', (_e, paneId: string) => mcpConfigFile(paneId))
   ipcMain.handle('ghostty-look', () => ghosttyLook())
   ipcMain.handle('browser-act', (_e, id: number, action: string, args: browser.BrowserArgs) => browser.act(id, action, args))

@@ -270,6 +270,16 @@ function useWatchers() {
     return () => clearInterval(t)
   }, [])
 
+  // A newer Tezgah: at launch and every six hours, unless turned off.
+  const checkUpdates = useStore((s) => s.settings.checkUpdates)
+  useEffect(() => {
+    if (!checkUpdates) return void useStore.setState({ update: null })
+    const load = () => window.tz.checkUpdate().then((update) => useStore.setState({ update }))
+    load()
+    const timer = setInterval(load, 6 * 3_600_000)
+    return () => clearInterval(timer)
+  }, [checkUpdates])
+
   // Plan limits: Codex's from its logs every minute; Claude's are fetched every three (cached in main).
   useEffect(() => {
     const load = () => window.tz.usage().then((usage) => useStore.setState({ usage }))

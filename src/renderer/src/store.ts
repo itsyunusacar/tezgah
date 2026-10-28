@@ -65,6 +65,8 @@ interface State {
   meta: Record<string, SessionMeta>
   /** Tezgah's version, for the sidebar's signature. */
   version: string
+  /** A newer release, when there is one. */
+  update: { version: string; url: string } | null
   ui: UI
 
   setWs(fn: (ws: Workspace) => Workspace): void
@@ -86,6 +88,7 @@ export const useStore = create<State>((set) => ({
   notes: [],
   meta: {},
   version: '',
+  update: null,
   ui: { sidebar: true, changes: false, palette: false, recent: false, settings: false, inbox: false },
 
   setWs: (fn) =>

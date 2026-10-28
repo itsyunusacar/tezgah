@@ -319,6 +319,13 @@ export function SettingsDialog() {
             </div>
           </div>
           <div className="row">
+            <div className="l"><b>{t('Check for updates')}</b><span>{t('Looks for a newer Tezgah on GitHub at launch and every six hours. Nothing is installed by itself.')}</span></div>
+            <div className="seg">
+              <button className={settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: true })}>{t('On')}</button>
+              <button className={!settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: false })}>{t('Off')}</button>
+            </div>
+          </div>
+          <div className="row">
             <div className="l"><b>{t('Notifications')}</b><span>{t('When an agent needs you or finishes while you\'re elsewhere')}</span></div>
             <div className="seg">
               <button className={settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: true })}>{t('On')}</button>

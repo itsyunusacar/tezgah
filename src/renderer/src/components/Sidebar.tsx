@@ -22,6 +22,7 @@ export function Sidebar() {
   })
   const layouts = useStore((s) => s.settings.layouts)
   const version = useStore((s) => s.version)
+  const update = useStore((s) => s.update)
   const commands = useStore((s) => s.settings.commands)
 
   // The + menu, like cmux's: new sessions, new panes, layouts and your commands.
@@ -120,6 +121,13 @@ export function Sidebar() {
 
       <div className="sidebar-foot">
         <Usage />
+        {update && (
+          <button className="update" title={update.url} onClick={() => window.tz.openExternal(update.url)}>
+            <span className="dot" />
+            {t('Tezgah {version} is out', { version: update.version })}
+            <span className="go">{t('Download')}</span>
+          </button>
+        )}
         <button className="signature" title={t('Settings')} onClick={() => setUI({ settings: true })}>
           <Mark size={12} />
           <span>{t('tezgah')}</span>
