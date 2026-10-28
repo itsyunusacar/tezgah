@@ -1,6 +1,7 @@
 import * as pty from 'node-pty'
 import os from 'node:os'
 import fs from 'node:fs'
+import { execFile } from 'node:child_process'
 import type { WebContents } from 'electron'
 import path from 'node:path'
 import { binDir, cliEnv } from './control'
@@ -126,6 +127,12 @@ export function kill(paneId: string): void {
   const entry = running.get(paneId)
   if (!entry) return
   running.delete(paneId)
+  // On Windows, node-pty's kill() can block the main process (ConPTY), freezing the whole app;
+  // end the shell and everything it started with taskkill instead, in the background.
+  if (process.platform === 'win32') {
+    execFile('taskkill', ['/pid', String(entry.proc.pid), '/T', '/F'], { windowsHide: true }, () => undefined)
+    return
+  }
   try {
     entry.proc.kill()
   } catch {
