@@ -11,6 +11,7 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 ### Fixed
 
 - In `npm run dev` on macOS, the Desktop, Documents and Downloads folders were silently unreadable because the development Electron app had no folder usage descriptions. A postinstall script now adds them.
+- Light theme: secondary and hint text (paths, shortcut hints, diff line numbers, agent tools) was too pale; it now has readable contrast.
 
 - On the light theme, white and pale text from programs that assume a dark background (Claude Code among them) was invisible. Tezgah now raises such text to a readable contrast, maps the palette's whites to grays, and tells programs the background is light (`COLORFGBG`).
 
