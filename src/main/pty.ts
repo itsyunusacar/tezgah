@@ -2,6 +2,8 @@ import * as pty from 'node-pty'
 import os from 'node:os'
 import fs from 'node:fs'
 import type { WebContents } from 'electron'
+import path from 'node:path'
+import { binDir, cliEnv } from './control'
 
 interface Running {
   proc: pty.IPty
@@ -25,7 +27,7 @@ function shell(): { file: string; args: string[] } {
 
 /** The parent's environment, minus markers that would confuse programs started here
  *  (Tezgah itself may have been launched from inside a Claude Code session). */
-function environment(light: boolean): Record<string, string> {
+function environment(paneId: string, light: boolean): Record<string, string> {
   const env: Record<string, string> = {}
   for (const [k, v] of Object.entries(process.env)) {
     if (v === undefined) continue
@@ -38,6 +40,10 @@ function environment(light: boolean): Record<string, string> {
   // foreground;background in ANSI color numbers: lets vim, less and others pick readable colors.
   env.COLORFGBG = light ? '0;15' : '15;0'
   if (!env.LANG && process.platform !== 'win32') env.LANG = 'en_US.UTF-8'
+  // The `tezgah` command, for scripts and agents running here.
+  Object.assign(env, cliEnv(paneId))
+  const pathKey = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH'
+  env[pathKey] = [binDir(), env[pathKey]].filter(Boolean).join(path.delimiter)
   return env
 }
 
@@ -53,7 +59,7 @@ export function start(
     cols: Math.max(2, opts.cols),
     rows: Math.max(2, opts.rows),
     cwd,
-    env: environment(opts.light ?? false),
+    env: environment(opts.paneId, opts.light ?? false),
   })
   const entry: Running = { proc, pending: opts.command }
   running.set(opts.paneId, entry)

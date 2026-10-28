@@ -23,6 +23,7 @@ export function Sidebar() {
         { label: 'New Claude Session', run: () => A.newSession(id, 'claude') },
         { label: 'New Shell Session', run: () => A.newSession(id, 'shell') },
         { label: 'New Session in a Worktree…', run: () => A.newWorktreeSession(id) },
+        { label: 'New SSH Session…', run: () => A.newSshSession(id) },
         'divider',
         { label: isMac ? 'Reveal in Finder' : 'Show in Folder', run: () => window.tz.revealPath(p.path) },
         'divider',

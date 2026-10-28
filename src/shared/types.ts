@@ -23,6 +23,8 @@ export interface Pane {
   command?: string
   /** A browser pane's page. */
   url?: string
+  /** An SSH session's target ("user@host"): dropped files are uploaded there. */
+  ssh?: string
 }
 
 /** Panes split horizontally (side by side) or vertically (stacked). */
@@ -62,9 +64,16 @@ export interface Settings {
   /** Extra arguments added to every `claude` start, e.g. "--model opus". */
   claudeArgs: string
   notify: boolean
+  /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
+  commands: CustomCommand[]
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true }
+export interface CustomCommand {
+  name: string
+  command: string
+}
+
+export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [] }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -171,8 +180,13 @@ export interface Api {
   clipboardPaste(): Promise<{ paths: string[]; text: string }>
   /** The browser's own paste, for text fields. */
   nativePaste(): void
+  /** Copies files to `/tmp` on an SSH host; returns their remote paths. */
+  scpUpload(target: string, files: string[]): Promise<string[]>
   /** A dropped file's path on disk. */
   pathForFile(file: File): string
   revealPath(path: string): void
   onOpenFolder(cb: (path: string) => void): () => void
+  /** A request from the `tezgah` command. */
+  onControl(cb: (id: string, req: { cmd: string; args: Record<string, unknown>; pane?: string; cwd?: string }) => void): () => void
+  controlReply(id: string, res: { ok: boolean; result?: unknown; error?: string }): void
 }

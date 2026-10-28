@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard as anyClipboard, dialog, ipcMain, Menu, nativeTheme, Notification, shell } from 'electron'
 import os from 'node:os'
+import { execFile } from 'node:child_process'
 import type { MenuItemConstructorOptions } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -7,6 +8,7 @@ import * as pty from './pty'
 import * as claude from './claude'
 import * as git from './git'
 import * as meta from './meta'
+import { startControl } from './control'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -253,6 +255,7 @@ function registerIpc(): void {
   })
   ipcMain.on('reveal', (_e, p: string) => shell.showItemInFolder(p))
   ipcMain.handle('clipboard-paste', () => clipboardPaste())
+  ipcMain.handle('scp-upload', (_e, target: string, files: string[]) => scpUpload(target, files))
   ipcMain.on('native-paste', (e) => e.sender.paste())
 }
 
@@ -322,6 +325,20 @@ app.on('web-contents-created', (_e, contents) => {
   }
 })
 
+/** Uploads files to an SSH host with the user's own ssh setup (keys, agent, config); never prompts. */
+function scpUpload(target: string, files: string[]): Promise<string[]> {
+  if (!/^[\w.@:-]+$/.test(target) || target.startsWith('-')) return Promise.reject(new Error('Bad SSH target'))
+  const remote = files.map((f) => `/tmp/tezgah-${Date.now().toString(36)}-${path.basename(f).replace(/[^\w.-]/g, '_')}`)
+  const copies = files.map((f, i) =>
+    new Promise<void>((resolve, reject) =>
+      execFile('scp', ['-q', '-o', 'BatchMode=yes', '--', f, `${target}:${remote[i]}`], { timeout: 120_000 }, (err, _o, stderr) =>
+        err ? reject(new Error(stderr.trim() || err.message)) : resolve(),
+      ),
+    ),
+  )
+  return Promise.all(copies).then(() => remote)
+}
+
 // App lifecycle
 
 // Started from the Dock or Finder, the app gets a bare PATH; add the usual places for git, gh and claude.
@@ -350,6 +367,7 @@ if (!app.requestSingleInstanceLock()) {
     app.setName('Tezgah')
     nativeTheme.themeSource = readJson<Settings>('settings.json', defaultSettings).theme
     registerIpc()
+    startControl(() => win?.webContents)
     buildMenu()
     pendingFolders.push(...foldersIn(process.argv))
     createWindow()

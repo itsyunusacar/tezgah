@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as A from './actions'
 import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
+import { startControl } from './control'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
 import { ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
@@ -26,6 +27,8 @@ export function App() {
   useEffect(() => {
     if (selectedId) A.select(selectedId)
   }, [selectedId])
+
+  useEffect(() => startControl(), [])
 
   useEffect(() =>
     terms.onNotice((paneId, n) => {
@@ -134,7 +137,7 @@ function useMenu() {
           const el = document.activeElement
           const inField = el instanceof HTMLInputElement || (el instanceof HTMLTextAreaElement && !el.classList.contains('xterm-helper-textarea'))
           if (inField || !s) return window.tz.nativePaste()
-          return void terms.pasteClipboard(s.focusedPane)
+          return void terms.pasteClipboard(s.focusedPane, (paths) => A.dropFiles(s.id, s.focusedPane, paths))
         }
         case 'font-up': return store().setSettings({ fontSize: Math.min(24, store().settings.fontSize + 1) })
         case 'font-down': return store().setSettings({ fontSize: Math.max(9, store().settings.fontSize - 1) })

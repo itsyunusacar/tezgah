@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { RecentConversation } from '../../../shared/types'
+import type { CustomCommand, RecentConversation } from '../../../shared/types'
 import * as A from '../actions'
 import { sessionStatus, statusLine, store, useStore } from '../store'
 import { isMac } from '../terminals'
@@ -164,8 +164,10 @@ export function Palette() {
   const open = useStore((s) => s.ui.palette)
   const ws = useStore((s) => s.ws)
   const panes = useStore((s) => s.panes)
+  const commands = useStore((s) => s.settings.commands)
   if (!open) return null
   const rows: Row[] = [
+    ...commands.map((c) => ({ key: 'cmd-' + c.name, text: c.name, hint: c.command, run: () => A.runCustomCommand(c.name) })),
     ...A.orderedSessions().map((s) => ({
       key: s.id,
       text: s.title,
@@ -179,6 +181,7 @@ export function Palette() {
     { key: 'browser', text: 'Open browser', hint: key('browser'), run: () => A.openBrowserHere() },
     { key: 'inbox', text: 'Notifications', hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
     { key: 'find', text: 'Find in terminal', hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
+    { key: 'ssh', text: 'New SSH session…', run: () => A.newSshSession() },
     { key: 'settings', text: 'Settings', hint: key('settings'), run: () => store().setUI({ settings: true }) },
   ]
   return <Picker placeholder="Go to a session or run a command" rows={rows} onClose={() => store().setUI({ palette: false })} empty="No match" />
@@ -210,15 +213,30 @@ export function RecentDialog() {
   return <Picker placeholder="Find a Claude conversation" rows={rows} onClose={() => store().setUI({ recent: false })} empty={items ? 'No conversations yet' : 'Loading…'} />
 }
 
+const formatCommands = (list: CustomCommand[]) => list.map((c) => `${c.name}: ${c.command}`).join('\n')
+
+export function parseCommands(text: string): CustomCommand[] {
+  return text
+    .split('\n')
+    .map((line) => {
+      const i = line.indexOf(':')
+      return i > 0 ? { name: line.slice(0, i).trim(), command: line.slice(i + 1).trim() } : undefined
+    })
+    .filter((c): c is CustomCommand => !!c && !!c.name && !!c.command)
+}
+
 export function SettingsDialog() {
   const open = useStore((s) => s.ui.settings)
   const settings = useStore((s) => s.settings)
   const setSettings = useStore((s) => s.setSettings)
   const [args, setArgs] = useState(settings.claudeArgs)
+  const [commands, setCommands] = useState(formatCommands(settings.commands))
   useEffect(() => setArgs(settings.claudeArgs), [open, settings.claudeArgs])
+  useEffect(() => setCommands(formatCommands(settings.commands)), [open, settings.commands])
   if (!open) return null
   const close = () => {
     if (args !== settings.claudeArgs) setSettings({ claudeArgs: args })
+    if (commands !== formatCommands(settings.commands)) setSettings({ commands: parseCommands(commands) })
     store().setUI({ settings: false })
   }
   return (
@@ -254,6 +272,13 @@ export function SettingsDialog() {
           <div className="row" style={{ display: 'block' }}>
             <div className="l" style={{ marginBottom: 8 }}><b>Claude arguments</b><span>Added every time a session starts Claude Code, e.g. <code>--model opus</code></span></div>
             <input className="field" value={args} placeholder="--model opus" onChange={(e) => setArgs(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />
+          </div>
+          <div className="row" style={{ display: 'block' }}>
+            <div className="l" style={{ marginBottom: 8 }}>
+              <b>Commands</b>
+              <span>One per line, <code>Name: command</code>. Each runs in a new pane, from the palette or <code>tezgah run name</code>. Other agents work too, e.g. <code>Codex: codex</code>.</span>
+            </div>
+            <textarea className="field area" value={commands} placeholder={'Dev server: npm run dev\nTests: npm test -- --watch\nCodex: codex'} onChange={(e) => setCommands(e.target.value)} rows={4} spellCheck={false} />
           </div>
         </div>
         <div className="dialog-actions">

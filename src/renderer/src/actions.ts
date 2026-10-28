@@ -141,6 +141,38 @@ export function newWorktreeSession(projectId?: string): void {
   })
 }
 
+/** A shell session on another machine through the user's own `ssh`. */
+export function newSshSession(projectId?: string): void {
+  store().setUI({
+    prompt: {
+      title: 'New SSH session',
+      placeholder: 'user@host, or a Host from ~/.ssh/config',
+      value: '',
+      confirm: 'Connect',
+      onSubmit: (raw) => {
+        const target = raw.trim()
+        if (!/^[\w.@:-]+$/.test(target) || target.startsWith('-')) return toast('Enter user@host or an ssh config Host.')
+        const s = newSession(projectId ?? selected()?.projectId, 'shell')
+        if (!s) return
+        updatePane(s.id, s.panes[0].id, { command: `ssh ${target}`, ssh: target })
+        retitle(s.id, target)
+      },
+    },
+  })
+}
+
+/** Files dropped on a pane: paths typed locally, uploaded first on an SSH pane. */
+export async function dropFiles(sessionId: string, paneId: string, paths: string[]): Promise<void> {
+  const pane = session(sessionId)?.panes.find((p) => p.id === paneId)
+  if (!pane?.ssh) return terms.insertPaths(paneId, paths)
+  try {
+    toast(`Uploading ${paths.length === 1 ? 'a file' : `${paths.length} files`} to ${pane.ssh}…`)
+    terms.insertPaths(paneId, await window.tz.scpUpload(pane.ssh, paths))
+  } catch (e) {
+    toast(errorText(e))
+  }
+}
+
 function disposeSession(s: Session): void {
   for (const pane of s.panes) terms.dispose(pane.id)
 }
@@ -195,6 +227,10 @@ export function renameSession(id: string): void {
       onSubmit: (v) => v.trim() && updateSession(id, (x) => ({ ...x, title: v.trim(), customTitle: true })),
     },
   })
+}
+
+export function retitle(id: string, title: string): void {
+  updateSession(id, (x) => ({ ...x, title, customTitle: true }))
 }
 
 /** Claude's own title for the conversation, unless the user renamed the session. */
@@ -401,6 +437,16 @@ export function openBrowserHere(): void {
 /** Opens a port one of the session's programs listens on. */
 export function openPort(sessionId: string, port: number): void {
   openBrowser(`http://localhost:${port}`, sessionId)
+}
+
+// Custom commands (Settings → Commands): run in a new pane beside the session.
+
+export function runCustomCommand(name: string, sessionId?: string): boolean {
+  const cmd = store().settings.commands.find((c) => c.name.toLowerCase() === name.toLowerCase())
+  const s = session(sessionId) ?? selected()
+  if (!cmd || !s) return false
+  split('row', 'shell', { command: cmd.command }, s.id)
+  return true
 }
 
 // Feedback

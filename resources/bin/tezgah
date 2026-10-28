@@ -1,0 +1,7 @@
+#!/bin/sh
+# Tezgah's command line, available in every Tezgah terminal. Runs the CLI with Tezgah's own runtime.
+if [ -z "$TEZGAH_ELECTRON" ] || [ -z "$TEZGAH_CLI" ]; then
+  echo "tezgah: run this inside a Tezgah terminal" >&2
+  exit 1
+fi
+ELECTRON_RUN_AS_NODE=1 exec "$TEZGAH_ELECTRON" "$TEZGAH_CLI" "$@"

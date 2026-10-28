@@ -40,9 +40,12 @@ const api: Api = {
   openExternal: (url) => ipcRenderer.send('open-external', url),
   clipboardPaste: () => ipcRenderer.invoke('clipboard-paste'),
   nativePaste: () => ipcRenderer.send('native-paste'),
+  scpUpload: (target, files) => ipcRenderer.invoke('scp-upload', target, files),
   pathForFile: (file) => webUtils.getPathForFile(file),
   revealPath: (p) => ipcRenderer.send('reveal', p),
   onOpenFolder: (cb) => listen('open-folder', cb),
+  onControl: (cb) => listen('control', cb),
+  controlReply: (id, res) => ipcRenderer.send('control-reply', id, res),
 }
 
 contextBridge.exposeInMainWorld('tz', api)

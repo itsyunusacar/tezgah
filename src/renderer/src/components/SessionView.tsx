@@ -175,7 +175,7 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
         setDropping(false)
         const paths = [...e.dataTransfer.files].map((f) => window.tz.pathForFile(f)).filter(Boolean)
         A.focusPane(session.id, paneId)
-        terms.insertPaths(paneId, paths)
+        A.dropFiles(session.id, paneId, paths)
       }}
     >
       {browser ? <BrowserPane session={session} pane={pane} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}

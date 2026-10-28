@@ -221,9 +221,9 @@ export function insertPaths(paneId: string, paths: string[]): void {
 }
 
 /** Paste into the focused pane: copied files and images as paths, otherwise text. */
-export async function pasteClipboard(paneId: string): Promise<void> {
+export async function pasteClipboard(paneId: string, onPaths: (paths: string[]) => void = (p) => insertPaths(paneId, p)): Promise<void> {
   const { paths, text } = await window.tz.clipboardPaste()
-  if (paths.length) insertPaths(paneId, paths)
+  if (paths.length) onPaths(paths)
   else if (text) entries.get(paneId)?.term.paste(text)
 }
 
