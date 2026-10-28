@@ -1,5 +1,6 @@
 import { resolveLanguage, setLanguage, t } from '../../shared/i18n'
 import { useEffect, useRef, useState } from 'react'
+import type { WebviewTag } from 'electron'
 import * as A from './actions'
 import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
@@ -197,6 +198,8 @@ function useMenu() {
         case 'paste': {
           // Text fields (dialogs, notes) get the normal paste; terminals get files/images as paths.
           const el = document.activeElement
+          // A web page in a browser pane: the paste belongs to the page, not the host.
+          if (el?.tagName === 'WEBVIEW') return (el as WebviewTag).paste()
           const inField = el instanceof HTMLInputElement || (el instanceof HTMLTextAreaElement && !el.classList.contains('xterm-helper-textarea'))
           if (inField || !s) return window.tz.nativePaste()
           return void terms.pasteClipboard(s.focusedPane, (paths) => A.dropFiles(s.id, s.focusedPane, paths))

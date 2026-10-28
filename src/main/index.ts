@@ -1,9 +1,10 @@
-import { app, BrowserWindow, clipboard as anyClipboard, dialog, ipcMain, Menu, nativeTheme, Notification, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, Notification, shell } from 'electron'
 import os from 'node:os'
 import { execFile } from 'node:child_process'
 import type { MenuItemConstructorOptions } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as pty from './pty'
 import * as claude from './claude'
 import * as git from './git'
@@ -370,49 +371,43 @@ function registerIpc(): void {
 }
 
 // Clipboard: files copied in the file manager, or an image, paste as paths.
+// Electron's clipboard is asynchronous and typed by MIME, like the web's: files come as text/uri-list,
+// images as image/png, and other system formats under `electron application/osclipboard`.
 
-// TypeScript resolves Electron's `Clipboard` to the DOM lib's interface of the same name;
-// spell out the part of Electron's API used here.
-const clipboard = anyClipboard as unknown as {
-  read(format: string): string
-  readBuffer(format: string): Buffer
-  readText(): string
-  readImage(): { isEmpty(): boolean; toPNG(): Buffer }
+const systemFormat = (f: string) => `electron application/osclipboard;format="${f}"`
+
+/** The clipboard's data of one type, if any entry carries it. */
+async function clipboardData(items: Electron.ClipboardItem[], type: string): Promise<Blob | undefined> {
+  const item = items.find((i) => i.types.includes(type))
+  return item ? ((await item.getType(type)) as Blob) : undefined
 }
 
-function copiedFiles(): string[] {
-  const fromUrls = (text: string) =>
-    text.split(/\r?\n/).filter((l) => l.startsWith('file://')).map((u) => decodeURIComponent(new URL(u).pathname))
+async function copiedFiles(items: Electron.ClipboardItem[]): Promise<string[]> {
   try {
-    if (process.platform === 'darwin') {
-      const list = clipboard.read('NSFilenamesPboardType')
-      const many = [...list.matchAll(/<string>(.*?)<\/string>/g)].map((m) => m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'))
-      if (many.length) return many
-      const one = clipboard.read('public.file-url')
-      return one ? fromUrls(one) : []
-    }
-    if (process.platform === 'win32') {
-      const raw = clipboard.readBuffer('FileNameW')
-      const text = raw.toString('utf16le').replace(/\0+$/, '')
-      return text ? text.split('\0').filter(Boolean) : []
-    }
-    return fromUrls(clipboard.read('text/uri-list') || '')
+    const uris = await clipboardData(items, 'text/uri-list')
+    const fromUris = (await uris?.text() ?? '').split(/\r?\n/).filter((l) => l.startsWith('file://')).map((u) => fileURLToPath(u))
+    if (fromUris.length) return fromUris
+    // Explorer's copied files, should they not show up as a URI list.
+    const names = process.platform === 'win32' && (await clipboardData(items, systemFormat('FileNameW')))
+    if (names) return Buffer.from(await names.arrayBuffer()).toString('utf16le').split('\0').filter(Boolean)
   } catch {
-    return []
+    // Unreadable data is no files.
   }
+  return []
 }
 
-function clipboardPaste(): { paths: string[]; text: string } {
-  const files = copiedFiles().filter((p) => fs.existsSync(p))
+async function clipboardPaste(): Promise<{ paths: string[]; text: string }> {
+  const items = await clipboard.read().catch(() => [])
+  const files = (await copiedFiles(items)).filter((p) => fs.existsSync(p))
   if (files.length) return { paths: files, text: '' }
-  const text = clipboard.readText()
-  const image = clipboard.readImage()
-  if (!text && !image.isEmpty()) {
+  const text = await clipboard.readText().catch(() => '')
+  const image = !text && (await clipboardData(items, 'image/png').catch(() => undefined))
+  if (image) {
     // A screenshot or copied image: save it so the agent can read it by path.
     const dir = path.join(os.tmpdir(), 'tezgah-images')
     fs.mkdirSync(dir, { recursive: true })
     const file = path.join(dir, `image-${new Date().toISOString().replace(/[:.]/g, '-')}.png`)
-    fs.writeFileSync(file, image.toPNG())
+    fs.writeFileSync(file, Buffer.from(await image.arrayBuffer()))
     return { paths: [file], text: '' }
   }
   return { paths: [], text }

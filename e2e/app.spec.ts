@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 // The app as someone uses it: a project, a shell, splits, the `tezgah` command, the browser, Turkish.
 // Each test gets a fresh profile and project folder. Driving goes through the UI where it matters and
@@ -84,6 +85,35 @@ test('agents can drive the browser pane', async () => {
   await type(pane, `tezgah browser open '${html}' && tezgah browser click text=Go && tezgah browser eval document.title`)
   await screen(pane, /clicked-ok/)
   await expect(page.locator('webview')).toHaveCount(1)
+})
+
+test('pastes text, and copied images and files as paths', async () => {
+  const pane = await shell()
+  await screen(pane, /\S/)
+  const paste = () =>
+    app.evaluate(({ Menu }) => {
+      const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined =>
+        items.map((i) => (i.label === 'Paste' ? i : i.submenu && find(i.submenu.items))).find(Boolean)
+      find(Menu.getApplicationMenu()!.items)!.click()
+    })
+  const copied = () => page.evaluate(() => window.tz.clipboardPaste())
+
+  await app.evaluate(({ clipboard }) => clipboard.writeText('https://example.com/pasted-link'))
+  await paste()
+  await screen(pane, /example\.com\/pasted-link/)
+
+  await app.evaluate(async ({ clipboard, ClipboardItem }) => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+    await clipboard.write([new ClipboardItem({ 'image/png': new Blob([png], { type: 'image/png' }) })])
+  })
+  const image = await copied()
+  expect(image.paths).toHaveLength(1)
+  expect(fs.statSync(image.paths[0]).size).toBeGreaterThan(0)
+
+  const file = path.join(project, 'notes.txt')
+  fs.writeFileSync(file, 'hi')
+  await app.evaluate(({ clipboard, ClipboardItem }, url) => clipboard.write([new ClipboardItem({ 'text/uri-list': url })]), pathToFileURL(file).href)
+  expect((await copied()).paths).toEqual([file])
 })
 
 test('shows the tour on first launch, and it can be skipped', async () => {
