@@ -278,6 +278,10 @@ function registerIpc(): void {
   ipcMain.handle('session-meta', (_e, cwd: string, paneIds: string[]) =>
     meta.sessionMeta(cwd, paneIds.map(pty.pid).filter((p): p is number => !!p)))
   ipcMain.handle('diff', (_e, cwd: string, base?: string) => git.diff(cwd, base))
+  ipcMain.handle('git-status', (_e, cwd: string) => git.status(cwd))
+  ipcMain.handle('git-commit', (_e, cwd: string, message: string) => git.commit(cwd, message))
+  ipcMain.handle('git-push', (_e, cwd: string) => git.push(cwd))
+  ipcMain.handle('git-pr', (_e, cwd: string) => git.createPr(cwd))
   ipcMain.handle('is-repo', (_e, cwd: string) => git.isRepo(cwd))
   ipcMain.handle('wt-add', (_e, repo: string, branch: string) => git.worktreeAdd(repo, branch))
   ipcMain.handle('wt-remove', (_e, repo, wt, del) => git.worktreeRemove(repo, wt, del))

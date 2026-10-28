@@ -153,11 +153,98 @@ export function ChangesPanel({ session, diff, onRefresh }: { session: Session; d
         </>
       )}
 
+      <GitBar session={session} diff={diff} onChange={onRefresh} />
       <div className="changes-foot">
         <span className="grow">{noteCount ? plural(noteCount, '{n} note', '{n} notes') : diff?.files.length ? t('Click a line to leave a note') : ''}</span>
         {noteCount > 0 && <button className="pill primary" onClick={send}>{t('Send to Claude')}</button>}
         {session.worktree && diff && diff.files.length > 0 && (
           <button className="pill" onClick={() => A.mergeWorktree(session.id)}>{t('Merge into {base}', { base: session.worktree.base })}</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+type RepoStatus = Awaited<ReturnType<typeof window.tz.gitStatus>>
+
+/** Commit what's here, push it, open a pull request: the steps after reviewing. */
+function GitBar({ session, diff, onChange }: { session: Session; diff: Diff | null; onChange: () => void }) {
+  const cwd = session.worktree?.path ?? A.project(session.projectId)?.path ?? ''
+  const pr = useStore((s) => s.meta[session.id]?.pr)
+  const [status, setStatus] = useState<RepoStatus>(null)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState<string>()
+
+  useEffect(() => {
+    if (cwd) window.tz.gitStatus(cwd).then(setStatus)
+  }, [cwd, diff])
+
+  if (!status) return null
+  const run = async (what: string, job: () => Promise<unknown>, done: (r: never) => string) => {
+    setBusy(what)
+    try {
+      const r = await job()
+      A.toast(done(r as never))
+      onChange()
+      setStatus(await window.tz.gitStatus(cwd))
+    } catch (e) {
+      A.toast(A.errorText(e))
+    } finally {
+      setBusy(undefined)
+    }
+  }
+  const commit = () =>
+    run('commit', () => window.tz.gitCommit(cwd, message), (hash: string) => {
+      setMessage('')
+      return t('Committed {hash} on {branch}.', { hash, branch: status.branch })
+    })
+  const canPush = status.remote && (status.ahead === null || status.ahead > 0)
+  const canPr = status.remote && !pr && status.ahead === 0 && !!status.branch && status.branch !== status.defaultBranch && status.branch !== 'HEAD'
+
+  return (
+    <div className="git-bar">
+      {status.dirty && (
+        <div className="commit-row">
+          <input
+            className="field"
+            value={message}
+            placeholder={t('Commit message')}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && message.trim() && !busy && commit()}
+          />
+          <button className="pill primary" disabled={!message.trim() || !!busy} onClick={commit}>
+            {busy === 'commit' ? t('Committing…') : t('Commit All')}
+          </button>
+        </div>
+      )}
+      <div className="sync-row">
+        <span className="where">
+          {status.branch}
+          {status.ahead ? ` · ${t('{n} to push', { n: status.ahead })}` : status.ahead === null && status.remote ? ` · ${t('not pushed yet')}` : ''}
+        </span>
+        {canPush && (
+          <button className="pill small" disabled={!!busy} onClick={() => run('push', () => window.tz.gitPush(cwd), () => t('Pushed {branch}.', { branch: status.branch }))}>
+            {busy === 'push' ? t('Pushing…') : t('Push')}
+          </button>
+        )}
+        {canPr && (
+          <button
+            className="pill small"
+            disabled={!!busy}
+            onClick={() =>
+              run('pr', () => window.tz.gitCreatePr(cwd), (url: string) => {
+                if (url.startsWith('http')) window.tz.openExternal(url)
+                return t('Pull request opened.')
+              })
+            }
+          >
+            {busy === 'pr' ? t('Opening…') : t('Open Pull Request')}
+          </button>
+        )}
+        {pr && (
+          <button className="pill small" onClick={() => window.tz.openExternal(pr.url)}>
+            {t('Pull request #{n}', { n: pr.number })}
+          </button>
         )}
       </div>
     </div>

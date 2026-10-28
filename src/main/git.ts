@@ -101,3 +101,55 @@ export async function worktreeMerge(repo: string, wt: Worktree): Promise<string>
   if ((await currentBranch(root)) !== wt.base) await git(root, ['checkout', wt.base])
   return (await git(root, ['merge', '--no-ff', '--no-edit', wt.branch])).trim()
 }
+
+// Committing, pushing and opening a pull request from the Changes panel.
+
+export interface RepoStatus {
+  branch: string
+  /** Uncommitted changes (tracked or new files). */
+  dirty: boolean
+  /** Commits not on the upstream yet; null when the branch has no upstream. */
+  ahead: number | null
+  /** The repo has a remote named origin. */
+  remote: boolean
+  /** The repo's default branch (main, master…), where a pull request makes no sense. */
+  defaultBranch?: string
+}
+
+export async function status(cwd: string): Promise<RepoStatus | null> {
+  if (!(await isRepo(cwd))) return null
+  const [branch, porcelain, remotes] = await Promise.all([
+    currentBranch(cwd).catch(() => 'HEAD'),
+    git(cwd, ['status', '--porcelain']).catch(() => ''),
+    git(cwd, ['remote']).catch(() => ''),
+  ])
+  const ahead = await git(cwd, ['rev-list', '--count', '@{upstream}..HEAD']).then((n) => Number(n.trim()), () => null)
+  const head = await git(cwd, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']).then((r) => r.trim().replace(/^origin\//, ''), () => undefined)
+  return { branch, dirty: porcelain.trim().length > 0, ahead, remote: remotes.split('\n').includes('origin'), defaultBranch: head }
+}
+
+/** Stages everything and commits; returns the new commit's short hash. */
+export async function commit(cwd: string, message: string): Promise<string> {
+  if (!message.trim()) throw new Error('Write a commit message first.')
+  await git(cwd, ['add', '-A'])
+  await git(cwd, ['commit', '-m', message.trim()])
+  return (await git(cwd, ['rev-parse', '--short', 'HEAD'])).trim()
+}
+
+/** Pushes the current branch to origin, setting it as the upstream the first time. */
+export async function push(cwd: string): Promise<void> {
+  await git(cwd, ['push', '-u', 'origin', 'HEAD'])
+}
+
+/** Opens a pull request for the current branch with the GitHub CLI; returns its URL. */
+export function createPr(cwd: string): Promise<string> {
+  return new Promise((resolve, reject) =>
+    execFile('gh', ['pr', 'create', '--fill'], { cwd, timeout: 60_000 }, (err, stdout, stderr) => {
+      if (err) {
+        const missing = (err as NodeJS.ErrnoException).code === 'ENOENT'
+        return reject(new Error(missing ? 'Install the GitHub CLI (gh) and sign in to open pull requests.' : (stderr || err.message).trim()))
+      }
+      resolve(stdout.trim().split('\n').pop() ?? '')
+    }),
+  )
+}

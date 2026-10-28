@@ -39,6 +39,10 @@ const api: Api = {
 
   sessionMeta: (cwd, paneIds) => ipcRenderer.invoke('session-meta', cwd, paneIds),
   diff: (cwd, base) => ipcRenderer.invoke('diff', cwd, base),
+  gitStatus: (cwd) => ipcRenderer.invoke('git-status', cwd),
+  gitCommit: (cwd, message) => ipcRenderer.invoke('git-commit', cwd, message),
+  gitPush: (cwd) => ipcRenderer.invoke('git-push', cwd),
+  gitCreatePr: (cwd) => ipcRenderer.invoke('git-pr', cwd),
   isGitRepo: (cwd) => ipcRenderer.invoke('is-repo', cwd),
   worktreeAdd: (repo, branch) => ipcRenderer.invoke('wt-add', repo, branch),
   worktreeRemove: (repo, wt, del) => ipcRenderer.invoke('wt-remove', repo, wt, del),

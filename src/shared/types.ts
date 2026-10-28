@@ -264,6 +264,12 @@ export interface Api {
   sessionMeta(cwd: string, paneIds: string[]): Promise<SessionMeta>
   diff(cwd: string, base?: string): Promise<Diff | null>
   isGitRepo(cwd: string): Promise<boolean>
+  gitStatus(cwd: string): Promise<{ branch: string; dirty: boolean; ahead: number | null; remote: boolean; defaultBranch?: string } | null>
+  /** Stages everything and commits; returns the short hash. */
+  gitCommit(cwd: string, message: string): Promise<string>
+  gitPush(cwd: string): Promise<void>
+  /** `gh pr create --fill`; returns the pull request's URL. */
+  gitCreatePr(cwd: string): Promise<string>
   worktreeAdd(repo: string, branch: string): Promise<Worktree>
   worktreeRemove(repo: string, wt: Worktree, deleteBranch: boolean): Promise<void>
   worktreeMerge(repo: string, wt: Worktree): Promise<string>
