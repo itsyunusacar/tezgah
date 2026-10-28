@@ -138,7 +138,7 @@ Needs Node 22+ (and, on Linux, the usual build tools for native modules).
 git clone https://github.com/itsyunusacar/tezgah.git
 cd tezgah
 npm install
-npm run dev          # run with hot reload
+npm run dev          # run with hot reload, as "Tezgah Dev" with its own data, beside the installed app
 npm test             # unit tests
 npm run e2e          # end-to-end tests
 npm run dist         # installers for your platform, in dist/

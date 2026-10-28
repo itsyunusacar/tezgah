@@ -458,8 +458,11 @@ if (process.platform !== 'win32') {
   process.env.PATH = [...parts, ...extra.filter((d) => !parts.includes(d))].join(':')
 }
 
-// Lets tests and screenshots run against a throwaway profile (set before the single-instance lock).
+// Where Tezgah keeps its projects, sessions and settings (set before the single-instance lock, which is
+// per folder). Tests and screenshots pass a throwaway one; a development build (npm run dev) keeps its
+// own, "Tezgah Dev", so it runs beside the installed app without touching your everyday workspace.
 if (process.env.TEZGAH_USER_DATA) app.setPath('userData', process.env.TEZGAH_USER_DATA)
+else if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'Tezgah Dev'))
 
 // A second launch hands its own arguments over as data: the argv Electron gives the first instance
 // has Chromium's switches mixed in, which would end up inside a `-e command`.

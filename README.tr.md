@@ -138,7 +138,7 @@ Node 22+ gerekir (Linux'ta yerel modüller için olağan derleme araçları da).
 git clone https://github.com/itsyunusacar/tezgah.git
 cd tezgah
 npm install
-npm run dev          # canlı yenilemeyle çalıştır
+npm run dev          # canlı yenilemeyle, kendi verileriyle "Tezgah Dev" olarak, kurulu uygulamanın yanında çalıştır
 npm test             # birim testleri
 npm run e2e          # uçtan uca testler
 npm run dist         # sistemin için kurulum dosyaları, dist/ içinde
