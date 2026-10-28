@@ -6,6 +6,12 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ### Added
 
+- A + menu at the top of the sidebar: new Claude, shell, worktree and SSH sessions, new terminal and browser panes, saved layouts and your commands.
+- Layouts: save a session's panes and splits by name and open them as a new session.
+- A notification bell with the unread count.
+- Tezgah in the menu bar (the tray on Windows and Linux): how many agents are working or need you, each session to jump to, and quick actions.
+- Panes in a split get a bar with what runs there, its status, and split and close buttons; right-click a pane for more. Sessions close from a button on their sidebar row.
+
 - Exact Codex status: in Tezgah's terminals `codex` runs with hooks (passed for that run only; your Codex config isn't changed, and Codex asks you to trust them first) that report working, the tool in use, permission requests with Allow and Deny, and done.
 - Status for agents other than Claude Code (Grok, Gemini, Codex, Aider, OpenCode, Amp…): Tezgah notices the agent running in a terminal, names the session after it, and shows Working, Needs you (a question at the bottom of the screen) and Done from what it does, with notifications. macOS and Linux.
 - Plan limits per agent: Claude (live) and Codex (from its last run's logs), each with its plan, reset times and a tick for how far into the window you are. Choose which agents' limits to show in Settings or by right-clicking them. Codex's are hidden once it's signed out and unused for a week.
@@ -29,6 +35,9 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 - Searches typed in a browser pane's address bar go to Google.
 
 ### Fixed
+
+- Terminals could draw garbled letters after moving between sessions or splits, or go blank after the GPU context was lost; they now redraw cleanly and fall back to the DOM renderer.
+- Sessions of the same kind in a project are numbered (Shell, Shell 2…) instead of all looking alike.
 
 - In `npm run dev` on macOS, the Desktop, Documents and Downloads folders were silently unreadable because the development Electron app had no folder usage descriptions. A postinstall script now adds them.
 - Light theme: secondary and hint text (paths, shortcut hints, diff line numbers, agent tools) was too pale; it now has readable contrast.

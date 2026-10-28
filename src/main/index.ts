@@ -12,6 +12,7 @@ import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
 import * as browser from './browser'
 import { allUsage } from './usage'
+import { createTray, updateTray } from './tray'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -271,6 +272,7 @@ function registerIpc(): void {
   ipcMain.handle('wt-remove', (_e, repo, wt, del) => git.worktreeRemove(repo, wt, del))
   ipcMain.handle('wt-merge', (_e, repo, wt) => git.worktreeMerge(repo, wt))
 
+  ipcMain.on('tray', (_e, state) => updateTray(state, () => win))
   ipcMain.on('badge', (_e, count: number) => {
     app.setBadgeCount(count)
     if (isMac) app.dock?.setBadge(count ? String(count) : '')
@@ -408,6 +410,7 @@ if (!app.requestSingleInstanceLock()) {
     buildMenu()
     pendingFolders.push(...foldersIn(process.argv))
     createWindow()
+    createTray(() => win)
     app.on('activate', () => {
       if (!win) createWindow()
     })

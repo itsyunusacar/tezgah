@@ -116,7 +116,7 @@ async function handle(cmd: string, args: Args, callerPane?: string): Promise<unk
         : undefined
       if (next) store().setPane(callerPane, (p) => ({ records: applyReport(p.records, { clear: false, record: { id: '', app: agent, ...next } }) }))
       const s = A.sessionOfPane(callerPane)
-      if (s && !s.customTitle && s.title === 'Shell') A.adoptTitle(s.id, agentName(agent))
+      if (s && !s.customTitle && A.isDefaultTitle(s.title)) A.adoptTitle(s.id, agentName(agent))
       return true
     }
     case 'list': {

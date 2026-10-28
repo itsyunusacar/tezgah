@@ -7,6 +7,7 @@ directories:
 files:
   - out/**
   - resources/icon.png
+  - resources/trayTemplate*.png
   - package.json
 # The `tezgah` command line, put on PATH in every Tezgah terminal.
 extraResources:

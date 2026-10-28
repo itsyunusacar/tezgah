@@ -42,6 +42,7 @@ const api: Api = {
   worktreeRemove: (repo, wt, del) => ipcRenderer.invoke('wt-remove', repo, wt, del),
   worktreeMerge: (repo, wt) => ipcRenderer.invoke('wt-merge', repo, wt),
 
+  updateTray: (state) => ipcRenderer.send('tray', state),
   setBadge: (n) => ipcRenderer.send('badge', n),
   notify: (title, body, sessionId) => ipcRenderer.send('notify', title, body, sessionId),
   onNotificationClick: (cb) => listen('notification-click', cb),

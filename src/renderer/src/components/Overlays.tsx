@@ -6,7 +6,7 @@ import { isMac } from '../terminals'
 import { Search } from './Icons'
 import { label, type Command } from '../../../shared/shortcuts'
 
-export type MenuItem = { label: string; danger?: boolean; run: () => void } | 'divider'
+export type MenuItem = { label: string; hint?: string; danger?: boolean; disabled?: boolean; run: () => void } | 'divider' | { header: string }
 
 export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }) {
   useEffect(() => {
@@ -19,13 +19,16 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     }
   }, [onClose])
   return (
-    <div className="menu" style={{ left: Math.min(x, window.innerWidth - 220), top: Math.min(y, window.innerHeight - items.length * 32 - 12) }} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="menu" style={{ left: Math.max(8, Math.min(x, window.innerWidth - 260)), top: Math.max(8, Math.min(y, window.innerHeight - items.length * 30 - 12)) }} onMouseDown={(e) => e.stopPropagation()}>
       {items.map((it, i) =>
         it === 'divider' ? (
           <hr key={i} />
+        ) : 'header' in it ? (
+          <div key={i} className="menu-header">{it.header}</div>
         ) : (
-          <button key={i} className={it.danger ? 'danger' : ''} onClick={() => (onClose(), it.run())}>
-            {it.label}
+          <button key={i} className={it.danger ? 'danger' : ''} disabled={it.disabled} onClick={() => (onClose(), it.run())}>
+            <span>{it.label}</span>
+            {it.hint && <span className="hint">{it.hint}</span>}
           </button>
         ),
       )}

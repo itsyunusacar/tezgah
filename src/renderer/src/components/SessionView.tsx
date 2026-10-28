@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Diff, Layout, Pane, Session } from '../../../shared/types'
 import * as A from '../actions'
-import { rootRecord, sessionStatus, statusLine, useStore } from '../store'
+import { type PaneRuntime, rootRecord, sessionStatus, statusLine, useStore } from '../store'
+import { agentName } from '../activity'
+import { ContextMenu } from './Overlays'
+import { label, type Command } from '../../../shared/shortcuts'
+
+const key = (c: Command) => label(c, terms.isMac)
 import * as terms from '../terminals'
 import { Branch, Close, Globe, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
 import { ChangesPanel } from './Changes'
@@ -158,11 +163,18 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
   const ring = !blocked && rt?.attention
   const finding = useStore((s) => s.ui.find === paneId)
   const [dropping, setDropping] = useState(false)
+  const [menu, setMenu] = useState<{ x: number; y: number }>()
   if (!pane) return null
   const browser = pane.kind === 'browser'
   return (
     <div
-      className={`pane ${browser ? 'web' : ''} ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
+      onContextMenu={(e) => {
+        if (browser) return
+        e.preventDefault()
+        A.focusPane(session.id, paneId)
+        setMenu({ x: e.clientX, y: e.clientY })
+      }}
+      className={`pane ${browser ? 'web' : ''} ${multi && !browser ? 'has-bar' : ''} ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
       onMouseDown={() => A.focusPane(session.id, paneId)}
       onDragOver={(e) => {
         if (browser || !e.dataTransfer.types.includes('Files')) return
@@ -180,14 +192,67 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
         A.dropFiles(session.id, paneId, paths)
       }}
     >
+      {multi && !browser && <PaneBar session={session} pane={pane} />}
       {browser ? <BrowserSlot paneId={paneId} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}
       {finding && !browser && <FindBar paneId={paneId} />}
+      {menu && (
+        <ContextMenu
+          {...menu}
+          onClose={() => setMenu(undefined)}
+          items={[
+            { label: 'Split Right', hint: key('split-row'), run: () => A.split('row', 'shell', {}, session.id) },
+            { label: 'Split Down', hint: key('split-column'), run: () => A.split('column', 'shell', {}, session.id) },
+            { label: 'Open Browser Beside', hint: key('browser'), run: () => A.openBrowserHere() },
+            'divider',
+            { label: 'Find…', hint: key('find'), run: () => useStore.getState().setUI({ find: paneId }) },
+            { label: 'Clear', hint: key('clear'), run: () => terms.clear(paneId) },
+            { label: 'Restart', run: () => A.restartPane(session.id, paneId) },
+            'divider',
+            { label: multi ? 'Close Pane' : 'Close Session', hint: key('close-pane'), danger: true, run: () => A.closePaneById(session.id, paneId) },
+          ]}
+        />
+      )}
       {rt?.exited && (
         <div className="exited">
           <span>{pane.kind === 'claude' ? 'Claude exited' : 'Process exited'}</span>
           <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>Restart</button>
         </div>
       )}
+    </div>
+  )
+}
+
+/** What a pane is, in a word: Claude, the agent running in it, or its command. */
+function paneName(pane: Pane, rt?: PaneRuntime): string {
+  if (pane.kind === 'claude') return 'Claude'
+  const app = rootRecord(rt)?.app
+  if (app && app !== 'claude') return agentName(app)
+  if (pane.ssh) return pane.ssh
+  if (pane.command) return pane.command.split(/\s+/).slice(0, 3).join(' ')
+  return 'Terminal'
+}
+
+/** The strip above each pane of a split: what runs there, and split / close. */
+function PaneBar({ session, pane }: { session: Session; pane: Pane }) {
+  const rt = useStore((s) => s.panes[pane.id])
+  const focused = session.focusedPane === pane.id
+  const rec = rootRecord(rt)
+  const state = rt?.exited ? 'exited' : rec?.state
+  return (
+    <div className={`pane-bar ${focused ? 'focused' : ''}`} onDoubleClick={() => A.split('row', 'shell', {}, session.id)}>
+      <span className={`dot ${state ?? ''}`} />
+      <span className="name">{paneName(pane, rt)}</span>
+      {rec?.message && <span className="msg">{rec.message}</span>}
+      <span className="grow" />
+      <button className="icon-btn tiny" title="Split right" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
+        <SplitRow size={12} />
+      </button>
+      <button className="icon-btn tiny" title="Split down" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
+        <SplitCol size={12} />
+      </button>
+      <button className="icon-btn tiny" title={`Close pane (${key('close-pane')})`} onClick={(e) => (e.stopPropagation(), A.closePaneById(session.id, pane.id))}>
+        <Close size={10} />
+      </button>
     </div>
   )
 }

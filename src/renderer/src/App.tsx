@@ -185,6 +185,7 @@ function useWatchers() {
   const panes = useStore((s) => s.panes)
   const sessions = useStore((s) => s.ws.sessions)
   const previous = useRef<Record<string, string | undefined>>({})
+  const lastTray = useRef('')
 
   // Status changes → "unseen done" marks, notifications, badge.
   useEffect(() => {
@@ -206,6 +207,25 @@ function useWatchers() {
     }
     if (Object.keys(nextUnseen).length !== Object.keys(unseen).length) useStore.setState({ unseen: nextUnseen })
     window.tz.setBadge(waiting)
+    // The menu bar icon's list, most urgent first.
+    const rank: Record<string, number> = { blocked: 0, error: 1, done: 2, working: 3 }
+    const tray = {
+      sessions: A.orderedSessions()
+        .map((s) => ({
+          id: s.id,
+          title: s.title,
+          project: A.project(s.projectId)?.name,
+          status: sessionStatus(s, panes),
+          line: statusLine(s, panes).slice(0, 80),
+          unseen: !!nextUnseen[s.id],
+        }))
+        .sort((a, b) => (rank[a.status ?? ''] ?? 9) - (rank[b.status ?? ''] ?? 9)),
+    }
+    const json = JSON.stringify(tray)
+    if (json !== lastTray.current) {
+      lastTray.current = json
+      window.tz.updateTray(tray)
+    }
   }, [panes, sessions])
 
   // Subagents of sessions whose Claude is busy (and briefly after).

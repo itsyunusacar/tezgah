@@ -21,6 +21,7 @@ export const Refresh = ({ size = 14 }: P) => svg(size, <path d="M13 8a5 5 0 1 1-
 export const Search = ({ size = 15 }: P) => svg(size, <><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5L14 14" /></>)
 export const Note = ({ size = 13 }: P) => svg(size, <path d="M3 3.5h10v7H7l-3 2.5v-2.5H3z" />)
 export const Globe = ({ size = 15 }: P) => svg(size, <><circle cx="8" cy="8" r="5.75" /><path d="M2.25 8h11.5M8 2.25c1.6 1.7 2.4 3.6 2.4 5.75S9.6 12.05 8 13.75C6.4 12.05 5.6 10.15 5.6 8S6.4 3.95 8 2.25z" /></>)
+export const Bell = ({ size = 15 }: P) => svg(size, <><path d="M4 11.5V7.5a4 4 0 0 1 8 0v4l1 1.25H3z" /><path d="M6.75 14.25a1.4 1.4 0 0 0 2.5 0" /></>)
 export const Sidebar = ({ size = 15 }: P) => svg(size, <><rect x="2" y="3" width="12" height="10" rx="2" /><path d="M6 3v10" /></>)
 
 /** The Tezgah mark: a bench with a cursor block on it. Legs flow into the top through small fillets. */

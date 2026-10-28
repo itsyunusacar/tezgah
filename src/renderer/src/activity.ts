@@ -75,7 +75,7 @@ export function start(): () => void {
     if (!hooked.has(paneId)) set(paneId, w, 'idle')
     // A shell session running an agent is named after it, unless you renamed it.
     const s = A.sessionOfPane(paneId)
-    if (s && !s.customTitle && s.title === 'Shell') A.adoptTitle(s.id, agentName(agent))
+    if (s && !s.customTitle && A.isDefaultTitle(s.title)) A.adoptTitle(s.id, agentName(agent))
   })
   const offData = window.tz.onPtyData((paneId) => {
     const w = watched.get(paneId)

@@ -3,15 +3,46 @@ import type { Session, SubAgent } from '../../../shared/types'
 import * as A from '../actions'
 import { sessionStatus, statusLine, useStore } from '../store'
 import { isMac } from '../terminals'
-import { Branch, Chevron, Clock, Folder, Gear, Mark, Plus } from './Icons'
+import { Bell, Branch, Chevron, Clock, Close, Gear, Mark, Plus } from './Icons'
 import { ContextMenu, type MenuItem } from './Overlays'
+import { label, type Command } from '../../../shared/shortcuts'
+
+const key = (c: Command) => label(c, isMac)
 import { Usage } from './Usage'
 
 export function Sidebar() {
   const projects = useStore((s) => s.ws.projects)
   const sessions = useStore((s) => s.ws.sessions)
   const setUI = useStore((s) => s.setUI)
-  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] }>()
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; kind?: string }>()
+  const unread = useStore((s) => {
+    const live = new Set(s.ws.sessions.map((x) => x.id))
+    return s.notes.filter((n) => !n.read && live.has(n.sessionId)).length
+  })
+  const layouts = useStore((s) => s.settings.layouts)
+  const commands = useStore((s) => s.settings.commands)
+
+  // The + menu, like cmux's: new sessions, new panes, layouts and your commands.
+  const newMenu = (): MenuItem[] => {
+    const projectId = A.selected()?.projectId
+    const has = !!A.selected()
+    return [
+      { label: 'New Claude Session', hint: key('new-claude'), run: () => A.newSession(projectId, 'claude') },
+      { label: 'New Shell Session', hint: key('new-shell'), run: () => A.newSession(projectId, 'shell') },
+      { label: 'New Session in a Worktree…', hint: key('new-worktree'), run: () => A.newWorktreeSession(projectId) },
+      { label: 'New SSH Session…', run: () => A.newSshSession(projectId) },
+      'divider',
+      { label: 'New Terminal Pane', hint: key('split-row'), disabled: !has, run: () => A.split('row') },
+      { label: 'New Browser Pane', hint: key('browser'), disabled: !has, run: () => A.openBrowserHere() },
+      'divider',
+      { label: 'Open Folder…', hint: key('open-folder'), run: () => A.openFolder() },
+      { label: 'Save Session as Layout…', disabled: !has, run: () => A.saveLayout() },
+      ...(layouts.length ? ([{ header: 'Layouts' }, ...layouts.map((l) => ({ label: l.name, hint: `${l.panes.length} panes`, run: () => A.openLayout(l.name, projectId) }))] as MenuItem[]) : []),
+      ...(commands.length ? ([{ header: 'Commands' }, ...commands.map((c) => ({ label: c.name, disabled: !has, run: () => A.runCustomCommand(c.name) }))] as MenuItem[]) : []),
+      'divider',
+      { label: commands.length ? 'Edit Commands…' : 'Add Your Own Commands…', run: () => setUI({ settings: true }) },
+    ]
+  }
 
   const projectMenu = (e: React.MouseEvent, id: string) => {
     e.preventDefault()
@@ -39,8 +70,19 @@ export function Sidebar() {
           <Mark size={18} />
           <span>tezgah</span>
         </div>
-        <button className="icon-btn" title="Open folder" onClick={() => A.openFolder()}>
-          <Folder />
+        <button
+          className={`icon-btn ${menu?.kind === 'new' ? 'active' : ''}`}
+          title="New…"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            setMenu({ kind: 'new', x: r.left, y: r.bottom + 4, items: newMenu() })
+          }}
+        >
+          <Plus size={15} />
+        </button>
+        <button className="icon-btn bell" title={`Notifications (${key('inbox')})`} onClick={() => setUI({ inbox: true })}>
+          <Bell />
+          {unread > 0 && <span className="count">{unread > 9 ? '9+' : unread}</span>}
         </button>
         <button className="icon-btn" title="Recent conversations" onClick={() => setUI({ recent: true })}>
           <Clock />
@@ -132,7 +174,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
               {line ? ' · ' : ''}
             </span>
           )}
-          {line || lastNote?.body || (activity ? 'New output' : session.panes[0]?.kind === 'shell' && !session.worktree ? 'Shell' : '')}
+          {line || lastNote?.body || (activity ? 'New output' : session.panes.length > 1 ? `${session.panes.length} panes` : '')}
         </div>
         {meta && (meta.ports.length > 0 || meta.pr || (meta.branch && !session.worktree)) && (
           <div className="meta">
@@ -166,6 +208,16 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       {!selected && agents.filter((a) => a.running).length > 0 && (
         <span className="badge">{agents.filter((a) => a.running).length}↻</span>
       )}
+      <button
+        className="icon-btn tiny row-close"
+        title="Close session"
+        onClick={(e) => {
+          e.stopPropagation()
+          A.closeSession(session.id)
+        }}
+      >
+        <Close size={10} />
+      </button>
     </div>
   )
 }

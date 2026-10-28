@@ -68,6 +68,7 @@ export interface Settings {
   terminalLook: 'tezgah' | 'ghostty'
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
+  layouts: SavedLayout[]
   /** Agents whose limits you don't want in the sidebar. */
   hiddenUsage: string[]
   /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
@@ -89,12 +90,20 @@ export interface TerminalLook {
   dark?: TerminalPalette
 }
 
+/** A session's panes and how they're split, saved to open again: "Claude + dev server + browser". */
+export interface SavedLayout {
+  name: string
+  panes: { kind: PaneKind; command?: string; url?: string }[]
+  /** The split tree; each pane's id is its index in `panes`. */
+  layout: Layout
+}
+
 export interface CustomCommand {
   name: string
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [] }
+export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [] }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -145,6 +154,11 @@ export const usageProviders: { id: string; name: string; unavailable?: string }[
   { id: 'gemini', name: 'Gemini', unavailable: "Gemini doesn't keep its limits on your computer" },
   { id: 'grok', name: 'Grok', unavailable: "Grok doesn't keep its limits on your computer" },
 ]
+
+/** What the menu bar icon lists: every session, most urgent first. */
+export interface TrayState {
+  sessions: { id: string; title: string; project?: string; status?: string; line?: string; unseen?: boolean }[]
+}
 
 /** One agent's plan limits. */
 export interface ProviderUsage {
@@ -236,6 +250,7 @@ export interface Api {
   worktreeMerge(repo: string, wt: Worktree): Promise<string>
 
   setBadge(count: number): void
+  updateTray(state: TrayState): void
   notify(title: string, body: string, sessionId: string): void
   onNotificationClick(cb: (sessionId: string) => void): () => void
   onMenu(cb: (action: string) => void): () => void

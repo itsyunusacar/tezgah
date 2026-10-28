@@ -27,6 +27,7 @@ interface Entry {
 }
 
 const entries = new Map<string, Entry>()
+const entryWebgl = new Map<string, WebglAddon>()
 let noticeHandler: (paneId: string, notice: Notice) => void = () => undefined
 
 const inputHandlers = new Set<(paneId: string) => void>()
@@ -135,7 +136,11 @@ function create(paneId: string): Entry {
   parkingSpot().appendChild(el)
   term.open(el)
   try {
-    term.loadAddon(new WebglAddon())
+    const webgl = new WebglAddon()
+    // A lost GPU context (sleep, driver reset) would leave the pane blank or garbled: fall back to the DOM renderer.
+    webgl.onContextLoss(() => webgl.dispose())
+    term.loadAddon(webgl)
+    entryWebgl.set(paneId, webgl)
   } catch {
     // No WebGL (some Linux VMs): the DOM renderer still works.
   }
@@ -198,6 +203,8 @@ export function attach(paneId: string, container: HTMLElement, start: () => { cw
   container.appendChild(entry.el)
   entry.visible = true
   store().setPane(paneId, { activity: false })
+  // Fit now and again once the layout has settled (splits size themselves after their first frame).
+  setTimeout(() => fit(paneId), 120)
   requestAnimationFrame(() => {
     fit(paneId)
     if (!entry.started) {
@@ -220,7 +227,9 @@ export function fit(paneId: string): void {
   if (!entry || !entry.visible || !entry.el.isConnected) return
   try {
     entry.fit.fit()
-    // Moving the element between containers can leave the canvas blank until the next write.
+    // Moving the element between containers can leave the canvas blank, or its glyph cache stale
+    // (garbled letters), until the next write.
+    entryWebgl.get(paneId)?.clearTextureAtlas()
     entry.term.refresh(0, entry.term.rows - 1)
   } catch {
     // Zero-sized while a layout settles.
@@ -260,6 +269,7 @@ export function dispose(paneId: string): void {
   entry.term.dispose()
   entry.el.remove()
   entries.delete(paneId)
+  entryWebgl.delete(paneId)
 }
 
 export function send(paneId: string, data: string): void {

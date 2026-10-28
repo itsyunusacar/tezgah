@@ -95,6 +95,18 @@ function useSeen(id: string): void {
   useStore.setState({ unseen })
 }
 
+/** "Shell", then "Shell 2", "Shell 3"… within a project, so sessions can be told apart. */
+function uniqueTitle(projectId: string, base: string): string {
+  const taken = new Set(store().ws.sessions.filter((s) => s.projectId === projectId).map((s) => s.title))
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base} ${n}`)) n++
+  return `${base} ${n}`
+}
+
+/** A title Tezgah gave, which a better one (Claude's, the agent's name) may replace. */
+export const isDefaultTitle = (t: string) => /^(Shell|New session)( \d+)?$/.test(t)
+
 export function newSession(projectId: string | undefined, kind: PaneKind, worktree?: Session['worktree'], claudeId?: string): Session | undefined {
   const p = project(projectId) ?? store().ws.projects[0]
   if (!p) {
@@ -104,10 +116,11 @@ export function newSession(projectId: string | undefined, kind: PaneKind, worktr
   const pane = newPane(kind)
   if (claudeId) pane.claudeId = claudeId
   const count = store().ws.sessions.filter((s) => s.projectId === p.id).length
+  const base = worktree ? worktree.branch : kind === 'claude' ? 'New session' : 'Shell'
   const s: Session = {
     id: uid(),
     projectId: p.id,
-    title: worktree ? worktree.branch : kind === 'claude' ? 'New session' : 'Shell',
+    title: uniqueTitle(p.id, base),
     panes: [pane],
     layout: { type: 'pane', paneId: pane.id },
     focusedPane: pane.id,
@@ -453,6 +466,60 @@ export function openPort(sessionId: string, port: number): void {
   select(sessionId)
   const id = openBrowser(`http://localhost:${port}`, sessionId)
   if (id) focusPane(sessionId, id)
+}
+
+// Layouts: a session's panes and splits, saved by name and opened as a new session.
+
+export function saveLayout(sessionId?: string): void {
+  const s = session(sessionId) ?? selected()
+  if (!s) return
+  store().setUI({
+    prompt: {
+      title: 'Save as layout',
+      placeholder: 'Name, e.g. Claude + dev server',
+      value: s.title,
+      confirm: 'Save',
+      onSubmit: (raw) => {
+        const name = raw.trim()
+        if (!name) return
+        const index = new Map(s.panes.map((p, i) => [p.id, String(i)]))
+        const map = (l: Session['layout']): Session['layout'] =>
+          l.type === 'pane' ? { type: 'pane', paneId: index.get(l.paneId) ?? '0' } : { ...l, children: l.children.map(map) }
+        const saved = {
+          name,
+          panes: s.panes.map((p) => ({ kind: p.kind, command: p.command, url: p.url })),
+          layout: map(s.layout),
+        }
+        const rest = store().settings.layouts.filter((l) => l.name !== name)
+        store().setSettings({ layouts: [...rest, saved] })
+        toast(`Saved layout “${name}”.`)
+      },
+    },
+  })
+}
+
+export function openLayout(name: string, projectId?: string): void {
+  const saved = store().settings.layouts.find((l) => l.name === name)
+  const p = project(projectId) ?? project(selected()?.projectId) ?? store().ws.projects[0]
+  if (!saved || !p) return
+  const panes = saved.panes.map((x) => newPane(x.kind, { command: x.command, url: x.url }))
+  const map = (l: Session['layout']): Session['layout'] =>
+    l.type === 'pane' ? { type: 'pane', paneId: panes[Number(l.paneId)]?.id ?? panes[0].id } : { ...l, children: l.children.map(map) }
+  const s: Session = {
+    id: uid(),
+    projectId: p.id,
+    title: uniqueTitle(p.id, saved.name),
+    customTitle: true,
+    panes,
+    layout: map(saved.layout),
+    focusedPane: panes[0].id,
+    createdAt: Date.now(),
+  }
+  store().setWs((ws) => ({ ...ws, sessions: [...ws.sessions, s], selectedSession: s.id }))
+}
+
+export function deleteLayout(name: string): void {
+  store().setSettings({ layouts: store().settings.layouts.filter((l) => l.name !== name) })
 }
 
 // Custom commands (Settings → Commands): run in a new pane beside the session.
