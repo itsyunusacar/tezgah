@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import type { PullRequest } from '../shared/types'
 import { currentBranch } from './git'
+import { signedIn as claudeSignedIn } from './claude'
 
 // What the sidebar shows next to a session: listening ports of its processes and the branch's PR.
 
@@ -140,4 +141,22 @@ export async function sessionMeta(cwd: string, pids: number[]): Promise<{ branch
     pullRequest(cwd),
   ])
   return { branch: branch && branch !== 'HEAD' ? branch : undefined, ports, pr }
+}
+
+// The tools Tezgah works with, for the welcome screen's checklist.
+
+export interface Tools {
+  claude?: string
+  signedIn: boolean
+  git?: string
+  gh?: string
+}
+
+const version = (out: string) => out.match(/\d+\.\d+(\.\d+)?/)?.[0]
+
+export async function tools(): Promise<Tools> {
+  const shell = process.platform === 'win32'
+  const ask = (cmd: string) => run(shell ? `${cmd}.cmd` : cmd, ['--version']).then((o) => o || (shell ? run(cmd, ['--version']) : ''))
+  const [claude, git, gh, signedIn] = await Promise.all([ask('claude'), run('git', ['--version']), run('gh', ['--version']), claudeSignedIn()])
+  return { claude: version(claude), git: version(git), gh: version(gh), signedIn }
 }

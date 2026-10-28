@@ -319,6 +319,17 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 .empty h1 { font-size: 26px; letter-spacing: -0.6px; color: var(--ink); margin: 16px 0 6px; font-weight: 600; }
 .empty p { margin: 0 0 20px; }
 .empty .keys { margin-top: 26px; display: grid; grid-template-columns: auto auto; gap: 6px 18px; font-size: 12px; text-align: left; }
+.checklist {
+  margin: 22px auto 0; width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: 2px; text-align: left;
+  background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 6px;
+}
+.check { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; }
+.check .mark { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex: none; }
+.check.ok .mark { background: var(--add-bg); color: var(--add); }
+.check.missing .mark { background: var(--del-bg); color: var(--failed); }
+.check.optional .mark { background: var(--subtle); color: var(--tertiary); }
+.check .name { font-weight: 500; color: var(--ink); white-space: nowrap; }
+.check .detail { flex: 1; color: var(--secondary); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kbd { font-family: var(--mono); font-size: 11px; color: var(--tertiary); }
 
 /* Changes panel */

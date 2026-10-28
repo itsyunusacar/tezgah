@@ -1,5 +1,5 @@
 import { resolveLanguage, setLanguage, t } from '../../shared/i18n'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as A from './actions'
 import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
@@ -96,6 +96,7 @@ function Empty() {
             {hasProjects && <button className="pill" onClick={() => A.newSession(undefined, 'claude')}>{t('New Session')}</button>}
             <button className="pill" onClick={() => store().setUI({ recent: true })}>{t('Recent Conversations')}</button>
           </div>
+          {!hasProjects && <Checklist />}
           <div className="keys" style={{ display: 'inline-grid' }}>
             <span>{t('New Claude session')}</span><span className="kbd">{key('new-claude')}</span>
             <span>{t('New shell session')}</span><span className="kbd">{key('new-shell')}</span>
@@ -104,6 +105,38 @@ function Empty() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** First run: is everything Tezgah works with here? What's missing says how to get it. */
+function Checklist() {
+  const [tools, setTools] = useState<{ claude?: string; git?: string; gh?: string; signedIn: boolean }>()
+  useEffect(() => {
+    window.tz.tools().then(setTools)
+  }, [])
+  if (!tools) return null
+  const rows: { ok: boolean; name: string; detail: string; optional?: boolean; link?: string }[] = [
+    {
+      ok: !!tools.claude,
+      name: 'Claude Code',
+      detail: tools.claude ? `v${tools.claude}` : t('Not found. Install it, then reopen Tezgah.'),
+      link: tools.claude ? undefined : 'https://docs.claude.com/en/docs/claude-code/setup',
+    },
+    { ok: tools.signedIn, name: t('Signed in to Claude'), detail: tools.signedIn ? t('Plan limits show in the sidebar') : t('Run claude once and sign in'), optional: !tools.claude },
+    { ok: !!tools.git, name: 'Git', detail: tools.git ? `v${tools.git}` : t('Needed for Changes and worktrees'), link: tools.git ? undefined : 'https://git-scm.com/downloads' },
+    { ok: !!tools.gh, name: 'GitHub CLI', detail: tools.gh ? `v${tools.gh}` : t('Optional, for pull requests'), optional: true, link: tools.gh ? undefined : 'https://cli.github.com' },
+  ]
+  return (
+    <div className="checklist">
+      {rows.map((r) => (
+        <div key={r.name} className={`check ${r.ok ? 'ok' : r.optional ? 'optional' : 'missing'}`}>
+          <span className="mark">{r.ok ? '✓' : r.optional ? '·' : '!'}</span>
+          <span className="name">{r.name}</span>
+          <span className="detail">{r.detail}</span>
+          {r.link && <button className="pill small" onClick={() => window.tz.openExternal(r.link!)}>{t('How')}</button>}
+        </div>
+      ))}
     </div>
   )
 }

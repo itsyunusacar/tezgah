@@ -328,6 +328,11 @@ async function credentials(): Promise<{ token: string; plan?: string } | undefin
   }
 }
 
+/** Whether Claude Code has a login on this computer. */
+export async function signedIn(): Promise<boolean> {
+  return !!(await credentials())
+}
+
 /** The usage endpoint asked us to slow down. */
 export class RateLimited extends Error {
   constructor(readonly waitMs: number) {

@@ -260,6 +260,8 @@ export interface Api {
   conversationStats(claudeId: string): Promise<ConversationStats | null>
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<ProviderUsage[]>
+  /** Versions of claude, git and gh when installed, for the welcome checklist. */
+  tools(): Promise<{ claude?: string; git?: string; gh?: string; signedIn: boolean }>
   /** A newer Tezgah release on GitHub, if there is one. */
   checkUpdate(): Promise<{ version: string; url: string } | null>
   ghosttyLook(): Promise<TerminalLook | null>

@@ -276,6 +276,7 @@ function registerIpc(): void {
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => allUsage())
   ipcMain.handle('check-update', () => updates.check())
+  ipcMain.handle('tools', () => meta.tools())
   ipcMain.handle('mcp-config', (_e, paneId: string) => mcpConfigFile(paneId))
   ipcMain.handle('ghostty-look', () => ghosttyLook())
   ipcMain.handle('browser-act', (_e, id: number, action: string, args: browser.BrowserArgs) => browser.act(id, action, args))

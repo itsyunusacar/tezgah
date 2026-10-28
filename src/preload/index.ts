@@ -33,6 +33,7 @@ const api: Api = {
   recentConversations: () => ipcRenderer.invoke('recent'),
   usage: () => ipcRenderer.invoke('usage'),
   checkUpdate: () => ipcRenderer.invoke('check-update'),
+  tools: () => ipcRenderer.invoke('tools'),
   mcpConfig: (paneId) => ipcRenderer.invoke('mcp-config', paneId),
   browserAct: (id, action, args) => ipcRenderer.invoke('browser-act', id, action, args),
   ghosttyLook: () => ipcRenderer.invoke('ghostty-look'),
