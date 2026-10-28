@@ -1,0 +1,46 @@
+#!/bin/sh
+# Tezgah's `codex`: runs the real Codex with hooks that report its status (working, needs you, done)
+# to Tezgah's sidebar. The hooks are passed as arguments for this run only, so your Codex config is
+# not changed, and Codex asks you to trust them before they run. Without them, Tezgah still shows a
+# status read from Codex's output. Set TEZGAH_AGENT_HOOKS=0 to run Codex untouched.
+
+self_dir=$(cd "$(dirname "$0")" && pwd)
+real=""
+old_ifs=$IFS
+IFS=:
+for d in $PATH; do
+  [ "$d" = "$self_dir" ] && continue
+  if [ -x "$d/codex" ] && [ ! "$d/codex" -ef "$0" ]; then real="$d/codex"; break; fi
+done
+IFS=$old_ifs
+if [ -z "$real" ]; then
+  echo "codex: not installed. Install it with: npm install -g @openai/codex" >&2
+  exit 127
+fi
+
+if [ -z "$TEZGAH_SOCKET" ] || [ "$TEZGAH_AGENT_HOOKS" = "0" ]; then exec "$real" "$@"; fi
+
+# Only interactive sessions get hooks; commands like `codex login` or `codex mcp` run as they are.
+first=""
+for a in "$@"; do
+  case "$a" in -*) continue ;; *) first=$a; break ;; esac
+done
+case "$first" in
+  login|logout|mcp|mcp-server|app-server|completion|apply|sandbox|debug|help|features|cloud|app|version) exec "$real" "$@" ;;
+esac
+for a in "$@"; do
+  case "$a" in --help|-h|--version|-V) exec "$real" "$@" ;; esac
+done
+
+hooks="$self_dir/hooks"
+hook() {
+  printf 'hooks.%s=[{hooks=[{type="command",command='"'''"'%s'"'''"',timeout=%s}]}]' "$1" "$hooks/codex-$2" "${3:-5000}"
+}
+exec "$real" --enable hooks \
+  -c "$(hook SessionStart session-start)" \
+  -c "$(hook UserPromptSubmit prompt-submit)" \
+  -c "$(hook PreToolUse pre-tool-use)" \
+  -c "$(hook PostToolUse post-tool-use)" \
+  -c "$(hook PermissionRequest permission-request 10000)" \
+  -c "$(hook Stop stop)" \
+  "$@"

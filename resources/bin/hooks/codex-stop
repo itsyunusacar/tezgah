@@ -1,0 +1,3 @@
+#!/bin/sh
+# Codex hook: tells Tezgah about "stop" (the event arrives as JSON on stdin).
+exec "$(dirname "$0")/../tezgah" hook codex stop

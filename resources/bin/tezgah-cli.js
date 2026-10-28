@@ -414,9 +414,44 @@ function mcp() {
   process.stdin.on('end', () => process.exit(0))
 }
 
+// Agent hooks (resources/bin/hooks): the event arrives as JSON on stdin. Always silent and successful,
+// so a hook can never slow the agent down, block it, or decide anything for it.
+function hook(agent, event) {
+  let input = ''
+  let sent = false
+  const done = () => {
+    if (sent) return
+    sent = true
+    let data = {}
+    try {
+      data = JSON.parse(input || '{}')
+    } catch {
+      // Not JSON; the event alone is enough.
+    }
+    const str = (v) => (typeof v === 'string' ? v : undefined)
+    const tool = str(data.tool_name)
+    const ti = data.tool_input && typeof data.tool_input === 'object' ? data.tool_input : {}
+    const detail = str(ti.command) || str(ti.cmd) || str(ti.file_path) || str(ti.path) || str(ti.pattern) || str(ti.query) || ''
+    const args = { agent, event, tool, detail: detail.replace(/\s+/g, ' ').slice(0, 160) }
+    const timer = setTimeout(() => process.exit(0), 2000)
+    request('hook', args)
+      .catch(() => undefined)
+      .finally(() => {
+        clearTimeout(timer)
+        process.exit(0)
+      })
+  }
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (d) => (input += d))
+  process.stdin.on('end', done)
+  // Some hosts keep stdin open; don't wait for it.
+  setTimeout(done, 500)
+}
+
 async function main() {
   const [cmd, ...argv] = process.argv.slice(2)
   if (cmd === 'mcp') return mcp()
+  if (cmd === 'hook') return hook(argv[0] || 'agent', argv[1] || '')
   const a = parse(argv)
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h' || a.help) {
     console.log(HELP)

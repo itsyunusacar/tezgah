@@ -17,6 +17,13 @@ interface Watch {
 }
 
 const watched = new Map<string, Watch>()
+/** Panes whose agent reports through hooks (Codex in Tezgah's wrapper); their output isn't read. */
+const hooked = new Set<string>()
+
+/** An agent hook reported for this pane: trust it over reading output. */
+export function markHooked(paneId: string): void {
+  hooked.add(paneId)
+}
 
 /** Prompts agents show when they need a yes or no. */
 export const QUESTION = /\(y\/n\)|\[y\/n\]|\by\/n\b|\byes\b.*\bno\b|allow (once|always|this)|approve|permission|do you want to|proceed\?|confirm|waiting for (your )?(approval|input)/i
@@ -42,6 +49,7 @@ function set(paneId: string, w: Watch, state: AgentState): void {
 function tick(): void {
   const now = Date.now()
   for (const [paneId, w] of watched) {
+    if (hooked.has(paneId)) continue
     // Output soon after a keystroke is the agent echoing what you type, not work.
     const busy = now - w.lastOutput < 1200 && w.lastOutput - w.lastInput > 500
     if (busy) {
@@ -58,12 +66,13 @@ export function start(): () => void {
   const offAgent = window.tz.onPtyAgent((paneId, agent) => {
     if (!agent) {
       watched.delete(paneId)
+      hooked.delete(paneId)
       store().setPane(paneId, (p) => ({ records: p.records.filter((r) => r.id !== '' || r.app === 'claude') }))
       return
     }
     watched.set(paneId, { agent, lastOutput: 0, lastInput: 0, state: undefined })
     const w = watched.get(paneId)!
-    set(paneId, w, 'idle')
+    if (!hooked.has(paneId)) set(paneId, w, 'idle')
     // A shell session running an agent is named after it, unless you renamed it.
     const s = A.sessionOfPane(paneId)
     if (s && !s.customTitle && s.title === 'Shell') A.adoptTitle(s.id, agentName(agent))
@@ -74,7 +83,7 @@ export function start(): () => void {
   })
   const offInput = terms.onInput((paneId) => {
     const w = watched.get(paneId)
-    if (!w) return
+    if (!w || hooked.has(paneId)) return
     w.lastInput = Date.now()
     // Answering a question or starting the next task.
     if (w.state === 'done' || w.state === 'blocked') set(paneId, w, 'idle')

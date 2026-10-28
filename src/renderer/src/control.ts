@@ -1,6 +1,7 @@
 import type { AgentState } from '../../shared/types'
 import * as A from './actions'
 import * as browsers from './browsers'
+import { agentName, markHooked } from './activity'
 import { applyReport } from './osc'
 import { sessionStatus, store } from './store'
 import * as terms from './terminals'
@@ -98,6 +99,25 @@ async function handle(cmd: string, args: Args, callerPane?: string): Promise<unk
       const target = str(args.pane) ?? callerPane ?? s?.focusedPane
       if (!target) throw new Error('no pane')
       return terms.screenText(target, typeof args.lines === 'number' ? args.lines : 200)
+    }
+    case 'hook': {
+      // An agent's own hooks (Codex through Tezgah's wrapper): exact state, so output isn't read for it.
+      if (!callerPane) return true
+      markHooked(callerPane)
+      const agent = str(args.agent) ?? 'agent'
+      const what = [str(args.tool), str(args.detail)].filter(Boolean).join(' ') || undefined
+      const event = String(args.event)
+      const next: { state: AgentState; kind?: 'permission'; message?: string } | undefined =
+        event === 'session-start' ? { state: 'idle' }
+        : event === 'prompt-submit' || event === 'post-tool-use' ? { state: 'working' }
+        : event === 'pre-tool-use' ? { state: 'working', message: what }
+        : event === 'permission-request' ? { state: 'blocked', kind: 'permission', message: what }
+        : event === 'stop' ? { state: 'done' }
+        : undefined
+      if (next) store().setPane(callerPane, (p) => ({ records: applyReport(p.records, { clear: false, record: { id: '', app: agent, ...next } }) }))
+      const s = A.sessionOfPane(callerPane)
+      if (s && !s.customTitle && s.title === 'Shell') A.adoptTitle(s.id, agentName(agent))
+      return true
     }
     case 'list': {
       const { panes } = store()
