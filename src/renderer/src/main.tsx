@@ -5,11 +5,12 @@ import { App } from './App'
 import { useStore } from './store'
 import { defaultSettings } from '../../shared/types'
 
-window.tz.load().then(({ workspace, settings, version }) => {
+window.tz.load().then(({ workspace, settings, version, home }) => {
   useStore.setState({
     ws: { projects: workspace.projects ?? [], sessions: workspace.sessions ?? [], selectedSession: workspace.selectedSession },
     settings: { ...defaultSettings, ...settings },
     version,
+    home,
     ready: true,
   })
   // First run: the tour, before anything else.

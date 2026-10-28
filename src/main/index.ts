@@ -12,6 +12,7 @@ import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
 import * as browser from './browser'
 import { allUsage } from './usage'
+import * as defaultTerminal from './default-terminal'
 import * as updates from './updates'
 import { createTray, refreshTray, updateTray } from './tray'
 import { language, resolveLanguage, setLanguage, t } from '../shared/i18n'
@@ -22,8 +23,7 @@ const isMac = process.platform === 'darwin'
 let win: BrowserWindow | null = null
 /** The shortcuts the menu was last built with. */
 let lastShortcuts = '{}'
-/** Folders asked to open before the window was ready. */
-const pendingFolders: string[] = []
+
 
 // Persistence: two small JSON files in the user data folder, written atomically.
 
@@ -88,25 +88,73 @@ function createWindow(): void {
   else win.loadFile(path.join(__dirname, '../renderer/index.html'))
 
   win.webContents.on('did-finish-load', () => {
-    for (const folder of pendingFolders.splice(0)) win?.webContents.send('open-folder', folder)
+    for (const req of pending.splice(0)) win?.webContents.send('open', req)
   })
 }
 
-function openFolder(folder: string): void {
-  try {
-    if (!fs.statSync(folder).isDirectory()) return
-  } catch {
-    return
-  }
-  if (win && !win.webContents.isLoading()) win.webContents.send('open-folder', folder)
-  else pendingFolders.push(folder)
+/** Something to open: a folder (as a project), a script or command to run, or an SSH target. */
+export type OpenRequest = { kind: 'folder'; path: string } | { kind: 'run'; cwd: string; command: string } | { kind: 'ssh'; target: string }
+
+/** Requests that arrived before the window was ready. */
+const pending: OpenRequest[] = []
+
+function deliver(req: OpenRequest): void {
+  if (win && !win.webContents.isLoading()) win.webContents.send('open', req)
+  else pending.push(req)
   win?.show()
   win?.focus()
 }
 
-/** Folders passed on the command line: `tezgah ~/code/app`. */
-function foldersIn(argv: string[]): string[] {
-  return argv.slice(app.isPackaged ? 1 : 2).filter((a) => !a.startsWith('-') && fs.existsSync(a)).map((a) => path.resolve(a))
+const SCRIPT = /\.(command|tool|sh|bash|zsh|fish)$/i
+const quoteArg = (p: string) => (process.platform === 'win32' ? `& "${p}"` : `'${p.replace(/'/g, `'\\''`)}'`)
+
+/** A folder opens as a project; a script runs in a new shell session beside it; any other file opens its folder. */
+function openPath(p: string): void {
+  let stat: fs.Stats
+  try {
+    stat = fs.statSync(p)
+  } catch {
+    return
+  }
+  if (stat.isDirectory()) return deliver({ kind: 'folder', path: p })
+  const executable = process.platform !== 'win32' && (stat.mode & 0o111) !== 0
+  if (SCRIPT.test(p) || executable) return deliver({ kind: 'run', cwd: path.dirname(p), command: quoteArg(p) })
+  deliver({ kind: 'folder', path: path.dirname(p) })
+}
+
+/** ssh://user@host:port, from a link or the system's default terminal handler. */
+function openUrl(url: string): void {
+  try {
+    const u = new URL(url)
+    if (u.protocol !== 'ssh:' || !u.hostname) return
+    const target = `${u.username ? decodeURIComponent(u.username) + '@' : ''}${u.hostname}`
+    deliver({ kind: 'ssh', target: u.port ? `${target} -p ${u.port}` : target })
+  } catch {
+    // Not a URL we handle.
+  }
+}
+
+/** What the command line asks for: folders and files (`tezgah ~/code/app`), or a command to run the way
+ *  terminals are asked to (`-e cmd…` by x-terminal-emulator, `-x cmd…` by GNOME), in the current folder. */
+function requestsIn(argv: string[], cwd = process.cwd()): OpenRequest[] {
+  const args = argv.slice(app.isPackaged ? 1 : 2)
+  const out: OpenRequest[] = []
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]
+    if (a === '-e' || a === '-x' || a === '--command') {
+      const rest = args.slice(i + 1)
+      if (rest.length) out.push({ kind: 'run', cwd, command: rest.join(' ') })
+      break
+    }
+    if (a.startsWith('ssh://')) {
+      openUrl(a)
+      continue
+    }
+    if (a.startsWith('-')) continue
+    const p = path.resolve(cwd, a)
+    if (fs.existsSync(p)) out.push(fs.statSync(p).isDirectory() ? { kind: 'folder', path: p } : { kind: 'folder', path: path.dirname(p) })
+  }
+  return out
 }
 
 // Menu: every command is also a keyboard shortcut; the renderer does the work.
@@ -216,6 +264,7 @@ function registerIpc(): void {
     workspace: readJson<Workspace>('workspace.json', { projects: [], sessions: [] }),
     settings: readJson<Settings>('settings.json', defaultSettings),
     version: app.getVersion(),
+    home: os.homedir(),
   }))
   ipcMain.on('save-workspace', (_e, ws: Workspace) => writeJson('workspace.json', ws))
   ipcMain.on('save-settings', (_e, s: Settings) => {
@@ -277,6 +326,8 @@ function registerIpc(): void {
   ipcMain.handle('usage', () => allUsage())
   ipcMain.handle('check-update', () => updates.check())
   ipcMain.handle('tools', () => meta.tools())
+  ipcMain.handle('default-terminal', () => defaultTerminal.status())
+  ipcMain.handle('make-default-terminal', () => defaultTerminal.makeDefault())
   ipcMain.handle('mcp-config', (_e, paneId: string) => mcpConfigFile(paneId))
   ipcMain.handle('ghostty-look', () => ghosttyLook())
   ipcMain.handle('browser-act', (_e, id: number, action: string, args: browser.BrowserArgs) => browser.act(id, action, args))
@@ -410,18 +461,25 @@ if (process.platform !== 'win32') {
 // Lets tests and screenshots run against a throwaway profile (set before the single-instance lock).
 if (process.env.TEZGAH_USER_DATA) app.setPath('userData', process.env.TEZGAH_USER_DATA)
 
-if (!app.requestSingleInstanceLock()) {
+// A second launch hands its own arguments over as data: the argv Electron gives the first instance
+// has Chromium's switches mixed in, which would end up inside a `-e command`.
+if (!app.requestSingleInstanceLock({ argv: process.argv, cwd: process.cwd() })) {
   app.quit()
 } else {
-  app.on('second-instance', (_e, argv) => {
+  app.on('second-instance', (_e, argv, cwd, data) => {
     if (!win) createWindow()
-    foldersIn(argv).forEach(openFolder)
+    const sent = data as { argv?: string[]; cwd?: string } | undefined
+    requestsIn(Array.isArray(sent?.argv) ? sent.argv : argv, sent?.cwd ?? cwd).forEach(deliver)
     win?.show()
     win?.focus()
   })
   app.on('open-file', (e, p) => {
     e.preventDefault()
-    openFolder(p)
+    openPath(p)
+  })
+  app.on('open-url', (e, url) => {
+    e.preventDefault()
+    openUrl(url)
   })
   app.whenReady().then(() => {
     app.setName('Tezgah')
@@ -434,7 +492,7 @@ if (!app.requestSingleInstanceLock()) {
     browser.watchNetwork()
     startControl(() => win?.webContents)
     buildMenu()
-    pendingFolders.push(...foldersIn(process.argv))
+    pending.push(...requestsIn(process.argv))
     createWindow()
     createTray(() => win)
     app.on('activate', () => {

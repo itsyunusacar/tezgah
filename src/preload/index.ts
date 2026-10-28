@@ -61,7 +61,9 @@ const api: Api = {
   scpUpload: (target, files) => ipcRenderer.invoke('scp-upload', target, files),
   pathForFile: (file) => webUtils.getPathForFile(file),
   revealPath: (p) => ipcRenderer.send('reveal', p),
-  onOpenFolder: (cb) => listen('open-folder', cb),
+  onOpen: (cb) => listen('open', cb),
+  defaultTerminal: () => ipcRenderer.invoke('default-terminal'),
+  makeDefaultTerminal: () => ipcRenderer.invoke('make-default-terminal'),
   onControl: (cb) => listen('control', cb),
   controlReply: (id, res) => ipcRenderer.send('control-reply', id, res),
 }

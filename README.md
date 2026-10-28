@@ -23,7 +23,7 @@
 | **Windows** | [Installer (.exe)](https://github.com/itsyunusacar/tezgah/releases) |
 | **Linux** | [AppImage](https://github.com/itsyunusacar/tezgah/releases) · [.deb](https://github.com/itsyunusacar/tezgah/releases) |
 
-Builds aren't signed yet. On macOS, the first time, right-click Tezgah in Applications and choose *Open*; on Windows, choose *More info → Run anyway*. You need [Claude Code](https://claude.com/claude-code) for Claude sessions; shell sessions and other agents work without it. Tezgah is free and has no account.
+Use it as your everyday terminal too: open folders with Tezgah from Finder's *Open With* (or *Open in Tezgah* in Windows Explorer), and make it your default terminal in Settings so shell scripts and `ssh://` links open in it. Builds aren't signed yet. On macOS, the first time, right-click Tezgah in Applications and choose *Open*; on Windows, choose *More info → Run anyway*. You need [Claude Code](https://claude.com/claude-code) for Claude sessions; shell sessions and other agents work without it. Tezgah is free and has no account.
 
 ## Every agent at a glance
 

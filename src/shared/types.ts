@@ -76,6 +76,8 @@ export interface Settings {
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
   layouts: SavedLayout[]
+  /** What a folder opened from Finder, Explorer or the command line starts with. */
+  folderStarts: 'claude' | 'shell'
   /** The first-run tour has been seen (or skipped). */
   introSeen: boolean
   /** Your own keyboard shortcuts, by command ("" turns one off). */
@@ -116,7 +118,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true, shortcuts: {}, introSeen: false }
+export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true, shortcuts: {}, introSeen: false, folderStarts: 'claude' }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -237,7 +239,7 @@ export interface RecentConversation {
 /** The API the preload script exposes as `window.tz`. */
 export interface Api {
   platform: NodeJS.Platform
-  load(): Promise<{ workspace: Workspace; settings: Settings; version: string }>
+  load(): Promise<{ workspace: Workspace; settings: Settings; version: string; home: string }>
   saveWorkspace(ws: Workspace): void
   saveSettings(s: Settings): void
 
@@ -302,7 +304,11 @@ export interface Api {
   /** A dropped file's path on disk. */
   pathForFile(file: File): string
   revealPath(path: string): void
-  onOpenFolder(cb: (path: string) => void): () => void
+  /** Tezgah was asked to open something: a folder (Finder, Explorer, the command line), a script or command, an ssh:// link. */
+  onOpen(cb: (req: { kind: 'folder'; path: string } | { kind: 'run'; cwd: string; command: string } | { kind: 'ssh'; target: string }) => void): () => void
+  /** Whether Tezgah is the system's terminal for scripts and ssh:// links (macOS) or GNOME's default terminal. */
+  defaultTerminal(): Promise<{ supported: false } | { supported: true; isDefault: boolean }>
+  makeDefaultTerminal(): Promise<{ supported: false } | { supported: true; isDefault: boolean }>
   /** A request from the `tezgah` command. */
   onControl(cb: (id: string, req: { cmd: string; args: Record<string, unknown>; pane?: string; cwd?: string }) => void): () => void
   controlReply(id: string, res: { ok: boolean; result?: unknown; error?: string }): void

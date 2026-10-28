@@ -211,7 +211,11 @@ function useMenu() {
       if (s) A.seenPane(s.focusedPane)
     }
     window.addEventListener('focus', onFocus)
-    const offFolder = window.tz.onOpenFolder((p) => A.openFolder(p))
+    const offFolder = window.tz.onOpen((req) => {
+      if (req.kind === 'folder') A.openFolder(req.path, store().settings.folderStarts)
+      else if (req.kind === 'run') A.runIn(req.cwd, req.command)
+      else A.openSsh(req.target)
+    })
     const offClick = window.tz.onNotificationClick((id) => A.select(id))
     return () => {
       window.removeEventListener('focus', onFocus)

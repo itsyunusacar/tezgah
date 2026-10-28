@@ -53,18 +53,42 @@ export function paneStart(sessionId: string, paneId: string, command: string | u
 export function addProject(path: string): Project {
   const existing = store().ws.projects.find((p) => p.path === path)
   if (existing) return existing
-  const p: Project = { id: uid(), name: basename(path), path, worktrees: false }
+  const p: Project = { id: uid(), name: path === store().home ? '~' : basename(path), path, worktrees: false }
   store().setWs((ws) => ({ ...ws, projects: [...ws.projects, p] }))
   return p
 }
 
-export async function openFolder(path?: string): Promise<void> {
+/** Opens a folder as a project: its first session if it has one, otherwise a new one (Claude or a shell). */
+export async function openFolder(path?: string, starts: PaneKind = 'claude'): Promise<void> {
   const folder = path ?? (await window.tz.pickFolder())
   if (!folder) return
   const p = addProject(folder)
-  const has = store().ws.sessions.some((s) => s.projectId === p.id)
-  if (!has) newSession(p.id, 'claude')
-  else select(store().ws.sessions.find((s) => s.projectId === p.id)!.id)
+  const first = projectSessions(p.id)[0]
+  if (first) select(first.id)
+  else newSession(p.id, starts)
+}
+
+/** Runs a command (a script opened from Finder, `tezgah -e …`) in a new shell session in its folder. */
+export function runIn(cwd: string, command: string): void {
+  const p = addProject(cwd)
+  const s = newSession(p.id, 'shell')
+  if (!s) return
+  updatePane(s.id, s.panes[0].id, { command })
+  retitle(s.id, basename(command.replace(/^& /, '').replace(/^['"]|['"]$/g, '').split(/\s+/)[0]))
+}
+
+/** An ssh:// link: an SSH session in the current project, or the home folder. */
+export function openSsh(target: string): void {
+  const projectId = selected()?.projectId ?? homeProject().id
+  const s = newSession(projectId, 'shell')
+  if (!s) return
+  updatePane(s.id, s.panes[0].id, { command: `ssh ${target}`, ssh: target.split(' ')[0] })
+  retitle(s.id, target.split(' ')[0])
+}
+
+/** The home folder as a project, for terminals that don't belong to one. */
+function homeProject(): Project {
+  return addProject(store().home)
 }
 
 export function removeProject(id: string): void {
@@ -110,7 +134,8 @@ export const isDefaultTitle = (title: string) =>
   ['Shell', 'New session', t('Shell'), t('New session')].some((base) => title === base || (title.startsWith(base + ' ') && /^\d+$/.test(title.slice(base.length + 1))))
 
 export function newSession(projectId: string | undefined, kind: PaneKind, worktree?: Session['worktree'], claudeId?: string): Session | undefined {
-  const p = project(projectId) ?? store().ws.projects[0]
+  // A shell with nowhere to go opens in the home folder; Claude needs a project, so it asks for one.
+  const p = project(projectId) ?? store().ws.projects[0] ?? (kind === 'shell' && store().home ? homeProject() : undefined)
   if (!p) {
     openFolder()
     return undefined

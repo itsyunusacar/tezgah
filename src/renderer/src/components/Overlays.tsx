@@ -244,6 +244,10 @@ export function SettingsDialog() {
   useEffect(() => setArgs(settings.claudeArgs), [open, settings.claudeArgs])
   useEffect(() => setCommands(formatCommands(settings.commands)), [open, settings.commands])
   const [ghostty, setGhostty] = useState<TerminalLook | null | undefined>()
+  const [defaultTerm, setDefaultTerm] = useState<Awaited<ReturnType<typeof window.tz.defaultTerminal>>>()
+  useEffect(() => {
+    if (open) window.tz.defaultTerminal().then(setDefaultTerm)
+  }, [open])
   useEffect(() => {
     if (open) window.tz.ghosttyLook().then(setGhostty)
   }, [open])
@@ -323,6 +327,37 @@ export function SettingsDialog() {
                   </button>
                 )
               })}
+            </div>
+          </div>
+          <div className="row">
+            <div className="l">
+              <b>{t('Default terminal')}</b>
+              <span>
+                {defaultTerm === undefined
+                  ? ''
+                  : !defaultTerm.supported
+                    ? window.tz.platform === 'win32'
+                      ? t('Right-click a folder and choose “Open in Tezgah”. Windows keeps its own default terminal setting for itself.')
+                      : t('Not available on this desktop.')
+                    : defaultTerm.isDefault
+                      ? t('Tezgah opens shell scripts and ssh:// links.')
+                      : window.tz.platform === 'darwin'
+                        ? t('Open shell scripts (.command, .sh) and ssh:// links in Tezgah. Folders open with Tezgah from Finder’s Open With.')
+                        : t('Make Tezgah the terminal your desktop opens.')}
+              </span>
+            </div>
+            {defaultTerm?.supported &&
+              (defaultTerm.isDefault ? (
+                <span className="pill small" style={{ opacity: 0.7 }}>✓ {t('Default')}</span>
+              ) : (
+                <button className="pill" onClick={() => window.tz.makeDefaultTerminal().then(setDefaultTerm)}>{t('Make Default')}</button>
+              ))}
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Opening a folder starts')}</b><span>{t('From Finder, Explorer, your file manager or the command line.')}</span></div>
+            <div className="seg">
+              <button className={settings.folderStarts !== 'shell' ? 'on' : ''} onClick={() => setSettings({ folderStarts: 'claude' })}>Claude</button>
+              <button className={settings.folderStarts === 'shell' ? 'on' : ''} onClick={() => setSettings({ folderStarts: 'shell' })}>{t('Shell')}</button>
             </div>
           </div>
           <div className="row">

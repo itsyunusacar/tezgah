@@ -69,6 +69,8 @@ interface State {
   meta: Record<string, SessionMeta>
   /** Tezgah's version, for the sidebar's signature. */
   version: string
+  /** The user's home folder, where a shell opens when there's no project. */
+  home: string
   /** A newer release, when there is one. */
   update: { version: string; url: string } | null
   ui: UI
@@ -92,6 +94,7 @@ export const useStore = create<State>((set) => ({
   notes: [],
   meta: {},
   version: '',
+  home: '',
   update: null,
   ui: { sidebar: true, changes: false, palette: false, recent: false, settings: false, inbox: false },
 

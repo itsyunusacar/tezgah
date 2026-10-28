@@ -30,6 +30,19 @@ mac:
     NSDesktopFolderUsageDescription: Terminals in Tezgah can read and write files in your Desktop folder.
     NSDocumentsFolderUsageDescription: Terminals in Tezgah can read and write files in your Documents folder.
     NSDownloadsFolderUsageDescription: Terminals in Tezgah can read and write files in your Downloads folder.
+    # Finder's Open With for folders and shell scripts; ssh:// links once Tezgah is the default terminal.
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: Folder
+        CFBundleTypeRole: Viewer
+        LSHandlerRank: Alternate
+        LSItemContentTypes: [public.folder, public.directory]
+      - CFBundleTypeName: Shell Script
+        CFBundleTypeRole: Shell
+        LSHandlerRank: Alternate
+        LSItemContentTypes: [com.apple.terminal.shell-script, public.shell-script, public.unix-executable]
+    CFBundleURLTypes:
+      - CFBundleURLName: SSH
+        CFBundleURLSchemes: [ssh]
 dmg:
   artifactName: Tezgah-${version}-${arch}.dmg
 win:
@@ -39,12 +52,20 @@ win:
       arch: [x64, arm64]
 nsis:
   artifactName: Tezgah-Setup-${version}-${arch}.exe
+  # "Open in Tezgah" on folders and folder backgrounds in Explorer.
+  include: resources/installer.nsh
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
 linux:
   icon: resources/icon.png
   category: Development
+  # Listed as a terminal and as an app that opens folders; `-x cmd` or `-e cmd` runs a command, like other terminals.
+  mimeTypes: [inode/directory, x-scheme-handler/ssh]
+  desktop:
+    entry:
+      Categories: System;TerminalEmulator;Development;
+      Keywords: terminal;shell;claude;agent;
   maintainer: Yunus Acar
   target:
     - target: AppImage

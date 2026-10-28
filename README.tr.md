@@ -23,7 +23,7 @@
 | **Windows** | [Kurulum (.exe)](https://github.com/itsyunusacar/tezgah/releases) |
 | **Linux** | [AppImage](https://github.com/itsyunusacar/tezgah/releases) · [.deb](https://github.com/itsyunusacar/tezgah/releases) |
 
-Sürümler henüz imzalı değil. macOS'te ilk açılışta Uygulamalar klasöründe Tezgah'a sağ tıklayıp *Aç*'ı seç; Windows'ta *Ek bilgi → Yine de çalıştır*. Claude oturumları için [Claude Code](https://claude.com/claude-code) gerekir; kabuk oturumları ve diğer ajanlar onsuz da çalışır. Tezgah ücretsizdir ve hesap istemez.
+Günlük terminalin olarak da kullanabilirsin: klasörleri Finder'daki *Birlikte Aç* menüsünden (Windows Gezgini'nde *Tezgah'ta aç*) Tezgah ile aç, Ayarlar'dan varsayılan terminal yap; kabuk betikleri ve `ssh://` bağlantıları onda açılsın. Sürümler henüz imzalı değil. macOS'te ilk açılışta Uygulamalar klasöründe Tezgah'a sağ tıklayıp *Aç*'ı seç; Windows'ta *Ek bilgi → Yine de çalıştır*. Claude oturumları için [Claude Code](https://claude.com/claude-code) gerekir; kabuk oturumları ve diğer ajanlar onsuz da çalışır. Tezgah ücretsizdir ve hesap istemez.
 
 ## Tüm ajanlar bir bakışta
 

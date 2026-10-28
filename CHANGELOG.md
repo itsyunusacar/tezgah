@@ -4,6 +4,13 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
+### Added
+
+- Open folders with Tezgah: Finder's Open With on macOS, "Open in Tezgah" when you right-click a folder (or inside one) in Windows Explorer, and your file manager's Open With on Linux.
+- Make Tezgah your default terminal (Settings): on macOS it opens shell scripts (.command, .sh) and ssh:// links; on Linux it becomes GNOME's terminal and takes `-e` / `-x` commands like other terminals.
+- Settings → Opening a folder starts: Claude or a shell.
+- A shell with no project opens in your home folder.
+
 ## [1.0.0] - 2026-10-28
 
 The first release of the new Tezgah: a rewrite of the macOS-only app ([tezgah-legacy](https://github.com/itsyunusacar/tezgah-legacy)) on Electron, xterm.js and node-pty. Smaller, and it runs on macOS, Windows and Linux.
