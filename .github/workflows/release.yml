@@ -34,9 +34,21 @@ jobs:
       - run: npx electron-builder ${{ matrix.args }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          node -e "
+            const v = process.argv[1].replace(/^v/, '')
+            const log = require('fs').readFileSync('CHANGELOG.md', 'utf8')
+            const start = log.indexOf('## [' + v + ']')
+            const rest = start < 0 ? '' : log.slice(log.indexOf('\\n', start) + 1)
+            const end = rest.search(/^## \\[/m)
+            require('fs').writeFileSync('notes.md', (end < 0 ? rest : rest.slice(0, end)).trim() + '\\n')
+          " "${{ github.ref_name }}"
       - uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, '-') }}
+          body_path: notes.md
           files: |
             dist/*.dmg
             dist/*.zip
