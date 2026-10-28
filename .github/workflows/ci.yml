@@ -19,9 +19,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
       - run: npm run typecheck
       - run: npm test
       - run: npx electron-vite build
+      - name: End-to-end tests
+        if: runner.os != 'Linux'
+        run: npx playwright test
+      - name: End-to-end tests (virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx playwright test
       - name: Package (unpacked app, no installer)
         run: npx electron-builder --dir
         env:

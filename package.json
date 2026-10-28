@@ -12,6 +12,7 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "e2e": "electron-vite build && playwright test",
     "postinstall": "node scripts/fix-node-pty.mjs && node scripts/dev-electron-plist.mjs && electron-builder install-app-deps",
     "dist": "electron-vite build && electron-builder",
     "dist:mac": "electron-vite build && electron-builder --mac",
@@ -29,6 +30,7 @@
     "node-pty": "^1.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
