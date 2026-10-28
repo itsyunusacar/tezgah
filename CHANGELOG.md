@@ -4,6 +4,8 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-28
+
 ### Added
 
 - Open folders with Tezgah: Finder's Open With on macOS, "Open in Tezgah" when you right-click a folder (or inside one) in Windows Explorer, and your file manager's Open With on Linux.
