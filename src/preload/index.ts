@@ -30,6 +30,7 @@ const api: Api = {
   agentTranscript: (claudeId, agentId) => ipcRenderer.invoke('agent-transcript', claudeId, agentId),
   recentConversations: () => ipcRenderer.invoke('recent'),
   usage: () => ipcRenderer.invoke('usage'),
+  ghosttyLook: () => ipcRenderer.invoke('ghostty-look'),
 
   sessionMeta: (cwd, paneIds) => ipcRenderer.invoke('session-meta', cwd, paneIds),
   diff: (cwd, base) => ipcRenderer.invoke('diff', cwd, base),

@@ -64,8 +64,25 @@ export interface Settings {
   /** Extra arguments added to every `claude` start, e.g. "--model opus". */
   claudeArgs: string
   notify: boolean
+  /** Terminal font and colors: Tezgah's own, or the ones in your Ghostty config. */
+  terminalLook: 'tezgah' | 'ghostty'
   /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
   commands: CustomCommand[]
+}
+
+/** Terminal colors in xterm.js's names. */
+export type TerminalPalette = Partial<Record<
+  'background' | 'foreground' | 'cursor' | 'selectionBackground' | 'black' | 'red' | 'green' | 'yellow' | 'blue' | 'magenta' | 'cyan' | 'white' |
+  'brightBlack' | 'brightRed' | 'brightGreen' | 'brightYellow' | 'brightBlue' | 'brightMagenta' | 'brightCyan' | 'brightWhite',
+  string
+>>
+
+/** Font and colors read from another terminal's config. */
+export interface TerminalLook {
+  fontFamily?: string
+  fontSize?: number
+  light?: TerminalPalette
+  dark?: TerminalPalette
 }
 
 export interface CustomCommand {
@@ -73,7 +90,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [] }
+export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah' }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -177,6 +194,7 @@ export interface Api {
   agentTranscript(claudeId: string, agentId: string): Promise<TranscriptEntry[]>
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<UsageLimit[] | null>
+  ghosttyLook(): Promise<TerminalLook | null>
 
   sessionMeta(cwd: string, paneIds: string[]): Promise<SessionMeta>
   diff(cwd: string, base?: string): Promise<Diff | null>

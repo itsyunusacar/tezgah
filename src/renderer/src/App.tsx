@@ -20,6 +20,11 @@ export function App() {
   const fontSize = useStore((s) => s.settings.fontSize)
 
   useTheme(theme)
+  const terminalLook = useStore((s) => s.settings.terminalLook)
+  useEffect(() => {
+    if (terminalLook !== 'ghostty') return terms.setLook(null)
+    window.tz.ghosttyLook().then((l) => terms.setLook(l))
+  }, [terminalLook])
   useEffect(() => terms.applyFontSize(fontSize), [fontSize])
   useMenu()
   useWatchers()

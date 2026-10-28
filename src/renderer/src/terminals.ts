@@ -8,6 +8,7 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { applyReport, parseNotice, parseOsc7501, type Notice } from './osc'
 import { shellPath } from './paths'
 import { store } from './store'
+import type { TerminalLook } from '../../shared/types'
 
 // Every pane's terminal lives here for the whole app session, so switching sessions
 // never restarts a program or loses scrollback. Its element moves between the pane
@@ -52,9 +53,40 @@ const dark: ITheme = {
 
 export const isDark = () => document.documentElement.dataset.theme === 'dark'
 
+const defaultFont = '"Geist Mono", ui-monospace, Menlo, Consolas, monospace'
+/** Font and colors from another terminal's config (Settings → Terminal look), if chosen. */
+let look: TerminalLook | null = null
+
+function theme(): ITheme {
+  const own = isDark() ? look?.dark : look?.light
+  const base = isDark() ? dark : light
+  if (!own) return base
+  // A cursor that stands out on the chosen background.
+  const cursor = own.cursor ?? own.foreground ?? base.cursor
+  return { ...base, ...own, cursor, cursorAccent: own.background ?? base.cursorAccent }
+}
+
+/** Whether the terminal's background is light, told to programs through COLORFGBG. */
+function lightBackground(): boolean {
+  const bg = theme().background ?? ''
+  const m = bg.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+  if (!m) return !isDark()
+  const [r, g, b] = m.slice(1).map((h) => parseInt(h, 16))
+  return 0.299 * r + 0.587 * g + 0.114 * b > 140
+}
+
 /** Programs often assume a dark background and print white or pale text. On the light theme,
- *  xterm darkens any color (16, 256 or true color) that would fall below this contrast. */
-const contrast = () => (isDark() ? 1 : 4.5)
+ *  xterm darkens any color (16, 256 or true color) that would fall below this contrast.
+ *  Colors you picked yourself (from Ghostty) are left alone. */
+const contrast = () => (isDark() || (look?.light && !isDark()) || !lightBackground() ? 1 : 4.5)
+
+const font = () => (look?.fontFamily ? `${look.fontFamily}, ${defaultFont}` : defaultFont)
+
+export function setLook(next: TerminalLook | null): void {
+  look = next
+  for (const { term } of entries.values()) term.options.fontFamily = font()
+  applyTheme()
+}
 
 function parkingSpot(): HTMLDivElement {
   if (!parking) {
@@ -67,7 +99,7 @@ function parkingSpot(): HTMLDivElement {
 
 function create(paneId: string): Entry {
   const term = new Terminal({
-    fontFamily: '"Geist Mono", ui-monospace, Menlo, Consolas, monospace',
+    fontFamily: font(),
     fontSize: store().settings.fontSize,
     lineHeight: 1.2,
     cursorBlink: true,
@@ -75,7 +107,7 @@ function create(paneId: string): Entry {
     scrollback: 10_000,
     allowProposedApi: true,
     macOptionIsMeta: false,
-    theme: isDark() ? dark : light,
+    theme: theme(),
     minimumContrastRatio: contrast(),
   })
   const fit = new FitAddon()
@@ -162,7 +194,7 @@ export function attach(paneId: string, container: HTMLElement, start: () => { cw
     if (!entry.started) {
       entry.started = true
       const { cwd, command } = start()
-      window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: !isDark() })
+      window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: lightBackground() })
     }
   })
 }
@@ -196,7 +228,7 @@ export function restart(paneId: string, start: () => { cwd: string; command?: st
   entry.term.reset()
   store().setPane(paneId, { records: [], exited: false, title: '' })
   const { cwd, command } = start()
-  window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: !isDark() })
+  window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: lightBackground() })
 }
 
 /** Saves the screens of shell panes; called on quit and now and then. */
@@ -294,9 +326,13 @@ export function clear(paneId: string): void {
 }
 
 export function applyTheme(): void {
-  for (const { term } of entries.values()) {
-    term.options.theme = isDark() ? dark : light
+  const t = theme()
+  // The pane behind the (transparent) terminal shows its background.
+  document.documentElement.style.setProperty('--term-bg', t.background ?? '')
+  for (const [id, { term }] of entries) {
+    term.options.theme = t
     term.options.minimumContrastRatio = contrast()
+    fit(id)
   }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CustomCommand, RecentConversation, TranscriptEntry } from '../../../shared/types'
+import type { CustomCommand, RecentConversation, TerminalLook, TranscriptEntry } from '../../../shared/types'
 import * as A from '../actions'
 import { sessionStatus, statusLine, store, useStore } from '../store'
 import { isMac } from '../terminals'
@@ -233,6 +233,10 @@ export function SettingsDialog() {
   const [commands, setCommands] = useState(formatCommands(settings.commands))
   useEffect(() => setArgs(settings.claudeArgs), [open, settings.claudeArgs])
   useEffect(() => setCommands(formatCommands(settings.commands)), [open, settings.commands])
+  const [ghostty, setGhostty] = useState<TerminalLook | null | undefined>()
+  useEffect(() => {
+    if (open) window.tz.ghosttyLook().then(setGhostty)
+  }, [open])
   if (!open) return null
   const close = () => {
     if (args !== settings.claudeArgs) setSettings({ claudeArgs: args })
@@ -260,6 +264,19 @@ export function SettingsDialog() {
               <button onClick={() => setSettings({ fontSize: Math.max(9, settings.fontSize - 1) })}>−</button>
               <button className="on">{settings.fontSize}</button>
               <button onClick={() => setSettings({ fontSize: Math.min(24, settings.fontSize + 1) })}>+</button>
+            </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>Terminal look</b><span>{ghostty === null ? 'No Ghostty config found' : 'Font and colors from your Ghostty config'}</span></div>
+            <div className="seg">
+              <button className={settings.terminalLook !== 'ghostty' ? 'on' : ''} onClick={() => setSettings({ terminalLook: 'tezgah' })}>Tezgah</button>
+              <button
+                className={settings.terminalLook === 'ghostty' ? 'on' : ''}
+                disabled={ghostty === null}
+                onClick={() => setSettings({ terminalLook: 'ghostty', ...(ghostty?.fontSize ? { fontSize: ghostty.fontSize } : {}) })}
+              >
+                Ghostty
+              </button>
             </div>
           </div>
           <div className="row">

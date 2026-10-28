@@ -9,6 +9,7 @@ import * as claude from './claude'
 import * as git from './git'
 import * as meta from './meta'
 import { startControl } from './control'
+import { ghosttyLook } from './ghostty'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -253,6 +254,7 @@ function registerIpc(): void {
   ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => claude.usage())
+  ipcMain.handle('ghostty-look', () => ghosttyLook())
 
   ipcMain.handle('session-meta', (_e, cwd: string, paneIds: string[]) =>
     meta.sessionMeta(cwd, paneIds.map(pty.pid).filter((p): p is number => !!p)))
