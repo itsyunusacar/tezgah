@@ -38,8 +38,74 @@ export const shortcuts = {
 
 export type Command = keyof typeof shortcuts
 
+/** Names for the shortcut editor (English; the interface translates them). */
+export const commandNames: Record<Command, string> = {
+  'new-claude': 'New Claude Session',
+  'new-shell': 'New Shell Session',
+  'new-worktree': 'New Session in a Worktree…',
+  'open-folder': 'Open Folder…',
+  recent: 'Recent Conversations…',
+  'close-pane': 'Close Pane',
+  'close-session': 'Close Session',
+  clear: 'Clear Terminal',
+  palette: 'Go to Session…',
+  changes: 'Changes',
+  sidebar: 'Toggle Sidebar',
+  'split-row': 'Split Right',
+  'split-column': 'Split Down',
+  browser: 'Open Browser',
+  next: 'Next Session',
+  prev: 'Previous Session',
+  'next-waiting': 'Next Session That Needs You',
+  'jump-unread': 'Latest Unread Notification',
+  inbox: 'Notifications',
+  find: 'Find…',
+  allow: 'Allow',
+  deny: 'Deny',
+  interrupt: 'Interrupt',
+  restart: 'Restart Pane',
+  settings: 'Settings…',
+  'font-up': 'Bigger',
+  'font-down': 'Smaller',
+  'font-reset': 'Actual Size',
+  copy: 'Copy',
+  paste: 'Paste',
+  selectAll: 'Select All',
+}
+
+/** Your own shortcuts (Settings → Keyboard Shortcuts), by command; "" turns one off. */
+let overrides: Partial<Record<Command, string>> = {}
+
+export function setOverrides(next: Partial<Record<Command, string>> | undefined): void {
+  overrides = next ?? {}
+}
+
 export function accelerator(cmd: Command, mac: boolean): string | undefined {
+  if (cmd in overrides) return overrides[cmd] || undefined
   return shortcuts[cmd][mac ? 0 : 1] || undefined
+}
+
+export function defaultAccelerator(cmd: Command, mac: boolean): string | undefined {
+  return shortcuts[cmd][mac ? 0 : 1] || undefined
+}
+
+/** The accelerator a key press makes ("Cmd+Shift+K"), or undefined for a bare modifier. */
+export function fromKeyEvent(e: { key: string; code: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean }, mac: boolean): string | undefined {
+  if (['Meta', 'Control', 'Alt', 'Shift', 'CapsLock', 'Fn'].includes(e.key)) return undefined
+  const named: Record<string, string> = {
+    ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', ' ': 'Space', Escape: 'Esc',
+    Enter: 'Enter', Backspace: 'Backspace', Delete: 'Delete', Tab: 'Tab', Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown',
+  }
+  // Letters and digits by their key position, so Shift and Option don't turn them into symbols.
+  let key: string | undefined = named[e.key]
+  if (!key && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(3)
+  if (!key && /^Digit\d$/.test(e.code)) key = e.code.slice(5)
+  if (!key && /^F\d{1,2}$/.test(e.key)) key = e.key
+  if (!key) key = { Equal: '=', Minus: '-', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Backslash: '\\', Backquote: '`' }[e.code]
+  if (!key) return undefined
+  const mods = [mac && e.metaKey ? 'Cmd' : '', e.ctrlKey ? 'Ctrl' : '', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : ''].filter(Boolean)
+  if (!mac && e.metaKey) mods.push('Super')
+  return [...mods, key].join('+')
 }
 
 /** "⌘T" on macOS, "Ctrl+Shift+T" elsewhere. */
@@ -47,7 +113,7 @@ export function label(cmd: Command, mac: boolean): string {
   const acc = accelerator(cmd, mac)
   if (!acc) return ''
   if (!mac) return acc
-  const symbols: Record<string, string> = { Cmd: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↩', Backspace: '⌫' }
+  const symbols: Record<string, string> = { Cmd: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↩', Backspace: '⌫', Up: '↑', Down: '↓', Left: '←', Right: '→', Esc: '⎋', Tab: '⇥' }
   const parts = acc.split('+').map((p) => symbols[p] ?? p)
   const key = parts.pop()!
   const order = ['⌃', '⌥', '⇧', '⌘']

@@ -76,6 +76,8 @@ export interface Settings {
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
   layouts: SavedLayout[]
+  /** Your own keyboard shortcuts, by command ("" turns one off). */
+  shortcuts: Record<string, string>
   /** Look for a newer Tezgah on GitHub now and then. */
   checkUpdates: boolean
   /** Agents whose limits you don't want in the sidebar. */
@@ -112,7 +114,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true }
+export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [], checkUpdates: true, shortcuts: {} }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -280,6 +282,8 @@ export interface Api {
   worktreeMerge(repo: string, wt: Worktree): Promise<string>
 
   setBadge(count: number): void
+  /** Turns the menu's shortcuts off while you record a new one. */
+  suspendMenu(suspended: boolean): void
   updateTray(state: TrayState): void
   notify(title: string, body: string, sessionId: string): void
   onNotificationClick(cb: (sessionId: string) => void): () => void

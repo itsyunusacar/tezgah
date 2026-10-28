@@ -49,6 +49,7 @@ const api: Api = {
   worktreeMerge: (repo, wt) => ipcRenderer.invoke('wt-merge', repo, wt),
 
   updateTray: (state) => ipcRenderer.send('tray', state),
+  suspendMenu: (on) => ipcRenderer.send('menu-suspend', on),
   setBadge: (n) => ipcRenderer.send('badge', n),
   notify: (title, body, sessionId) => ipcRenderer.send('notify', title, body, sessionId),
   onNotificationClick: (cb) => listen('notification-click', cb),

@@ -7,10 +7,10 @@ import { startControl } from './control'
 import { start as startActivity } from './activity'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
-import { AgentDialog, ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
+import { AgentDialog, ConfirmDialog, Inbox, ShortcutsDialog, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
 import { Mark } from './components/Icons'
 import { BrowserLayer } from './components/Browser'
-import { label, type Command } from '../../shared/shortcuts'
+import { label, setOverrides, type Command } from '../../shared/shortcuts'
 
 const key = (c: Command) => label(c, terms.isMac)
 
@@ -24,6 +24,8 @@ export function App() {
   // The interface language; set before children render so every t() in this pass uses it.
   const languageSetting = useStore((s) => s.settings.language)
   setLanguage(resolveLanguage(languageSetting, navigator.language))
+  // Your own shortcuts, for labels in menus and hints.
+  setOverrides(useStore((s) => s.settings.shortcuts) as never)
 
   useTheme(theme)
   const terminalLook = useStore((s) => s.settings.terminalLook)
@@ -68,6 +70,7 @@ export function App() {
       <Palette />
       <RecentDialog />
       <SettingsDialog />
+      <ShortcutsDialog />
       <Inbox />
       <AgentDialog />
       <PromptDialog />

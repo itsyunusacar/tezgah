@@ -16,10 +16,12 @@ import * as updates from './updates'
 import { createTray, refreshTray, updateTray } from './tray'
 import { language, resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
-import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
+import { accelerator, gotoAccelerator, setOverrides, type Command } from '../shared/shortcuts'
 
 const isMac = process.platform === 'darwin'
 let win: BrowserWindow | null = null
+/** The shortcuts the menu was last built with. */
+let lastShortcuts = '{}'
 /** Folders asked to open before the window was ready. */
 const pendingFolders: string[] = []
 
@@ -220,8 +222,11 @@ function registerIpc(): void {
     writeJson('settings.json', s)
     nativeTheme.themeSource = s.theme
     const lang = resolveLanguage(s.language, app.getLocale())
-    if (lang !== language()) {
+    const keys = JSON.stringify(s.shortcuts ?? {})
+    if (lang !== language() || keys !== lastShortcuts) {
       setLanguage(lang)
+      setOverrides(s.shortcuts as never)
+      lastShortcuts = keys
       buildMenu()
       refreshTray(() => win)
     }
@@ -288,6 +293,7 @@ function registerIpc(): void {
   ipcMain.handle('wt-merge', (_e, repo, wt) => git.worktreeMerge(repo, wt))
 
   ipcMain.on('tray', (_e, state) => updateTray(state, () => win))
+  ipcMain.on('menu-suspend', (_e, on: boolean) => (on ? Menu.setApplicationMenu(null) : buildMenu()))
   ipcMain.on('badge', (_e, count: number) => {
     app.setBadgeCount(count)
     if (isMac) app.dock?.setBadge(count ? String(count) : '')
@@ -421,6 +427,8 @@ if (!app.requestSingleInstanceLock()) {
     const saved = readJson<Settings>('settings.json', defaultSettings)
     nativeTheme.themeSource = saved.theme
     setLanguage(resolveLanguage(saved.language, app.getLocale()))
+    setOverrides(saved.shortcuts as never)
+    lastShortcuts = JSON.stringify(saved.shortcuts ?? {})
     registerIpc()
     browser.watchNetwork()
     startControl(() => win?.webContents)

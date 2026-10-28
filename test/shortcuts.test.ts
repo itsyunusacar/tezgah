@@ -41,3 +41,25 @@ describe('i18n', () => {
     expect(t('Close “{title}”?', { title: 'x' })).toBe('Close “x”?')
   })
 })
+
+import { defaultAccelerator, fromKeyEvent, setOverrides } from '../src/shared/shortcuts'
+
+describe('custom shortcuts', () => {
+  const key = (k: string, code: string, mods: Partial<Record<'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey', boolean>> = {}) => ({ key: k, code, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods })
+
+  it('turns key presses into accelerators', () => {
+    expect(fromKeyEvent(key('k', 'KeyK', { metaKey: true, shiftKey: true }), true)).toBe('Cmd+Shift+K')
+    expect(fromKeyEvent(key('˚', 'KeyK', { metaKey: true, altKey: true }), true)).toBe('Cmd+Alt+K')
+    expect(fromKeyEvent(key('ArrowDown', 'ArrowDown', { ctrlKey: true, shiftKey: true }), false)).toBe('Ctrl+Shift+Down')
+    expect(fromKeyEvent(key('Shift', 'ShiftLeft', { shiftKey: true }), true)).toBeUndefined()
+  })
+
+  it('lets your own win, and "" turn one off', () => {
+    setOverrides({ 'new-claude': 'Cmd+N', inbox: '' })
+    expect(accelerator('new-claude', true)).toBe('Cmd+N')
+    expect(accelerator('inbox', true)).toBeUndefined()
+    expect(defaultAccelerator('new-claude', true)).toBe('Cmd+T')
+    setOverrides({})
+    expect(accelerator('new-claude', true)).toBe('Cmd+T')
+  })
+})

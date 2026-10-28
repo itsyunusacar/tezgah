@@ -4,8 +4,8 @@ import { usageProviders, type CustomCommand, type RecentConversation, type Termi
 import * as A from '../actions'
 import { sessionStatus, statusLine, store, useStore } from '../store'
 import { isMac } from '../terminals'
-import { Search } from './Icons'
-import { label, type Command } from '../../../shared/shortcuts'
+import { Refresh, Search } from './Icons'
+import { accelerator, commandNames, defaultAccelerator, fromKeyEvent, label, shortcuts, type Command } from '../../../shared/shortcuts'
 
 export type MenuItem = { label: string; hint?: string; danger?: boolean; disabled?: boolean; run: () => void } | 'divider' | { header: string }
 
@@ -189,6 +189,7 @@ export function Palette() {
     { key: 'inbox', text: t('Notifications'), hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
     { key: 'find', text: t('Find in terminal'), hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
     { key: 'ssh', text: t('New SSH session…'), run: () => A.newSshSession() },
+    { key: 'shortcuts', text: t('Keyboard Shortcuts'), run: () => store().setUI({ shortcuts: true }) },
     { key: 'settings', text: t('Settings'), hint: key('settings'), run: () => store().setUI({ settings: true }) },
   ]
   return <Picker placeholder={t('Go to a session or run a command')} rows={rows} onClose={() => store().setUI({ palette: false })} empty={t('No match')} />
@@ -322,6 +323,10 @@ export function SettingsDialog() {
             </div>
           </div>
           <div className="row">
+            <div className="l"><b>{t('Keyboard Shortcuts')}</b><span>{t('Change any of them.')}</span></div>
+            <button className="pill" onClick={() => store().setUI({ settings: false, shortcuts: true })}>{t('Edit…')}</button>
+          </div>
+          <div className="row">
             <div className="l"><b>{t('Check for updates')}</b><span>{t('Looks for a newer Tezgah on GitHub at launch and every six hours. Nothing is installed by itself.')}</span></div>
             <div className="seg">
               <button className={settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: true })}>{t('On')}</button>
@@ -444,4 +449,87 @@ export function AgentDialog() {
       </div>
     </Scrim>
   )
+}
+
+/** Every command's shortcut: click one, press new keys. Conflicts are refused; each can go back to its default. */
+export function ShortcutsDialog() {
+  const open = useStore((s) => s.ui.shortcuts)
+  const custom = useStore((s) => s.settings.shortcuts)
+  const setSettings = useStore((s) => s.setSettings)
+  const [recording, setRecording] = useState<Command>()
+  const [problem, setProblem] = useState<string>()
+
+  // While recording, the menu's own shortcuts are off so pressing one doesn't run it.
+  useEffect(() => {
+    if (!recording) return
+    window.tz.suspendMenu(true)
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) return setRecording(undefined)
+      const acc = fromKeyEvent(e, isMac)
+      if (!acc) return
+      if (!acc.includes('+')) return setProblem(t('Use a modifier key too (⌘, Ctrl, ⌥ or ⇧).'))
+      if (!isMac && /^Ctrl\+[A-Z]$/.test(acc)) return setProblem(t('Ctrl with a single letter belongs to the shell; add Shift or Alt.'))
+      const clash = (Object.keys(shortcuts) as Command[]).find((c) => c !== recording && accelerator(c, isMac) === acc)
+      if (clash) return setProblem(t('{keys} is already used by “{command}”.', { keys: label2(acc), command: t(commandNames[clash]) }))
+      setSettings({ shortcuts: { ...custom, [recording]: acc } })
+      setProblem(undefined)
+      setRecording(undefined)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.tz.suspendMenu(false)
+    }
+  }, [recording, custom, setSettings])
+
+  if (!open) return null
+  const close = () => {
+    setRecording(undefined)
+    store().setUI({ shortcuts: false })
+  }
+  const reset = (cmd: Command) => {
+    const next = { ...custom }
+    delete next[cmd]
+    setSettings({ shortcuts: next })
+  }
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog shortcuts">
+        <div className="head">
+          <b>{t('Keyboard Shortcuts')}</b>
+          {Object.keys(custom).length > 0 && <button className="pill small" onClick={() => setSettings({ shortcuts: {} })}>{t('Reset All')}</button>}
+        </div>
+        {problem && <div className="problem">{problem}</div>}
+        <div className="items">
+          {(Object.keys(shortcuts) as Command[]).map((cmd) => {
+            const changed = cmd in custom
+            return (
+              <div key={cmd} className={`shortcut-row ${recording === cmd ? 'recording' : ''}`}>
+                <span className="what">{t(commandNames[cmd])}</span>
+                {changed && (
+                  <button className="icon-btn tiny" title={t('Back to {keys}', { keys: label2(defaultAccelerator(cmd, isMac) ?? '') || '—' })} onClick={() => reset(cmd)}>
+                    <Refresh size={11} />
+                  </button>
+                )}
+                <button className={`keys ${changed ? 'changed' : ''}`} onClick={() => (setProblem(undefined), setRecording(recording === cmd ? undefined : cmd))}>
+                  {recording === cmd ? t('Press keys…') : key(cmd) || t('None')}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+/** A label for an accelerator that isn't (yet) a command's. */
+function label2(acc: string): string {
+  if (!isMac) return acc
+  const symbols: Record<string, string> = { Cmd: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃' }
+  const parts = acc.split('+')
+  const k = parts.pop()!
+  return parts.map((p) => symbols[p] ?? p).join('') + k
 }

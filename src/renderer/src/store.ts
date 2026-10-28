@@ -41,6 +41,8 @@ interface UI {
   settings: boolean
   /** The notification panel. */
   inbox: boolean
+  /** The keyboard shortcut editor. */
+  shortcuts?: boolean
   /** The subagent whose transcript is open. */
   agent?: { claudeId: string; id: string }
   /** The pane whose find bar is open. */
