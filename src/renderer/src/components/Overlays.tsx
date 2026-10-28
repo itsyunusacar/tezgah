@@ -229,6 +229,7 @@ export function SettingsDialog() {
   const open = useStore((s) => s.ui.settings)
   const settings = useStore((s) => s.settings)
   const setSettings = useStore((s) => s.setSettings)
+  const usage = useStore((s) => s.usage)
   const [args, setArgs] = useState(settings.claudeArgs)
   const [commands, setCommands] = useState(formatCommands(settings.commands))
   useEffect(() => setArgs(settings.claudeArgs), [open, settings.claudeArgs])
@@ -279,6 +280,25 @@ export function SettingsDialog() {
               </button>
             </div>
           </div>
+          {usage.length > 0 && (
+            <div className="row">
+              <div className="l"><b>Plan limits in the sidebar</b><span>Claude live; Codex from its most recent run</span></div>
+              <div className="seg">
+                {usage.map((p) => {
+                  const on = !settings.hiddenUsage.includes(p.id)
+                  return (
+                    <button
+                      key={p.id}
+                      className={on ? 'on' : ''}
+                      onClick={() => setSettings({ hiddenUsage: on ? [...settings.hiddenUsage, p.id] : settings.hiddenUsage.filter((x) => x !== p.id) })}
+                    >
+                      {p.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div className="row">
             <div className="l"><b>Notifications</b><span>When an agent needs you or finishes while you're elsewhere</span></div>
             <div className="seg">

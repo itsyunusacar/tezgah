@@ -11,6 +11,7 @@ import * as meta from './meta'
 import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
 import * as browser from './browser'
+import { allUsage } from './usage'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -257,7 +258,7 @@ function registerIpc(): void {
   ipcMain.handle('subagents', (_e, id: string) => claude.subagents(id))
   ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
-  ipcMain.handle('usage', () => claude.usage())
+  ipcMain.handle('usage', () => allUsage())
   ipcMain.handle('mcp-config', (_e, paneId: string) => mcpConfigFile(paneId))
   ipcMain.handle('ghostty-look', () => ghosttyLook())
   ipcMain.handle('browser-act', (_e, id: number, action: string, args: browser.BrowserArgs) => browser.act(id, action, args))

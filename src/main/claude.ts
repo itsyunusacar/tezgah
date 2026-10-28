@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
-import type { RecentConversation, SubAgent, TranscriptEntry, UsageLimit } from '../shared/types'
+import type { ProviderUsage, RecentConversation, SubAgent, TranscriptEntry, UsageLimit } from '../shared/types'
 
 /** Claude Code's data folder (respects CLAUDE_CONFIG_DIR). */
 function claudeDir(): string {
@@ -242,17 +242,19 @@ function run(file: string, args: string[]): Promise<string | undefined> {
   )
 }
 
-async function accessToken(): Promise<string | undefined> {
+/** Claude Code's login: the OAuth token and the plan it's on. */
+async function credentials(): Promise<{ token: string; plan?: string } | undefined> {
   const parse = (json?: string) => {
     try {
-      return json ? (JSON.parse(json).claudeAiOauth?.accessToken as string | undefined) : undefined
+      const o = json ? JSON.parse(json).claudeAiOauth : undefined
+      return o?.accessToken ? { token: o.accessToken as string, plan: o.subscriptionType as string | undefined } : undefined
     } catch {
       return undefined
     }
   }
   if (process.platform === 'darwin') {
-    const token = parse(await run('/usr/bin/security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w']))
-    if (token) return token
+    const found = parse(await run('/usr/bin/security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w']))
+    if (found) return found
   }
   try {
     return parse(fs.readFileSync(path.join(claudeDir(), '.credentials.json'), 'utf8'))
@@ -261,16 +263,19 @@ async function accessToken(): Promise<string | undefined> {
   }
 }
 
-export async function usage(): Promise<UsageLimit[] | null> {
-  const token = await accessToken()
-  if (!token) return null
+export async function usage(): Promise<ProviderUsage | null> {
+  const creds = await credentials()
+  if (!creds) return null
   try {
     const res = await fetch('https://api.anthropic.com/api/oauth/usage', {
-      headers: { Authorization: `Bearer ${token}`, 'anthropic-beta': 'oauth-2025-04-20' },
+      headers: { Authorization: `Bearer ${creds.token}`, 'anthropic-beta': 'oauth-2025-04-20' },
       signal: AbortSignal.timeout(15_000),
     })
     if (!res.ok) return null
-    return parseUsage(await res.json())
+    const limits = parseUsage(await res.json())
+    if (!limits.length) return null
+    const plan = creds.plan ? creds.plan[0].toUpperCase() + creds.plan.slice(1) : undefined
+    return { id: 'claude', name: 'Claude', plan, limits, asOf: Date.now(), live: true }
   } catch {
     return null
   }
@@ -284,14 +289,15 @@ export function parseUsage(obj: any): UsageLimit[] {
       .map((l: any) => {
         const model = l.scope?.model?.display_name as string | undefined
         const label =
-          l.kind === 'session' ? '5h' : model ? `Week · ${model}` : String(l.kind ?? '').startsWith('weekly') ? 'Week' : l.kind
-        return { label, percent: Number(l.percent ?? 0), resetsAt: time(l.resets_at) }
+          l.kind === 'session' ? '5-hour' : model ? `Weekly · ${model}` : String(l.kind ?? '').startsWith('weekly') ? 'Weekly' : l.kind
+        const windowMinutes = l.kind === 'session' ? 300 : String(l.kind ?? '').startsWith('weekly') ? 10080 : undefined
+        return { label, percent: Number(l.percent ?? 0), resetsAt: time(l.resets_at), windowMinutes }
       })
   }
   const out: UsageLimit[] = []
-  for (const [key, label] of [['five_hour', '5h'], ['seven_day', 'Week']] as const) {
+  for (const [key, label, windowMinutes] of [['five_hour', '5-hour', 300], ['seven_day', 'Weekly', 10080]] as const) {
     const b = obj?.[key]
-    if (b) out.push({ label, percent: Number(b.utilization ?? 0), resetsAt: time(b.resets_at) })
+    if (b) out.push({ label, percent: Number(b.utilization ?? 0), resetsAt: time(b.resets_at), windowMinutes })
   }
   return out
 }

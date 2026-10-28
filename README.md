@@ -18,7 +18,7 @@ Tezgah keeps your projects in a sidebar and the sessions you run in each one und
 - **Split panes.** Put a shell or a dev server next to Claude in the same session.
 - **Changes.** The session's diff, against its base branch or uncommitted. Click a line to leave a note, then send all notes to Claude in one message.
 - **Worktree sessions.** A session can get its own git branch and folder (`<repo>.worktrees/<branch>`) so parallel agents don't touch each other's files. Merge it back from the session's menu.
-- **Usage limits.** Your Claude plan's 5-hour and weekly limits at the bottom of the sidebar.
+- **Plan limits.** Claude's 5-hour and weekly limits, and Codex's, at the bottom of the sidebar: how much is used, when each resets, and a tick for how far into the window you are.
 - **What's running where.** Each session shows its git branch, the ports its programs listen on (click one to open it) and the branch's pull request when the [GitHub CLI](https://cli.github.com) is installed.
 - **Notifications that don't get lost.** A pane that finished or called for you while you looked away gets a blue ring. ⌘I lists every notification, ⇧⌘U jumps to the newest unread. Other agents and scripts can notify too, with OSC 9, 777 or 99, or `tezgah notify`.
 - **A browser your agents can use.** Open your dev server, docs or a PR in a pane beside the terminal. Agents read the page, click, fill forms, press keys, take screenshots and check the console and network, so they can try what they built. It keeps working while you look at another session.
@@ -132,6 +132,8 @@ Electron, [xterm.js](https://xtermjs.org) and [node-pty](https://github.com/micr
 ## Privacy
 
 Tezgah has no telemetry and no account. It makes one kind of network request: to show your plan limits, it reads Claude Code's login (the macOS Keychain item `Claude Code-credentials`, or `~/.claude/.credentials.json` elsewhere) and calls `https://api.anthropic.com/api/oauth/usage`, the endpoint Claude Code's `/usage` uses. That endpoint is undocumented and may stop working.
+
+For Codex limits it reads the last rate-limit report in Codex's own session logs (`~/.codex/sessions`); nothing is sent anywhere. Other agents (Gemini CLI, Cursor, OpenCode) don't keep their limits on your computer, so Tezgah can't show them.
 
 It reads `~/.claude/projects` to resume conversations, list recent ones and follow subagents. Your projects and sessions, and the last screen of each shell pane, are saved in Tezgah's own settings folder. When the GitHub CLI is installed, Tezgah runs `gh pr view` in your projects to show their pull requests; that uses your own `gh` login.
 

@@ -6,6 +6,7 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ### Added
 
+- Plan limits per agent: Claude (live) and Codex (from its last run's logs), each with its plan, reset times and a tick for how far into the window you are. Collapse an agent to its highest limit, or hide it in Settings.
 - Sidebar rows show the session's git branch, the ports its programs listen on (click to open) and the branch's pull request (with the GitHub CLI).
 - Attention rings on panes and sessions that finished or notified while you looked away; a notification panel (⌘I) and a jump to the newest unread (⇧⌘U).
 - Notifications from any program through OSC 9, 777 and 99, so agents other than Claude Code can call you too.

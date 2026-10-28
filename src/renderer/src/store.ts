@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type {
-  AgentState, Layout, Pane, PaneKind, Project, Session, SessionMeta, Settings, StatusRecord, SubAgent, UsageLimit, Workspace,
+  AgentState, Layout, Pane, PaneKind, ProviderUsage, Project, Session, SessionMeta, Settings, StatusRecord, SubAgent, Workspace,
 } from '../../shared/types'
 import { defaultSettings } from '../../shared/types'
 
@@ -56,7 +56,7 @@ interface State {
   settings: Settings
   panes: Record<string, PaneRuntime>
   agents: Record<string, SubAgent[]>
-  usage: UsageLimit[] | null
+  usage: ProviderUsage[]
   /** Sessions whose "done" you haven't looked at yet. */
   unseen: Record<string, boolean>
   /** Newest last. */
@@ -78,7 +78,7 @@ export const useStore = create<State>((set) => ({
   settings: defaultSettings,
   panes: {},
   agents: {},
-  usage: null,
+  usage: [],
   unseen: {},
   notes: [],
   meta: {},

@@ -244,11 +244,11 @@ function useWatchers() {
     return () => clearInterval(t)
   }, [])
 
-  // Claude plan usage every three minutes.
+  // Plan limits: Codex's from its logs every minute; Claude's are fetched every three (cached in main).
   useEffect(() => {
     const load = () => window.tz.usage().then((usage) => useStore.setState({ usage }))
     load()
-    const t = setInterval(load, 180_000)
+    const t = setInterval(load, 60_000)
     return () => clearInterval(t)
   }, [])
 }

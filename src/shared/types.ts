@@ -68,6 +68,8 @@ export interface Settings {
   terminalLook: 'tezgah' | 'ghostty'
   /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
   agentTools: boolean
+  /** Agents whose limits you don't want in the sidebar. */
+  hiddenUsage: string[]
   /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
   commands: CustomCommand[]
 }
@@ -92,7 +94,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true }
+export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [] }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -133,6 +135,20 @@ export interface UsageLimit {
   label: string
   percent: number
   resetsAt?: number
+  windowMinutes?: number
+}
+
+/** One agent's plan limits. */
+export interface ProviderUsage {
+  id: 'claude' | 'codex'
+  name: string
+  /** "Max", "Team", "Plus", "Go"… */
+  plan?: string
+  limits: UsageLimit[]
+  /** When these numbers were true. */
+  asOf: number
+  /** Fetched just now (Claude), or the agent's last report (Codex: from its most recent run). */
+  live: boolean
 }
 
 export interface FileChange {
@@ -195,7 +211,7 @@ export interface Api {
   subagents(claudeId: string): Promise<SubAgent[]>
   agentTranscript(claudeId: string, agentId: string): Promise<TranscriptEntry[]>
   recentConversations(): Promise<RecentConversation[]>
-  usage(): Promise<UsageLimit[] | null>
+  usage(): Promise<ProviderUsage[]>
   ghosttyLook(): Promise<TerminalLook | null>
   /** Writes the MCP config that gives a Claude pane Tezgah's tools; returns its path. */
   mcpConfig(paneId: string): Promise<string>
