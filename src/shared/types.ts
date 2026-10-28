@@ -135,6 +135,18 @@ export interface SubAgent {
   updatedAt: number
 }
 
+/** Token use of a Claude conversation, from its transcript. */
+export interface ConversationStats {
+  /** Tokens sent to the model over the conversation, cached ones included. */
+  input: number
+  output: number
+  cacheRead: number
+  /** Tokens in the context at the last turn. */
+  context: number
+  messages: number
+  model?: string
+}
+
 /** One step of an agent's transcript. */
 export interface TranscriptEntry {
   kind: 'prompt' | 'text' | 'tool' | 'result' | 'error'
@@ -236,6 +248,7 @@ export interface Api {
   claudeHasConversation(id: string): Promise<boolean>
   subagents(claudeId: string): Promise<SubAgent[]>
   agentTranscript(claudeId: string, agentId: string): Promise<TranscriptEntry[]>
+  conversationStats(claudeId: string): Promise<ConversationStats | null>
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<ProviderUsage[]>
   ghosttyLook(): Promise<TerminalLook | null>

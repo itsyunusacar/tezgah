@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
-import type { ProviderUsage, RecentConversation, SubAgent, TranscriptEntry, UsageLimit } from '../shared/types'
+import type { ConversationStats, ProviderUsage, RecentConversation, SubAgent, TranscriptEntry, UsageLimit } from '../shared/types'
 
 /** Claude Code's data folder (respects CLAUDE_CONFIG_DIR). */
 function claudeDir(): string {
@@ -184,6 +184,71 @@ export function agentTranscript(claudeId: string, agentId: string): TranscriptEn
     }
   }
   return []
+}
+
+// Token use per conversation, read incrementally from its transcript. A message can span several lines
+// (one per content block) with the same usage, so each message id counts once.
+
+interface Tally {
+  offset: number
+  remainder: string
+  seen: Set<string>
+  stats: ConversationStats
+}
+const tallies = new Map<string, Tally>()
+
+/** Adds the usage in transcript lines to a running tally. */
+export function tallyLines(lines: string[], seen: Set<string>, stats: ConversationStats): ConversationStats {
+  for (const line of lines) {
+    if (!line.includes('"usage"')) continue
+    let obj
+    try {
+      obj = JSON.parse(line)
+    } catch {
+      continue
+    }
+    const m = obj.message
+    const u = m?.usage
+    if (obj.type !== 'assistant' || !u) continue
+    const id = m.id ?? obj.uuid
+    if (id && seen.has(id)) continue
+    if (id) seen.add(id)
+    const input = (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0)
+    stats.input += input
+    stats.output += u.output_tokens ?? 0
+    stats.cacheRead += u.cache_read_input_tokens ?? 0
+    stats.messages += 1
+    // What the model saw last time is how full the context is now.
+    stats.context = input + (u.output_tokens ?? 0)
+    if (m.model && !String(m.model).startsWith('<')) stats.model = m.model
+  }
+  return stats
+}
+
+export function conversationStats(claudeId: string): ConversationStats | null {
+  const file = conversationFile(claudeId)
+  if (!file) return null
+  const t = tallies.get(file) ?? { offset: 0, remainder: '', seen: new Set(), stats: { input: 0, output: 0, cacheRead: 0, context: 0, messages: 0 } }
+  try {
+    const size = fs.statSync(file).size
+    if (size < t.offset) Object.assign(t, { offset: 0, remainder: '', seen: new Set(), stats: { input: 0, output: 0, cacheRead: 0, context: 0, messages: 0 } })
+    if (size > t.offset) {
+      const fd = fs.openSync(file, 'r')
+      const len = Math.min(size - t.offset, 64 << 20)
+      const buf = Buffer.alloc(len)
+      fs.readSync(fd, buf, 0, len, t.offset)
+      fs.closeSync(fd)
+      t.offset += len
+      const text = t.remainder + buf.toString('utf8')
+      const end = text.lastIndexOf('\n')
+      t.remainder = end < 0 ? text : text.slice(end + 1)
+      if (end >= 0) tallyLines(text.slice(0, end).split('\n'), t.seen, t.stats)
+    }
+  } catch {
+    return null
+  }
+  tallies.set(file, t)
+  return { ...t.stats }
 }
 
 /** Recent conversations across all projects, newest first, with their first prompt. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseTranscript, parseUsage, toolSummary } from '../src/main/claude'
+import { parseTranscript, parseUsage, tallyLines, toolSummary } from '../src/main/claude'
 
 describe('usage', () => {
   it('reads every limit, including ones not binding right now, in order', () => {
@@ -50,5 +50,14 @@ describe('parseTranscript', () => {
       ['result', 'line1\nline2'],
       ['error', 'boom'],
     ])
+  })
+})
+
+describe('conversation stats', () => {
+  it('counts each message once and tracks the latest context', () => {
+    const msg = (id: string, input: number, read: number, out: number) =>
+      JSON.stringify({ type: 'assistant', message: { id, model: 'claude-opus-5-5', usage: { input_tokens: input, cache_creation_input_tokens: 0, cache_read_input_tokens: read, output_tokens: out } } })
+    const stats = tallyLines([msg('a', 10, 1000, 50), msg('a', 10, 1000, 50), msg('b', 5, 2000, 20), '{"type":"user"}'], new Set(), { input: 0, output: 0, cacheRead: 0, context: 0, messages: 0 })
+    expect(stats).toEqual({ input: 3015, output: 70, cacheRead: 3000, context: 2025, messages: 2, model: 'claude-opus-5-5' })
   })
 })

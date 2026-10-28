@@ -1,6 +1,6 @@
 import { plural, t } from '../../../shared/i18n'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { Diff, Layout, Pane, Session } from '../../../shared/types'
+import type { ConversationStats, Diff, Layout, Pane, Session } from '../../../shared/types'
 import * as A from '../actions'
 import { type PaneRuntime, rootRecord, sessionStatus, statusLine, useStore } from '../store'
 import { agentName } from '../activity'
@@ -36,6 +36,30 @@ export function SessionView({ session }: { session: Session }) {
     }
   }, [session.id, session.worktree, project?.path, status])
 
+  // Token use of the session's Claude conversations, refreshed while it's on screen.
+  const [stats, setStats] = useState<ConversationStats | null>(null)
+  const claudeIds = session.panes.filter((p) => p.kind === 'claude' && p.claudeId).map((p) => p.claudeId!).join(',')
+  useEffect(() => {
+    if (!claudeIds) return setStats(null)
+    let alive = true
+    const load = () =>
+      Promise.all(claudeIds.split(',').map((id) => window.tz.conversationStats(id))).then((list) => {
+        if (!alive) return
+        const found = list.filter((x): x is ConversationStats => !!x && x.messages > 0)
+        setStats(
+          found.length
+            ? found.reduce((a, b) => ({ input: a.input + b.input, output: a.output + b.output, cacheRead: a.cacheRead + b.cacheRead, context: Math.max(a.context, b.context), messages: a.messages + b.messages, model: a.model ?? b.model }))
+            : null,
+        )
+      })
+    load()
+    const timer = setInterval(load, status === 'working' ? 4000 : 15000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [claudeIds, status])
+
   const added = diff?.files.reduce((n, f) => n + f.added, 0) ?? 0
   const removed = diff?.files.reduce((n, f) => n + f.removed, 0) ?? 0
 
@@ -53,6 +77,20 @@ export function SessionView({ session }: { session: Session }) {
         {agents.some((a) => a.running) && (
           <span className="chip" title={agents.map((a) => `${a.running ? '●' : '○'} ${a.description}`).join('\n')}>
             {plural(agents.filter((a) => a.running).length, '{n} agent', '{n} agents')}
+          </span>
+        )}
+        {stats && (
+          <span
+            className="chip tokens"
+            title={[
+              stats.model,
+              t('Context now: {n} tokens', { n: stats.context.toLocaleString() }),
+              t('Sent: {n} tokens ({cached} from cache)', { n: stats.input.toLocaleString(), cached: stats.cacheRead.toLocaleString() }),
+              t('Written: {n} tokens', { n: stats.output.toLocaleString() }),
+              t('{n} replies', { n: stats.messages }),
+            ].filter(Boolean).join('\n')}
+          >
+            {t('{n} context', { n: tokens(stats.context) })} · {tokens(stats.input + stats.output)}
           </span>
         )}
         {session.worktree && (
@@ -223,6 +261,13 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
       )}
     </div>
   )
+}
+
+/** 1234 → "1.2k", 3400000 → "3.4M". */
+function tokens(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}k`
+  return String(n)
 }
 
 /** What a pane is, in a word: Claude, the agent running in it, or its command. */
