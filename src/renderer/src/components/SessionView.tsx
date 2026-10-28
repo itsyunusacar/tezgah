@@ -42,7 +42,7 @@ export function SessionView({ session }: { session: Session }) {
         )}
         <span className={`dot ${status ?? ''}`} style={{ marginTop: 0 }} />
         <span className="title">{session.title}</span>
-        <span className="status">{line || project?.path}</span>
+        <span className="status">{line || session.worktree?.path || project?.path}</span>
         {agents.some((a) => a.running) && (
           <span className="chip" title={agents.map((a) => `${a.running ? '●' : '○'} ${a.description}`).join('\n')}>
             {agents.filter((a) => a.running).length} agents
