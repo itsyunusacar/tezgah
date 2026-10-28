@@ -1,3 +1,4 @@
+import { t } from '../../../shared/i18n'
 import { useState } from 'react'
 import { usageProviders, type ProviderUsage, type UsageLimit } from '../../../shared/types'
 import { store, useStore } from '../store'
@@ -30,11 +31,11 @@ function untilReset(at: number): string {
   return new Date(at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function ago(t: number): string {
-  const m = Math.round((Date.now() - t) / 60000)
-  if (m < 60) return `${Math.max(1, m)}m ago`
-  if (m < 1440) return `${Math.round(m / 60)}h ago`
-  return `${Math.round(m / 1440)}d ago`
+function ago(at: number): string {
+  const m = Math.round((Date.now() - at) / 60000)
+  if (m < 60) return t('{n}m ago', { n: Math.max(1, m) })
+  if (m < 1440) return t('{n}h ago', { n: Math.round(m / 60) })
+  return t('{n}d ago', { n: Math.round(m / 1440) })
 }
 
 export function Usage() {
@@ -57,7 +58,7 @@ export function Usage() {
         }
       }),
     'divider',
-    { label: 'Limit Settings…', run: () => store().setUI({ settings: true }) },
+    { label: t('Limit Settings…'), run: () => store().setUI({ settings: true }) },
   ]
   return (
     <div
@@ -81,8 +82,8 @@ function Provider({ usage, named }: { usage: ProviderUsage; named: boolean }) {
   const stale = !usage.live && Date.now() - usage.asOf > (usage.id === 'claude' ? 300_000 : 3_600_000)
   const staleTip =
     usage.id === 'codex'
-      ? `Codex's last report, from ${new Date(usage.asOf).toLocaleString()}. It updates when you use Codex.`
-      : `Couldn't refresh; these are from ${new Date(usage.asOf).toLocaleString()}.`
+      ? t("Codex's last report, from {when}. It updates when you use Codex.", { when: new Date(usage.asOf).toLocaleString() })
+      : t("Couldn't refresh; these are from {when}.", { when: new Date(usage.asOf).toLocaleString() })
   return (
     <div className="provider">
       {(named || stale) && (
@@ -106,7 +107,7 @@ function Limit({ limit, provider }: { limit: UsageLimit; provider: string }) {
   const pct = Math.round(limit.percent)
   const tip = [
     `${provider} · ${limit.label}: ${pct}% used`,
-    limit.resetsAt ? `Resets ${untilReset(limit.resetsAt)}` : undefined,
+    limit.resetsAt ? t('Resets {when}', { when: untilReset(limit.resetsAt) }) : undefined,
     pace !== undefined ? `The tick: ${Math.round(pace * 100)}% of the window has gone by. Past it, you're using it faster than it renews.` : undefined,
   ]
     .filter(Boolean)

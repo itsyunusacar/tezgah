@@ -1,3 +1,4 @@
+import { plural, t } from '../../../shared/i18n'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Diff, Layout, Pane, Session } from '../../../shared/types'
 import * as A from '../actions'
@@ -42,7 +43,7 @@ export function SessionView({ session }: { session: Session }) {
     <div className="main">
       <div className="header">
         {!ui.sidebar && (
-          <button className="icon-btn" title="Show sidebar" onClick={() => setUI({ sidebar: true })}>
+          <button className="icon-btn" title={t('Show sidebar')} onClick={() => setUI({ sidebar: true })}>
             <SidebarIcon />
           </button>
         )}
@@ -51,7 +52,7 @@ export function SessionView({ session }: { session: Session }) {
         <span className="status">{line || session.worktree?.path || project?.path}</span>
         {agents.some((a) => a.running) && (
           <span className="chip" title={agents.map((a) => `${a.running ? '●' : '○'} ${a.description}`).join('\n')}>
-            {agents.filter((a) => a.running).length} agents
+            {plural(agents.filter((a) => a.running).length, '{n} agent', '{n} agents')}
           </span>
         )}
         {session.worktree && (
@@ -60,7 +61,7 @@ export function SessionView({ session }: { session: Session }) {
           </span>
         )}
         {diff && diff.files.length > 0 && (
-          <button className={`pill ${ui.changes ? 'primary' : ''}`} onClick={() => setUI({ changes: !ui.changes })} title="Changes">
+          <button className={`pill ${ui.changes ? 'primary' : ''}`} onClick={() => setUI({ changes: !ui.changes })} title={t('Changes')}>
             <DiffIcon size={13} />
             <span>
               {diff.files.length} · <span style={{ color: ui.changes ? undefined : 'var(--add)' }}>+{added}</span>{' '}
@@ -68,13 +69,13 @@ export function SessionView({ session }: { session: Session }) {
             </span>
           </button>
         )}
-        <button className="icon-btn" title="Open browser" onClick={() => A.openBrowserHere()}>
+        <button className="icon-btn" title={t('Open browser')} onClick={() => A.openBrowserHere()}>
           <Globe />
         </button>
-        <button className="icon-btn" title="Split right" onClick={() => A.split('row')}>
+        <button className="icon-btn" title={t('Split right')} onClick={() => A.split('row')}>
           <SplitRow />
         </button>
-        <button className="icon-btn" title="Split down" onClick={() => A.split('column')}>
+        <button className="icon-btn" title={t('Split down')} onClick={() => A.split('column')}>
           <SplitCol />
         </button>
       </div>
@@ -142,7 +143,7 @@ function Cell({ grow, divider, onDrag, onEven, children }: { grow: number; divid
   return (
     <>
       <div className="cell" style={{ flex: `${grow} 1 0` }}>{children}</div>
-      {divider && <div className="divider" title="Drag to resize · double-click to even out" onMouseDown={onDrag} onDoubleClick={onEven} />}
+      {divider && <div className="divider" title={t('Drag to resize · double-click to even out')} onMouseDown={onDrag} onDoubleClick={onEven} />}
     </>
   )
 }
@@ -201,23 +202,23 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
           {...menu}
           onClose={() => setMenu(undefined)}
           items={[
-            { label: 'Split Right', hint: key('split-row'), run: () => A.split('row', 'shell', {}, session.id) },
-            { label: 'Split Down', hint: key('split-column'), run: () => A.split('column', 'shell', {}, session.id) },
-            { label: 'Open Browser Beside', hint: key('browser'), run: () => A.openBrowserHere() },
-            ...(multi ? [{ label: 'Even Out Panes', run: () => A.evenOut(session.id) }] : []),
+            { label: t('Split Right'), hint: key('split-row'), run: () => A.split('row', 'shell', {}, session.id) },
+            { label: t('Split Down'), hint: key('split-column'), run: () => A.split('column', 'shell', {}, session.id) },
+            { label: t('Open Browser Beside'), hint: key('browser'), run: () => A.openBrowserHere() },
+            ...(multi ? [{ label: t('Even Out Panes'), run: () => A.evenOut(session.id) }] : []),
             'divider',
-            { label: 'Find…', hint: key('find'), run: () => useStore.getState().setUI({ find: paneId }) },
-            { label: 'Clear', hint: key('clear'), run: () => terms.clear(paneId) },
-            { label: 'Restart', run: () => A.restartPane(session.id, paneId) },
+            { label: t('Find…'), hint: key('find'), run: () => useStore.getState().setUI({ find: paneId }) },
+            { label: t('Clear'), hint: key('clear'), run: () => terms.clear(paneId) },
+            { label: t('Restart'), run: () => A.restartPane(session.id, paneId) },
             'divider',
-            { label: multi ? 'Close Pane' : 'Close Session', hint: key('close-pane'), danger: true, run: () => A.closePaneById(session.id, paneId) },
+            { label: multi ? t('Close Pane') : t('Close Session'), hint: key('close-pane'), danger: true, run: () => A.closePaneById(session.id, paneId) },
           ]}
         />
       )}
       {rt?.exited && (
         <div className="exited">
-          <span>{pane.kind === 'claude' ? 'Claude exited' : 'Process exited'}</span>
-          <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>Restart</button>
+          <span>{pane.kind === 'claude' ? t('Claude exited') : t('Process exited')}</span>
+          <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>{t('Restart')}</button>
         </div>
       )}
     </div>
@@ -231,7 +232,7 @@ function paneName(pane: Pane, rt?: PaneRuntime): string {
   if (app && app !== 'claude') return agentName(app)
   if (pane.ssh) return pane.ssh
   if (pane.command) return pane.command.split(/\s+/).slice(0, 3).join(' ')
-  return 'Terminal'
+  return t('Terminal')
 }
 
 /** The strip above each pane of a split: what runs there, and split / close. */
@@ -248,10 +249,10 @@ function PaneBar({ session, pane }: { session: Session; pane: Pane }) {
         {rec?.message && <span className="msg">{rec.message}</span>}
       </span>
       <span className="tools">
-        <button className="icon-btn tiny" title="Split right" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
+        <button className="icon-btn tiny" title={t('Split right')} onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
           <SplitRow size={12} />
         </button>
-        <button className="icon-btn tiny" title="Split down" onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
+        <button className="icon-btn tiny" title={t('Split down')} onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
           <SplitCol size={12} />
         </button>
       </span>
@@ -327,18 +328,18 @@ function FindBar({ paneId }: { paneId: string }) {
       <input
         ref={input}
         value={query}
-        placeholder="Find"
+        placeholder={t('Find')}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') close()
           if (e.key === 'Enter') terms.find(paneId, query, e.shiftKey, { caseSensitive })
         }}
       />
-      <span className="count">{query ? (result && result.count > 0 ? `${result.index + 1}/${result.count}` : 'No results') : ''}</span>
-      <button className={`icon-btn small ${caseSensitive ? 'active' : ''}`} title="Match case" onClick={() => setCase(!caseSensitive)}>Aa</button>
-      <button className="icon-btn small" title="Previous (Shift+Enter)" onClick={() => terms.find(paneId, query, true, { caseSensitive })}>↑</button>
-      <button className="icon-btn small" title="Next (Enter)" onClick={() => terms.find(paneId, query, false, { caseSensitive })}>↓</button>
-      <button className="icon-btn small" title="Close (Esc)" onClick={close}><Close size={11} /></button>
+      <span className="count">{query ? (result && result.count > 0 ? `${result.index + 1}/${result.count}` : t('No results')) : ''}</span>
+      <button className={`icon-btn small ${caseSensitive ? 'active' : ''}`} title={t('Match case')} onClick={() => setCase(!caseSensitive)}>{t('Aa')}</button>
+      <button className="icon-btn small" title={t('Previous (Shift+Enter)')} onClick={() => terms.find(paneId, query, true, { caseSensitive })}>↑</button>
+      <button className="icon-btn small" title={t('Next (Enter)')} onClick={() => terms.find(paneId, query, false, { caseSensitive })}>↓</button>
+      <button className="icon-btn small" title={t('Close (Esc)')} onClick={close}><Close size={11} /></button>
     </div>
   )
 }

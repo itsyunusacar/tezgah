@@ -1,3 +1,4 @@
+import { plural, t } from '../../../shared/i18n'
 import { useEffect, useMemo, useState } from 'react'
 import type { Diff, Session } from '../../../shared/types'
 import * as A from '../actions'
@@ -77,14 +78,14 @@ export function ChangesPanel({ session, diff, onRefresh }: { session: Session; d
         <span className="t">
           Changes<span className="vs">{diff ? (session.worktree ? `vs ${session.worktree.base}` : 'uncommitted') : ''}</span>
         </span>
-        <button className="icon-btn" title="Refresh" onClick={onRefresh}><Refresh /></button>
-        <button className="icon-btn" title="Close" onClick={() => setUI({ changes: false })}><Close /></button>
+        <button className="icon-btn" title={t('Refresh')} onClick={onRefresh}><Refresh /></button>
+        <button className="icon-btn" title={t('Close')} onClick={() => setUI({ changes: false })}><Close /></button>
       </div>
 
       {!diff ? (
-        <div className="muted">Not a git repository.</div>
+        <div className="muted">{t('Not a git repository.')}</div>
       ) : !diff.files.length ? (
-        <div className="muted">No changes yet.</div>
+        <div className="muted">{t('No changes yet.')}</div>
       ) : (
         <>
           <div className="file-list">
@@ -114,7 +115,7 @@ export function ChangesPanel({ session, diff, onRefresh }: { session: Session; d
                 <div key={i}>
                   <div
                     className={`ln ${l.kind}`}
-                    title={l.kind === 'hunk' ? undefined : 'Click to leave a note'}
+                    title={l.kind === 'hunk' ? undefined : t('Click to leave a note')}
                     onClick={() => {
                       if (l.kind === 'hunk' || !file || l.no === undefined) return
                       setNotes((n) => (n[key] ? n : { ...n, [key]: { file, line: l.no!, code: l.text, text: '' } }))
@@ -130,13 +131,13 @@ export function ChangesPanel({ session, diff, onRefresh }: { session: Session; d
                       <textarea
                         autoFocus={editing === key}
                         value={note.text}
-                        placeholder="Note for Claude…"
+                        placeholder={t('Note for Claude…')}
                         onChange={(e) => setNotes((n) => ({ ...n, [key]: { ...note, text: e.target.value } }))}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send()
                         }}
                       />
-                      <button className="icon-btn small" title="Remove note" onClick={() => setNotes((n) => {
+                      <button className="icon-btn small" title={t('Remove note')} onClick={() => setNotes((n) => {
                         const next = { ...n }
                         delete next[key]
                         return next
@@ -153,10 +154,10 @@ export function ChangesPanel({ session, diff, onRefresh }: { session: Session; d
       )}
 
       <div className="changes-foot">
-        <span className="grow">{noteCount ? `${noteCount} note${noteCount > 1 ? 's' : ''}` : diff?.files.length ? 'Click a line to leave a note' : ''}</span>
-        {noteCount > 0 && <button className="pill primary" onClick={send}>Send to Claude</button>}
+        <span className="grow">{noteCount ? plural(noteCount, '{n} note', '{n} notes') : diff?.files.length ? t('Click a line to leave a note') : ''}</span>
+        {noteCount > 0 && <button className="pill primary" onClick={send}>{t('Send to Claude')}</button>}
         {session.worktree && diff && diff.files.length > 0 && (
-          <button className="pill" onClick={() => A.mergeWorktree(session.id)}>Merge into {session.worktree.base}</button>
+          <button className="pill" onClick={() => A.mergeWorktree(session.id)}>{t('Merge into {base}', { base: session.worktree.base })}</button>
         )}
       </div>
     </div>

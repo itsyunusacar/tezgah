@@ -1,3 +1,4 @@
+import { t } from '../../../shared/i18n'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { WebviewTag } from 'electron'
 import type { Pane, Session } from '../../../shared/types'
@@ -125,8 +126,8 @@ function BrowserFrame({ session, pane }: { session: Session; pane: Pane }) {
   return (
     <div className={`browser-frame ${slot ? '' : 'parked'}`} style={style}>
       <div className="browser-bar">
-        <button className="icon-btn small" title="Back" disabled={!nav.back} onClick={() => view.current?.goBack()}>←</button>
-        <button className="icon-btn small" title="Forward" disabled={!nav.forward} onClick={() => view.current?.goForward()}>→</button>
+        <button className="icon-btn small" title={t('Back')} disabled={!nav.back} onClick={() => view.current?.goBack()}>←</button>
+        <button className="icon-btn small" title={t('Forward')} disabled={!nav.forward} onClick={() => view.current?.goForward()}>→</button>
         <button className="icon-btn small" title={nav.loading ? 'Stop' : 'Reload'} onClick={() => (nav.loading ? view.current?.stop() : view.current?.reload())}>
           {nav.loading ? <Close size={11} /> : <Refresh size={12} />}
         </button>
@@ -138,17 +139,17 @@ function BrowserFrame({ session, pane }: { session: Session; pane: Pane }) {
           onFocus={(e) => (e.target.select(), A.focusPane(session.id, pane.id))}
           onKeyDown={(e) => e.key === 'Enter' && go(address)}
         />
-        <button className="icon-btn small" title="Open in your browser" onClick={() => window.tz.openExternal(address)}>↗</button>
-        <button className="icon-btn small" title="Developer tools" onClick={() => view.current?.openDevTools()}>{'</>'}</button>
-        <button className="icon-btn small" title="Close" onClick={() => A.closePaneById(session.id, pane.id)}><Close size={11} /></button>
+        <button className="icon-btn small" title={t('Open in your browser')} onClick={() => window.tz.openExternal(address)}>↗</button>
+        <button className="icon-btn small" title={t('Developer tools')} onClick={() => view.current?.openDevTools()}>{'</>'}</button>
+        <button className="icon-btn small" title={t('Close')} onClick={() => A.closePaneById(session.id, pane.id)}><Close size={11} /></button>
       </div>
       <div className="browser-body">
         <webview ref={view} src={initial} partition="persist:browser" allowpopups={'' as unknown as boolean} webpreferences="backgroundThrottling=no" />
         {error && (
           <div className="browser-error">
-            <b>Can't open this page</b>
+            <b>{t('Can\'t open this page')}</b>
             <span>{error}</span>
-            <button className="pill small" onClick={() => view.current?.reload()}>Try Again</button>
+            <button className="pill small" onClick={() => view.current?.reload()}>{t('Try Again')}</button>
           </div>
         )}
       </div>

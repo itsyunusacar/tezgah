@@ -1,3 +1,4 @@
+import { t } from '../../../shared/i18n'
 import { useState } from 'react'
 import type { Session, SubAgent } from '../../../shared/types'
 import * as A from '../actions'
@@ -28,20 +29,20 @@ export function Sidebar() {
     const projectId = A.selected()?.projectId
     const has = !!A.selected()
     return [
-      { label: 'New Claude Session', hint: key('new-claude'), run: () => A.newSession(projectId, 'claude') },
-      { label: 'New Shell Session', hint: key('new-shell'), run: () => A.newSession(projectId, 'shell') },
-      { label: 'New Session in a Worktree…', hint: key('new-worktree'), run: () => A.newWorktreeSession(projectId) },
-      { label: 'New SSH Session…', run: () => A.newSshSession(projectId) },
+      { label: t('New Claude Session'), hint: key('new-claude'), run: () => A.newSession(projectId, 'claude') },
+      { label: t('New Shell Session'), hint: key('new-shell'), run: () => A.newSession(projectId, 'shell') },
+      { label: t('New Session in a Worktree…'), hint: key('new-worktree'), run: () => A.newWorktreeSession(projectId) },
+      { label: t('New SSH Session…'), run: () => A.newSshSession(projectId) },
       'divider',
-      { label: 'New Terminal Pane', hint: key('split-row'), disabled: !has, run: () => A.split('row') },
-      { label: 'New Browser Pane', hint: key('browser'), disabled: !has, run: () => A.openBrowserHere() },
+      { label: t('New Terminal Pane'), hint: key('split-row'), disabled: !has, run: () => A.split('row') },
+      { label: t('New Browser Pane'), hint: key('browser'), disabled: !has, run: () => A.openBrowserHere() },
       'divider',
-      { label: 'Open Folder…', hint: key('open-folder'), run: () => A.openFolder() },
-      { label: 'Save Session as Layout…', disabled: !has, run: () => A.saveLayout() },
-      ...(layouts.length ? ([{ header: 'Layouts' }, ...layouts.map((l) => ({ label: l.name, hint: `${l.panes.length} panes`, run: () => A.openLayout(l.name, projectId) }))] as MenuItem[]) : []),
-      ...(commands.length ? ([{ header: 'Commands' }, ...commands.map((c) => ({ label: c.name, disabled: !has, run: () => A.runCustomCommand(c.name) }))] as MenuItem[]) : []),
+      { label: t('Open Folder…'), hint: key('open-folder'), run: () => A.openFolder() },
+      { label: t('Save Session as Layout…'), disabled: !has, run: () => A.saveLayout() },
+      ...(layouts.length ? ([{ header: t('Layouts') }, ...layouts.map((l) => ({ label: l.name, hint: t('{n} panes', { n: l.panes.length }), run: () => A.openLayout(l.name, projectId) }))] as MenuItem[]) : []),
+      ...(commands.length ? ([{ header: t('Commands') }, ...commands.map((c) => ({ label: c.name, disabled: !has, run: () => A.runCustomCommand(c.name) }))] as MenuItem[]) : []),
       'divider',
-      { label: commands.length ? 'Edit Commands…' : 'Add Your Own Commands…', run: () => setUI({ settings: true }) },
+      { label: commands.length ? t('Edit Commands…') : t('Add Your Own Commands…'), run: () => setUI({ settings: true }) },
     ]
   }
 
@@ -52,14 +53,14 @@ export function Sidebar() {
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'New Claude Session', run: () => A.newSession(id, 'claude') },
-        { label: 'New Shell Session', run: () => A.newSession(id, 'shell') },
-        { label: 'New Session in a Worktree…', run: () => A.newWorktreeSession(id) },
-        { label: 'New SSH Session…', run: () => A.newSshSession(id) },
+        { label: t('New Claude Session'), run: () => A.newSession(id, 'claude') },
+        { label: t('New Shell Session'), run: () => A.newSession(id, 'shell') },
+        { label: t('New Session in a Worktree…'), run: () => A.newWorktreeSession(id) },
+        { label: t('New SSH Session…'), run: () => A.newSshSession(id) },
         'divider',
-        { label: isMac ? 'Reveal in Finder' : 'Show in Folder', run: () => window.tz.revealPath(p.path) },
+        { label: isMac ? t('Reveal in Finder') : t('Show in Folder'), run: () => window.tz.revealPath(p.path) },
         'divider',
-        { label: 'Remove Project', danger: true, run: () => A.removeProject(id) },
+        { label: t('Remove Project'), danger: true, run: () => A.removeProject(id) },
       ],
     })
   }
@@ -70,7 +71,7 @@ export function Sidebar() {
         <div className="grow" />
         <button
           className={`icon-btn ${menu?.kind === 'new' ? 'active' : ''}`}
-          title="New…"
+          title={t('New…')}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect()
             setMenu({ kind: 'new', x: r.left, y: r.bottom + 4, items: newMenu() })
@@ -82,10 +83,10 @@ export function Sidebar() {
           <Bell />
           {unread > 0 && <span className="count">{unread > 9 ? '9+' : unread}</span>}
         </button>
-        <button className="icon-btn" title="Recent conversations" onClick={() => setUI({ recent: true })}>
+        <button className="icon-btn" title={t('Recent conversations')} onClick={() => setUI({ recent: true })}>
           <Clock />
         </button>
-        <button className="icon-btn" title="Settings" onClick={() => setUI({ settings: true })}>
+        <button className="icon-btn" title={t('Settings')} onClick={() => setUI({ settings: true })}>
           <Gear />
         </button>
       </div>
@@ -102,7 +103,7 @@ export function Sidebar() {
                 <span className="name">{p.name}</span>
                 <button
                   className="icon-btn small"
-                  title="New session"
+                  title={t('New session')}
                   onClick={(e) => {
                     e.stopPropagation()
                     A.newSession(p.id, 'claude')
@@ -119,9 +120,9 @@ export function Sidebar() {
 
       <div className="sidebar-foot">
         <Usage />
-        <button className="signature" title="Settings" onClick={() => setUI({ settings: true })}>
+        <button className="signature" title={t('Settings')} onClick={() => setUI({ settings: true })}>
           <Mark size={12} />
-          <span>tezgah</span>
+          <span>{t('tezgah')}</span>
           <span className="version">{version}</span>
         </button>
       </div>
@@ -150,13 +151,13 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'Rename…', run: () => A.renameSession(session.id) },
-        { label: 'Restart', run: () => A.restartPane(session.id) },
+        { label: t('Rename…'), run: () => A.renameSession(session.id) },
+        { label: t('Restart'), run: () => A.restartPane(session.id) },
         ...(session.worktree
-          ? (['divider', { label: `Merge into ${session.worktree.base}`, run: () => A.mergeWorktree(session.id) }] as MenuItem[])
+          ? (['divider', { label: t('Merge into {base}', { base: session.worktree.base }), run: () => A.mergeWorktree(session.id) }] as MenuItem[])
           : []),
         'divider',
-        { label: 'Close Session', danger: true, run: () => A.closeSession(session.id) },
+        { label: t('Close Session'), danger: true, run: () => A.closeSession(session.id) },
       ],
     })
   }
@@ -179,12 +180,12 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
               {line ? ' · ' : ''}
             </span>
           )}
-          {line || lastNote?.body || (activity ? 'New output' : session.panes.length > 1 ? `${session.panes.length} panes` : '')}
+          {line || lastNote?.body || (activity ? t('New output') : session.panes.length > 1 ? t('{n} panes', { n: session.panes.length }) : '')}
         </div>
         {meta && (meta.ports.length > 0 || meta.pr || (meta.branch && !session.worktree)) && (
           <div className="meta">
             {meta.branch && !session.worktree && (
-              <span className="branch" title={`Branch ${meta.branch}`}><Branch size={10} /> {meta.branch}</span>
+              <span className="branch" title={t('Branch {name}', { name: meta.branch })}><Branch size={10} /> {meta.branch}</span>
             )}
             {meta.pr && (
               <button className={`tag pr ${meta.pr.state}`} title={`${meta.pr.title}\n${meta.pr.state} · open on GitHub`} onClick={(e) => (e.stopPropagation(), window.tz.openExternal(meta.pr!.url))}>
@@ -192,7 +193,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
               </button>
             )}
             {meta.ports.map((port) => (
-              <button key={port} className="tag" title={`Open localhost:${port}`} onClick={(e) => (e.stopPropagation(), A.openPort(session.id, port))}>
+              <button key={port} className="tag" title={t('Open localhost:{port}', { port })} onClick={(e) => (e.stopPropagation(), A.openPort(session.id, port))}>
                 :{port}
               </button>
             ))}
@@ -215,7 +216,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       )}
       <button
         className="icon-btn tiny row-close"
-        title="Close session"
+        title={t('Close session')}
         onClick={(e) => {
           e.stopPropagation()
           A.closeSession(session.id)
@@ -243,7 +244,7 @@ export function AgentRows({ agents, limit = 6 }: { agents: SubAgent[]; limit?: n
           <span className="tool">{a.running ? a.activity?.split(' ')[0] ?? 'starting' : 'done'}</span>
         </div>
       ))}
-      {agents.length > limit && <div className="agent-row">+{agents.length - limit} more</div>}
+      {agents.length > limit && <div className="agent-row">{t('+{n} more', { n: agents.length - limit })}</div>}
     </div>
   )
 }

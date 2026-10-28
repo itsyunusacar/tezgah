@@ -1,3 +1,4 @@
+import { plural, t } from '../../shared/i18n'
 import { create } from 'zustand'
 import type {
   AgentState, Layout, Pane, PaneKind, ProviderUsage, Project, Session, SessionMeta, Settings, StatusRecord, SubAgent, Workspace,
@@ -138,18 +139,18 @@ export function statusLine(session: Session, panes: Record<string, PaneRuntime>,
   const pane = session.panes.find((p) => rootRecord(panes[p.id])?.state === status) ?? session.panes[0]
   const rec = rootRecord(panes[pane?.id])
   const running = agents.filter((a) => a.running).length
-  const tail = running ? ` · ${running} agent${running > 1 ? 's' : ''}` : ''
+  const tail = running ? ` · ${plural(running, '{n} agent', '{n} agents')}` : ''
   switch (status) {
     case 'blocked':
-      return `Needs you${rec?.message ? ' · ' + rec.message : rec?.kind ? ' · ' + rec.kind : ''}`
+      return `${t('Needs you')}${rec?.message ? ' · ' + rec.message : rec?.kind ? ' · ' + t(rec.kind) : ''}`
     case 'working':
-      return `Working${rec?.message ? ' · ' + rec.message : '…'}${tail}`
+      return `${t('Working')}${rec?.message ? ' · ' + rec.message : '…'}${tail}`
     case 'done':
-      return 'Done'
+      return t('Done')
     case 'error':
-      return `Error${rec?.message ? ' · ' + rec.message : ''}`
+      return `${t('Error')}${rec?.message ? ' · ' + rec.message : ''}`
     case 'exited':
-      return 'Stopped'
+      return t('Stopped')
     default:
       return ''
   }

@@ -1,3 +1,4 @@
+import { resolveLanguage, setLanguage, t } from '../../shared/i18n'
 import { useEffect, useRef } from 'react'
 import * as A from './actions'
 import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
@@ -20,6 +21,9 @@ export function App() {
   const session = useStore((s) => s.ws.sessions.find((x) => x.id === s.ws.selectedSession))
   const theme = useStore((s) => s.settings.theme)
   const fontSize = useStore((s) => s.settings.fontSize)
+  // The interface language; set before children render so every t() in this pass uses it.
+  const languageSetting = useStore((s) => s.settings.language)
+  setLanguage(resolveLanguage(languageSetting, navigator.language))
 
   useTheme(theme)
   const terminalLook = useStore((s) => s.settings.terminalLook)
@@ -82,18 +86,18 @@ function Empty() {
         <div className="grid-paper" style={{ position: 'absolute', inset: 0, opacity: 0.6 }} />
         <div style={{ position: 'relative' }}>
           <Mark size={56} />
-          <h1>Tezgah</h1>
-          <p>Your projects and AI agents, on one bench.</p>
+          <h1>{t('Tezgah')}</h1>
+          <p>{t('Your projects and AI agents, on one bench.')}</p>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="pill primary" onClick={() => A.openFolder()}>Open a Folder</button>
-            {hasProjects && <button className="pill" onClick={() => A.newSession(undefined, 'claude')}>New Session</button>}
-            <button className="pill" onClick={() => store().setUI({ recent: true })}>Recent Conversations</button>
+            <button className="pill primary" onClick={() => A.openFolder()}>{t('Open a Folder')}</button>
+            {hasProjects && <button className="pill" onClick={() => A.newSession(undefined, 'claude')}>{t('New Session')}</button>}
+            <button className="pill" onClick={() => store().setUI({ recent: true })}>{t('Recent Conversations')}</button>
           </div>
           <div className="keys" style={{ display: 'inline-grid' }}>
-            <span>New Claude session</span><span className="kbd">{key('new-claude')}</span>
-            <span>New shell session</span><span className="kbd">{key('new-shell')}</span>
-            <span>Go to session</span><span className="kbd">{key('palette')}</span>
-            <span>Next one that needs you</span><span className="kbd">{key('next-waiting')}</span>
+            <span>{t('New Claude session')}</span><span className="kbd">{key('new-claude')}</span>
+            <span>{t('New shell session')}</span><span className="kbd">{key('new-shell')}</span>
+            <span>{t('Go to session')}</span><span className="kbd">{key('palette')}</span>
+            <span>{t('Next one that needs you')}</span><span className="kbd">{key('next-waiting')}</span>
           </div>
         </div>
       </div>
@@ -202,7 +206,7 @@ function useWatchers() {
       if (status === 'done' && !visible) nextUnseen[s.id] = true
       if (status === 'blocked' || status === 'done') {
         const pane = s.panes.find((p) => rootRecord(panes[p.id])?.state === status)
-        A.addNote(s.id, pane?.id, status, s.title, status === 'blocked' ? statusLine(s, panes) || 'Needs you' : 'Finished')
+        A.addNote(s.id, pane?.id, status, s.title, status === 'blocked' ? statusLine(s, panes) || t('Needs you') : t('Finished'))
       }
     }
     if (Object.keys(nextUnseen).length !== Object.keys(unseen).length) useStore.setState({ unseen: nextUnseen })

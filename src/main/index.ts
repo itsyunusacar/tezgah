@@ -12,7 +12,8 @@ import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
 import * as browser from './browser'
 import { allUsage } from './usage'
-import { createTray, updateTray } from './tray'
+import { createTray, refreshTray, updateTray } from './tray'
+import { language, resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -121,76 +122,76 @@ function buildMenu(): void {
       ? [{
           label: 'Tezgah',
           submenu: [
-            { role: 'about' }, sep, item('Settings…', 'settings'), sep,
+            { role: 'about' }, sep, item(t('Settings…'), 'settings'), sep,
             { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, sep, { role: 'quit' },
           ],
         } as MenuItemConstructorOptions]
       : []),
     {
-      label: 'File',
+      label: t('File'),
       submenu: [
-        item('New Claude Session', 'new-claude'),
-        item('New Shell Session', 'new-shell'),
-        item('New Session in a Worktree…', 'new-worktree'),
+        item(t('New Claude Session'), 'new-claude'),
+        item(t('New Shell Session'), 'new-shell'),
+        item(t('New Session in a Worktree…'), 'new-worktree'),
         sep,
-        item('Open Folder…', 'open-folder'),
-        item('Recent Conversations…', 'recent'),
+        item(t('Open Folder…'), 'open-folder'),
+        item(t('Recent Conversations…'), 'recent'),
         sep,
-        item('Close Pane', 'close-pane'),
-        item('Close Session', 'close-session'),
-        ...(isMac ? [] : [sep, item('Settings…', 'settings'), sep, { role: 'quit' } as MenuItemConstructorOptions]),
+        item(t('Close Pane'), 'close-pane'),
+        item(t('Close Session'), 'close-session'),
+        ...(isMac ? [] : [sep, item(t('Settings…'), 'settings'), sep, { role: 'quit' } as MenuItemConstructorOptions]),
       ],
     },
     {
-      label: 'Edit',
+      label: t('Edit'),
       submenu: [
         // Undo/redo would steal Ctrl+Z / Ctrl+Y from the shell on Windows and Linux.
         ...(isMac ? [{ role: 'undo' }, { role: 'redo' }, sep] as MenuItemConstructorOptions[] : []),
         { role: 'cut', accelerator: isMac ? 'Cmd+X' : 'Ctrl+Shift+X' },
         role('copy', 'copy'),
         // Tezgah's own paste: files and images become paths Claude Code can attach.
-        item('Paste', 'paste'),
+        item(t('Paste'), 'paste'),
         role('selectAll', 'selectAll'),
         sep,
-        item('Find…', 'find'),
-        item('Clear Terminal', 'clear'),
+        item(t('Find…'), 'find'),
+        item(t('Clear Terminal'), 'clear'),
       ],
     },
     {
-      label: 'View',
+      label: t('View'),
       submenu: [
-        item('Go to Session…', 'palette'),
-        item('Changes', 'changes'),
-        item('Toggle Sidebar', 'sidebar'),
+        item(t('Go to Session…'), 'palette'),
+        item(t('Changes'), 'changes'),
+        item(t('Toggle Sidebar'), 'sidebar'),
         sep,
-        item('Split Right', 'split-row'),
-        item('Split Down', 'split-column'),
-        item('Open Browser', 'browser'),
+        item(t('Split Right'), 'split-row'),
+        item(t('Split Down'), 'split-column'),
+        item(t('Open Browser'), 'browser'),
         sep,
-        item('Bigger', 'font-up'),
-        item('Smaller', 'font-down'),
-        item('Actual Size', 'font-reset'),
+        item(t('Bigger'), 'font-up'),
+        item(t('Smaller'), 'font-down'),
+        item(t('Actual Size'), 'font-reset'),
         sep,
         { role: 'togglefullscreen' },
         ...(app.isPackaged ? [] : [{ role: 'toggleDevTools', accelerator: isMac ? 'Alt+Cmd+I' : 'F12' } as MenuItemConstructorOptions]),
       ],
     },
     {
-      label: 'Session',
+      label: t('Session'),
       submenu: [
-        item('Next Session', 'next'),
-        item('Previous Session', 'prev'),
-        item('Next Session That Needs You', 'next-waiting'),
-        item('Latest Unread Notification', 'jump-unread'),
-        item('Notifications', 'inbox'),
+        item(t('Next Session'), 'next'),
+        item(t('Previous Session'), 'prev'),
+        item(t('Next Session That Needs You'), 'next-waiting'),
+        item(t('Latest Unread Notification'), 'jump-unread'),
+        item(t('Notifications'), 'inbox'),
         sep,
-        item('Allow', 'allow'),
-        item('Deny', 'deny'),
-        ...(isMac ? [item('Interrupt', 'interrupt')] : []),
-        item('Restart Pane', 'restart'),
+        item(t('Allow'), 'allow'),
+        item(t('Deny'), 'deny'),
+        ...(isMac ? [item(t('Interrupt'), 'interrupt')] : []),
+        item(t('Restart Pane'), 'restart'),
         sep,
         ...Array.from({ length: 9 }, (_, i): MenuItemConstructorOptions => ({
-          label: `Session ${i + 1}`,
+          label: t('Session {n}', { n: i + 1 }),
           accelerator: gotoAccelerator(i + 1, isMac),
           click: send(`goto-${i}`),
         })),
@@ -199,7 +200,7 @@ function buildMenu(): void {
     { role: 'windowMenu' },
     {
       role: 'help',
-      submenu: [{ label: 'Tezgah on GitHub', click: () => shell.openExternal('https://github.com/itsyunusacar/tezgah') }],
+      submenu: [{ label: t('Tezgah on GitHub'), click: () => shell.openExternal('https://github.com/itsyunusacar/tezgah') }],
     },
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
@@ -217,6 +218,12 @@ function registerIpc(): void {
   ipcMain.on('save-settings', (_e, s: Settings) => {
     writeJson('settings.json', s)
     nativeTheme.themeSource = s.theme
+    const lang = resolveLanguage(s.language, app.getLocale())
+    if (lang !== language()) {
+      setLanguage(lang)
+      buildMenu()
+      refreshTray(() => win)
+    }
   })
 
   const scrollbackFile = (id: string) => (/^[\w-]{8,64}$/.test(id) ? path.join(dataDir(), 'scrollback', `${id}.txt`) : undefined)
@@ -404,7 +411,9 @@ if (!app.requestSingleInstanceLock()) {
   })
   app.whenReady().then(() => {
     app.setName('Tezgah')
-    nativeTheme.themeSource = readJson<Settings>('settings.json', defaultSettings).theme
+    const saved = readJson<Settings>('settings.json', defaultSettings)
+    nativeTheme.themeSource = saved.theme
+    setLanguage(resolveLanguage(saved.language, app.getLocale()))
     registerIpc()
     browser.watchNetwork()
     startControl(() => win?.webContents)

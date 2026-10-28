@@ -1,3 +1,4 @@
+import { t } from '../../../shared/i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usageProviders, type CustomCommand, type RecentConversation, type TerminalLook, type TranscriptEntry } from '../../../shared/types'
 import * as A from '../actions'
@@ -67,7 +68,7 @@ export function PromptDialog() {
           <input className="field" autoFocus value={value} placeholder={prompt.placeholder} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} onFocus={(e) => e.target.select()} />
         </div>
         <div className="dialog-actions">
-          <button className="pill" onClick={close}>Cancel</button>
+          <button className="pill" onClick={close}>{t('Cancel')}</button>
           <button className="pill primary" onClick={submit} disabled={!value.trim()}>{prompt.confirm}</button>
         </div>
       </div>
@@ -87,7 +88,7 @@ export function ConfirmDialog() {
           <p>{confirm.body}</p>
         </div>
         <div className="dialog-actions">
-          <button className="pill" onClick={close}>Cancel</button>
+          <button className="pill" onClick={close}>{t('Cancel')}</button>
           {confirm.actions.map((a, i) => (
             <button key={a.label} autoFocus={i === confirm.actions.length - 1} className={`pill ${a.danger ? 'danger' : 'primary'}`} onClick={() => (close(), a.run())}>
               {a.label}
@@ -177,25 +178,25 @@ export function Palette() {
       hint: [A.project(s.projectId)?.name, statusLine(s, panes) || (sessionStatus(s, panes) === 'exited' ? 'Stopped' : '')].filter(Boolean).join(' · '),
       run: () => A.select(s.id),
     })),
-    ...ws.projects.map((p) => ({ key: 'new-' + p.id, text: `New session in ${p.name}`, hint: key('new-claude'), run: () => A.newSession(p.id, 'claude') })),
-    { key: 'open', text: 'Open folder…', hint: key('open-folder'), run: () => A.openFolder() },
-    { key: 'recent', text: 'Recent conversations…', hint: key('recent'), run: () => store().setUI({ recent: true }) },
-    { key: 'wt', text: 'New session in a worktree…', hint: key('new-worktree'), run: () => A.newWorktreeSession() },
-    { key: 'browser', text: 'Open browser', hint: key('browser'), run: () => A.openBrowserHere() },
-    { key: 'inbox', text: 'Notifications', hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
-    { key: 'find', text: 'Find in terminal', hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
-    { key: 'ssh', text: 'New SSH session…', run: () => A.newSshSession() },
-    { key: 'settings', text: 'Settings', hint: key('settings'), run: () => store().setUI({ settings: true }) },
+    ...ws.projects.map((p) => ({ key: 'new-' + p.id, text: t('New session in {name}', { name: p.name }), hint: key('new-claude'), run: () => A.newSession(p.id, 'claude') })),
+    { key: 'open', text: t('Open folder…'), hint: key('open-folder'), run: () => A.openFolder() },
+    { key: 'recent', text: t('Recent conversations…'), hint: key('recent'), run: () => store().setUI({ recent: true }) },
+    { key: 'wt', text: t('New session in a worktree…'), hint: key('new-worktree'), run: () => A.newWorktreeSession() },
+    { key: 'browser', text: t('Open browser'), hint: key('browser'), run: () => A.openBrowserHere() },
+    { key: 'inbox', text: t('Notifications'), hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
+    { key: 'find', text: t('Find in terminal'), hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
+    { key: 'ssh', text: t('New SSH session…'), run: () => A.newSshSession() },
+    { key: 'settings', text: t('Settings'), hint: key('settings'), run: () => store().setUI({ settings: true }) },
   ]
-  return <Picker placeholder="Go to a session or run a command" rows={rows} onClose={() => store().setUI({ palette: false })} empty="No match" />
+  return <Picker placeholder={t('Go to a session or run a command')} rows={rows} onClose={() => store().setUI({ palette: false })} empty={t('No match')} />
 }
 
-export function ago(t: number): string {
-  const m = Math.round((Date.now() - t) / 60000)
-  if (m < 1) return 'now'
-  if (m < 60) return `${m}m ago`
-  if (m < 1440) return `${Math.round(m / 60)}h ago`
-  return `${Math.round(m / 1440)}d ago`
+export function ago(at: number): string {
+  const m = Math.round((Date.now() - at) / 60000)
+  if (m < 1) return t('now')
+  if (m < 60) return t('{n}m ago', { n: m })
+  if (m < 1440) return t('{n}h ago', { n: Math.round(m / 60) })
+  return t('{n}d ago', { n: Math.round(m / 1440) })
 }
 
 export function RecentDialog() {
@@ -213,7 +214,7 @@ export function RecentDialog() {
     hint: `${home(c.cwd).split(/[\\/]/).slice(-2).join('/')} · ${ago(c.updatedAt)}`,
     run: () => A.openConversation(c.id, c.cwd),
   }))
-  return <Picker placeholder="Find a Claude conversation" rows={rows} onClose={() => store().setUI({ recent: false })} empty={items ? 'No conversations yet' : 'Loading…'} />
+  return <Picker placeholder={t('Find a Claude conversation')} rows={rows} onClose={() => store().setUI({ recent: false })} empty={items ? t('No conversations yet') : t('Loading…')} />
 }
 
 const formatCommands = (list: CustomCommand[]) => list.map((c) => `${c.name}: ${c.command}`).join('\n')
@@ -251,19 +252,29 @@ export function SettingsDialog() {
     <Scrim onClose={close}>
       <div className="dialog">
         <div className="dialog-body">
-          <h2>Settings</h2>
+          <h2>{t('Settings')}</h2>
           <div className="row">
-            <div className="l"><b>Appearance</b></div>
+            <div className="l"><b>{t('Appearance')}</b></div>
             <div className="seg">
-              {(['system', 'light', 'dark'] as const).map((t) => (
-                <button key={t} className={settings.theme === t ? 'on' : ''} onClick={() => setSettings({ theme: t })}>
-                  {t[0].toUpperCase() + t.slice(1)}
+              {(['system', 'light', 'dark'] as const).map((theme) => (
+                <button key={theme} className={settings.theme === theme ? 'on' : ''} onClick={() => setSettings({ theme })}>
+                  {t({ system: 'System', light: 'Light', dark: 'Dark' }[theme])}
                 </button>
               ))}
             </div>
           </div>
           <div className="row">
-            <div className="l"><b>Terminal font size</b><span>Also {key('font-up')} and {key('font-down')}</span></div>
+            <div className="l"><b>{t('Language')}</b></div>
+            <div className="seg">
+              {(['system', 'tr', 'en'] as const).map((lang) => (
+                <button key={lang} className={settings.language === lang ? 'on' : ''} onClick={() => setSettings({ language: lang })}>
+                  {lang === 'system' ? t('System') : lang === 'tr' ? 'Türkçe' : 'English'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Terminal font size')}</b><span>{t('Also {up} and {down}', { up: key('font-up'), down: key('font-down') })}</span></div>
             <div className="seg">
               <button onClick={() => setSettings({ fontSize: Math.max(9, settings.fontSize - 1) })}>−</button>
               <button className="on">{settings.fontSize}</button>
@@ -272,7 +283,7 @@ export function SettingsDialog() {
           </div>
           {(ghostty || settings.terminalLook === 'ghostty') && (
           <div className="row">
-              <div className="l"><b>Terminal look</b><span>{ghostty ? 'Use the font and colors from your Ghostty config' : 'No Ghostty config found'}</span></div>
+              <div className="l"><b>{t('Terminal look')}</b><span>{ghostty ? t('Use the font and colors from your Ghostty config') : t('No Ghostty config found')}</span></div>
               <div className="seg">
                 <button className={settings.terminalLook !== 'ghostty' ? 'on' : ''} onClick={() => setSettings({ terminalLook: 'tezgah' })}>Tezgah</button>
                 <button
@@ -287,8 +298,8 @@ export function SettingsDialog() {
           )}
           <div className="row">
             <div className="l">
-              <b>Plan limits in the sidebar</b>
-              <span>Gemini and Grok keep their limits on their servers only, so Tezgah can't show them.</span>
+              <b>{t('Plan limits in the sidebar')}</b>
+              <span>{t('Gemini and Grok keep their limits on their servers only, so Tezgah can\'t show them.')}</span>
             </div>
             <div className="seg">
               {usageProviders.filter((p) => !p.unavailable).map((p) => {
@@ -298,7 +309,7 @@ export function SettingsDialog() {
                   <button
                     key={p.id}
                     className={on ? 'on' : ''}
-                    title={has ? undefined : p.id === 'codex' ? 'Shows while Codex is signed in or was used this week' : `No ${p.name} limits found right now`}
+                    title={has ? undefined : p.id === 'codex' ? t('Shows while Codex is signed in or was used this week') : t('No {name} limits found right now', { name: p.name })}
                     onClick={() => setSettings({ hiddenUsage: on ? [...settings.hiddenUsage, p.id] : settings.hiddenUsage.filter((x) => x !== p.id) })}
                   >
                     {p.name}
@@ -308,36 +319,36 @@ export function SettingsDialog() {
             </div>
           </div>
           <div className="row">
-            <div className="l"><b>Notifications</b><span>When an agent needs you or finishes while you're elsewhere</span></div>
+            <div className="l"><b>{t('Notifications')}</b><span>{t('When an agent needs you or finishes while you\'re elsewhere')}</span></div>
             <div className="seg">
-              <button className={settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: true })}>On</button>
-              <button className={!settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: false })}>Off</button>
+              <button className={settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: true })}>{t('On')}</button>
+              <button className={!settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: false })}>{t('Off')}</button>
             </div>
           </div>
           <div className="row">
             <div className="l">
-              <b>Browser and pane tools for Claude</b>
-              <span>Claude sessions can open, read and click through pages in the browser pane, and read other panes. Other agents: see <code>tezgah help</code>.</span>
+              <b>{t('Browser and pane tools for Claude')}</b>
+              <span>{t('Claude sessions can open, read and click through pages in the browser pane, and read other panes. Other agents: see `tezgah help`.')}</span>
             </div>
             <div className="seg">
-              <button className={settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: true })}>On</button>
-              <button className={!settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: false })}>Off</button>
+              <button className={settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: true })}>{t('On')}</button>
+              <button className={!settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: false })}>{t('Off')}</button>
             </div>
           </div>
           <div className="row" style={{ display: 'block' }}>
-            <div className="l" style={{ marginBottom: 8 }}><b>Claude arguments</b><span>Added every time a session starts Claude Code, e.g. <code>--model opus</code></span></div>
+            <div className="l" style={{ marginBottom: 8 }}><b>{t('Claude arguments')}</b><span>{t('Added every time a session starts Claude Code, e.g. --model opus')}</span></div>
             <input className="field" value={args} placeholder="--model opus" onChange={(e) => setArgs(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />
           </div>
           <div className="row" style={{ display: 'block' }}>
             <div className="l" style={{ marginBottom: 8 }}>
-              <b>Commands</b>
-              <span>One per line, <code>Name: command</code>. Each runs in a new pane, from the palette or <code>tezgah run name</code>. Other agents work too, e.g. <code>Codex: codex</code>.</span>
+              <b>{t('Commands')}</b>
+              <span>{t('One per line as “Name: command”. Each runs in a new pane, from the + menu, the quick switcher or `tezgah run <name>`. Other agents work too, e.g. “Codex: codex”.')}</span>
             </div>
             <textarea className="field area" value={commands} placeholder={'Dev server: npm run dev\nTests: npm test -- --watch\nCodex: codex'} onChange={(e) => setCommands(e.target.value)} rows={4} spellCheck={false} />
           </div>
         </div>
         <div className="dialog-actions">
-          <button className="pill primary" onClick={close}>Done</button>
+          <button className="pill primary" onClick={close}>{t('Done')}</button>
         </div>
       </div>
     </Scrim>
@@ -356,9 +367,9 @@ export function Inbox() {
     <Scrim onClose={close}>
       <div className="dialog inbox">
         <div className="head">
-          <b>Notifications</b>
+          <b>{t('Notifications')}</b>
           <span className="kbd">{key('jump-unread')} latest unread</span>
-          {list.some((n) => !n.read) && <button className="pill small" onClick={() => A.markAllRead()}>Mark All Read</button>}
+          {list.some((n) => !n.read) && <button className="pill small" onClick={() => A.markAllRead()}>{t('Mark All Read')}</button>}
         </div>
         <div className="items">
           {list.map((n) => (
@@ -370,7 +381,7 @@ export function Inbox() {
               </div>
             </div>
           ))}
-          {!list.length && <div className="muted">Nothing yet. Agents that finish, need you or send a notification show up here.</div>}
+          {!list.length && <div className="muted">{t('Nothing yet. Agents that finish, need you or send a notification show up here.')}</div>}
         </div>
       </div>
     </Scrim>
@@ -418,7 +429,7 @@ export function AgentDialog() {
           {entries.map((e, i) => (
             <div key={i} className={`step ${e.kind}`}>{e.text}</div>
           ))}
-          {!entries.length && <div className="muted">Nothing written yet.</div>}
+          {!entries.length && <div className="muted">{t('Nothing written yet.')}</div>}
         </div>
       </div>
     </Scrim>

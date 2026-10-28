@@ -60,6 +60,8 @@ export interface Workspace {
 
 export interface Settings {
   theme: 'system' | 'light' | 'dark'
+  /** Interface language; "system" follows the OS. */
+  language: 'system' | 'tr' | 'en'
   fontSize: number
   /** Extra arguments added to every `claude` start, e.g. "--model opus". */
   claudeArgs: string
@@ -103,7 +105,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [] }
+export const defaultSettings: Settings = { theme: 'system', language: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true, hiddenUsage: [], layouts: [] }
 
 // Live status, reported by Claude Code through OSC 7501.
 

@@ -1,3 +1,4 @@
+import { plural, t } from '../../shared/i18n'
 import type { Pane, PaneKind, Project, Session } from '../../shared/types'
 import {
   type Note, blockedPane, layoutPanes, newPane, removeFromLayout, sessionCwd, sessionStatus, splitLayout, store, uid, useStore,
@@ -105,7 +106,8 @@ function uniqueTitle(projectId: string, base: string): string {
 }
 
 /** A title Tezgah gave, which a better one (Claude's, the agent's name) may replace. */
-export const isDefaultTitle = (t: string) => /^(Shell|New session)( \d+)?$/.test(t)
+export const isDefaultTitle = (title: string) =>
+  ['Shell', 'New session', t('Shell'), t('New session')].some((base) => title === base || (title.startsWith(base + ' ') && /^\d+$/.test(title.slice(base.length + 1))))
 
 export function newSession(projectId: string | undefined, kind: PaneKind, worktree?: Session['worktree'], claudeId?: string): Session | undefined {
   const p = project(projectId) ?? store().ws.projects[0]
@@ -116,7 +118,7 @@ export function newSession(projectId: string | undefined, kind: PaneKind, worktr
   const pane = newPane(kind)
   if (claudeId) pane.claudeId = claudeId
   const count = store().ws.sessions.filter((s) => s.projectId === p.id).length
-  const base = worktree ? worktree.branch : kind === 'claude' ? 'New session' : 'Shell'
+  const base = worktree ? worktree.branch : kind === 'claude' ? t('New session') : t('Shell')
   const s: Session = {
     id: uid(),
     projectId: p.id,
@@ -141,13 +143,13 @@ export function newWorktreeSession(projectId?: string): void {
   if (!p) return
   store().setUI({
     prompt: {
-      title: `New worktree in ${p.name}`,
-      placeholder: 'Branch name, e.g. fix-login',
+      title: t('New worktree in {name}', { name: p.name }),
+      placeholder: t('Branch name, e.g. fix-login'),
       value: '',
-      confirm: 'Create',
+      confirm: t('Create'),
       onSubmit: async (branch) => {
         if (!branch.trim()) return
-        if (!(await window.tz.isGitRepo(p.path))) return toast(`${p.name} isn't a git repository.`)
+        if (!(await window.tz.isGitRepo(p.path))) return toast(t("{name} isn't a git repository.", { name: p.name }))
         try {
           const wt = await window.tz.worktreeAdd(p.path, branch.trim())
           newSession(p.id, 'claude', wt)
@@ -163,13 +165,13 @@ export function newWorktreeSession(projectId?: string): void {
 export function newSshSession(projectId?: string): void {
   store().setUI({
     prompt: {
-      title: 'New SSH session',
-      placeholder: 'user@host, or a Host from ~/.ssh/config',
+      title: t('New SSH session'),
+      placeholder: t('user@host, or a Host from ~/.ssh/config'),
       value: '',
-      confirm: 'Connect',
+      confirm: t('Connect'),
       onSubmit: (raw) => {
         const target = raw.trim()
-        if (!/^[\w.@:-]+$/.test(target) || target.startsWith('-')) return toast('Enter user@host or an ssh config Host.')
+        if (!/^[\w.@:-]+$/.test(target) || target.startsWith('-')) return toast(t('Enter user@host or an ssh config Host.'))
         const s = newSession(projectId ?? selected()?.projectId, 'shell')
         if (!s) return
         updatePane(s.id, s.panes[0].id, { command: `ssh ${target}`, ssh: target })
@@ -184,7 +186,7 @@ export async function dropFiles(sessionId: string, paneId: string, paths: string
   const pane = session(sessionId)?.panes.find((p) => p.id === paneId)
   if (!pane?.ssh) return terms.insertPaths(paneId, paths)
   try {
-    toast(`Uploading ${paths.length === 1 ? 'a file' : `${paths.length} files`} to ${pane.ssh}…`)
+    toast(t('Uploading {files} to {host}…', { files: plural(paths.length, 'a file', '{n} files'), host: pane.ssh }))
     terms.insertPaths(paneId, await window.tz.scpUpload(pane.ssh, paths))
   } catch (e) {
     toast(errorText(e))
@@ -213,11 +215,11 @@ export function closeSession(id: string, force = false): void {
   if (s.worktree) {
     return store().setUI({
       confirm: {
-        title: `Close “${s.title}”?`,
-        body: `It has its own worktree on branch ${s.worktree.branch}. Keep it to continue later, or delete the folder and the branch.`,
+        title: t('Close “{title}”?', { title: s.title }),
+        body: t('It has its own worktree on branch {branch}. Keep it to continue later, or delete the folder and the branch.', { branch: s.worktree.branch }),
         actions: [
-          { label: 'Keep Worktree', run: () => finish(false) },
-          { label: 'Delete Worktree', danger: true, run: () => finish(true) },
+          { label: t('Keep Worktree'), run: () => finish(false) },
+          { label: t('Delete Worktree'), danger: true, run: () => finish(true) },
         ],
       },
     })
@@ -225,9 +227,9 @@ export function closeSession(id: string, force = false): void {
   if (busy && !force) {
     return store().setUI({
       confirm: {
-        title: `Close “${s.title}”?`,
-        body: 'An agent is still working in it. Closing stops it.',
-        actions: [{ label: 'Close', danger: true, run: () => finish() }],
+        title: t('Close “{title}”?', { title: s.title }),
+        body: t('An agent is still working in it. Closing stops it.'),
+        actions: [{ label: t('Close'), danger: true, run: () => finish() }],
       },
     })
   }
@@ -239,9 +241,9 @@ export function renameSession(id: string): void {
   if (!s) return
   store().setUI({
     prompt: {
-      title: 'Rename session',
+      title: t('Rename session'),
       value: s.title,
-      confirm: 'Rename',
+      confirm: t('Rename'),
       onSubmit: (v) => v.trim() && updateSession(id, (x) => ({ ...x, title: v.trim(), customTitle: true })),
     },
   })
@@ -317,7 +319,7 @@ export function split(dir: 'row' | 'column', kind: PaneKind = 'shell', extra: Pa
     const size = (e: Element) => (dir === 'row' ? (e as HTMLElement).offsetWidth : (e as HTMLElement).offsetHeight)
     const room = parent?.dir === dir && row ? size(row) / (parent.children.length + 1) : size(el) / 2
     if (room < MIN_PANE[dir]) {
-      toast(dir === 'row' ? 'Not enough room beside this pane. Split down, close a pane, or widen the window.' : 'Not enough room below this pane.')
+      toast(dir === 'row' ? t('Not enough room beside this pane. Split down, close a pane, or widen the window.') : t('Not enough room below this pane.'))
       return undefined
     }
   }
@@ -474,7 +476,7 @@ export async function mergeWorktree(sessionId: string): Promise<void> {
   if (!s?.worktree || !p) return
   try {
     await window.tz.worktreeMerge(p.path, s.worktree)
-    toast(`Merged ${s.worktree.branch} into ${s.worktree.base}.`)
+    toast(t('Merged {branch} into {base}.', { branch: s.worktree.branch, base: s.worktree.base }))
   } catch (e) {
     toast(errorText(e))
   }
@@ -510,10 +512,10 @@ export function saveLayout(sessionId?: string): void {
   if (!s) return
   store().setUI({
     prompt: {
-      title: 'Save as layout',
-      placeholder: 'Name, e.g. Claude + dev server',
+      title: t('Save as layout'),
+      placeholder: t('Name, e.g. Claude + dev server'),
       value: s.title,
-      confirm: 'Save',
+      confirm: t('Save'),
       onSubmit: (raw) => {
         const name = raw.trim()
         if (!name) return
@@ -527,7 +529,7 @@ export function saveLayout(sessionId?: string): void {
         }
         const rest = store().settings.layouts.filter((l) => l.name !== name)
         store().setSettings({ layouts: [...rest, saved] })
-        toast(`Saved layout “${name}”.`)
+        toast(t('Saved layout “{name}”.', { name }))
       },
     },
   })

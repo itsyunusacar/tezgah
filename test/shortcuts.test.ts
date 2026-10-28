@@ -22,3 +22,22 @@ describe('shortcuts', () => {
     expect(label('new-claude', false)).toBe('Ctrl+Shift+T')
   })
 })
+
+import { plural, resolveLanguage, setLanguage, t } from '../src/shared/i18n'
+
+describe('i18n', () => {
+  it('follows the system language unless one is chosen', () => {
+    expect(resolveLanguage('system', 'tr-TR')).toBe('tr')
+    expect(resolveLanguage('system', 'en-US')).toBe('en')
+    expect(resolveLanguage('en', 'tr-TR')).toBe('en')
+  })
+
+  it('translates with placeholders and falls back to English', () => {
+    setLanguage('tr')
+    expect(t('Close “{title}”?', { title: 'Shell 2' })).toBe('“Shell 2” kapatılsın mı?')
+    expect(plural(3, '{n} note', '{n} notes')).toBe('3 not')
+    expect(t('Something not translated')).toBe('Something not translated')
+    setLanguage('en')
+    expect(t('Close “{title}”?', { title: 'x' })).toBe('Close “x”?')
+  })
+})
