@@ -70,7 +70,9 @@ export function Usage() {
 
 function Provider({ usage, collapsed, onToggle }: { usage: ProviderUsage; collapsed: boolean; onToggle: () => void }) {
   const top = usage.limits.reduce((a, b) => (b.percent > a.percent ? b : a), usage.limits[0])
-  const stale = !usage.live && Date.now() - usage.asOf > 3_600_000
+  // Claude refreshes every few minutes; say how old the numbers are only when a fetch has failed.
+  // Codex's come from its last run, so they're dated once they're over an hour old.
+  const stale = !usage.live && Date.now() - usage.asOf > (usage.id === 'claude' ? 300_000 : 3_600_000)
   return (
     <div className={`provider ${collapsed ? 'collapsed' : ''}`}>
       <button className="provider-head" onClick={onToggle} title={collapsed ? 'Show all limits' : 'Show only the highest'}>
@@ -78,7 +80,11 @@ function Provider({ usage, collapsed, onToggle }: { usage: ProviderUsage; collap
         {usage.plan && <span className="plan">{usage.plan}</span>}
         <span className="grow" />
         {stale && (
-          <span className="asof" title={`${usage.name}'s last report, from ${new Date(usage.asOf).toLocaleString()}. It updates when you use ${usage.name}.`}>
+          <span className="asof" title={
+              usage.id === 'codex'
+                ? `Codex's last report, from ${new Date(usage.asOf).toLocaleString()}. It updates when you use Codex.`
+                : `Couldn't refresh; these are from ${new Date(usage.asOf).toLocaleString()}.`
+            }>
             {ago(usage.asOf)}
           </span>
         )}

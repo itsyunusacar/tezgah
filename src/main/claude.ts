@@ -263,6 +263,13 @@ async function credentials(): Promise<{ token: string; plan?: string } | undefin
   }
 }
 
+/** The usage endpoint asked us to slow down. */
+export class RateLimited extends Error {
+  constructor(readonly waitMs: number) {
+    super('rate limited')
+  }
+}
+
 export async function usage(): Promise<ProviderUsage | null> {
   const creds = await credentials()
   if (!creds) return null
@@ -271,33 +278,41 @@ export async function usage(): Promise<ProviderUsage | null> {
       headers: { Authorization: `Bearer ${creds.token}`, 'anthropic-beta': 'oauth-2025-04-20' },
       signal: AbortSignal.timeout(15_000),
     })
+    if (res.status === 429) {
+      const wait = Number(res.headers.get('retry-after')) || 300
+      throw new RateLimited(wait * 1000)
+    }
     if (!res.ok) return null
     const limits = parseUsage(await res.json())
     if (!limits.length) return null
     const plan = creds.plan ? creds.plan[0].toUpperCase() + creds.plan.slice(1) : undefined
     return { id: 'claude', name: 'Claude', plan, limits, asOf: Date.now(), live: true }
-  } catch {
+  } catch (e) {
+    if (e instanceof RateLimited) throw e
     return null
   }
 }
 
 export function parseUsage(obj: any): UsageLimit[] {
   const time = (v: unknown) => (typeof v === 'string' ? Date.parse(v) || undefined : undefined)
-  if (Array.isArray(obj?.limits) && obj.limits.length) {
-    return obj.limits
-      .filter((l: any) => l.is_active !== false)
-      .map((l: any) => {
-        const model = l.scope?.model?.display_name as string | undefined
-        const label =
-          l.kind === 'session' ? '5-hour' : model ? `Weekly · ${model}` : String(l.kind ?? '').startsWith('weekly') ? 'Weekly' : l.kind
-        const windowMinutes = l.kind === 'session' ? 300 : String(l.kind ?? '').startsWith('weekly') ? 10080 : undefined
-        return { label, percent: Number(l.percent ?? 0), resetsAt: time(l.resets_at), windowMinutes }
-      })
-  }
   const out: UsageLimit[] = []
-  for (const [key, label, windowMinutes] of [['five_hour', '5-hour', 300], ['seven_day', 'Weekly', 10080]] as const) {
-    const b = obj?.[key]
-    if (b) out.push({ label, percent: Number(b.utilization ?? 0), resetsAt: time(b.resets_at), windowMinutes })
+  const has = (label: string) => out.some((l) => l.label === label)
+  // The limits list, all of it: is_active only marks the limit that binds right now, while Claude Code's
+  // /usage shows every one.
+  for (const l of Array.isArray(obj?.limits) ? obj.limits : []) {
+    const model = l.scope?.model?.display_name as string | undefined
+    const weekly = l.group === 'weekly' || String(l.kind ?? '').startsWith('weekly')
+    const label = l.kind === 'session' ? '5-hour' : weekly ? (model ? `Weekly · ${model}` : 'Weekly') : String(l.kind ?? 'Limit')
+    if (has(label)) continue
+    out.push({ label, percent: Number(l.percent ?? 0), resetsAt: time(l.resets_at), windowMinutes: l.kind === 'session' ? 300 : weekly ? 10080 : undefined })
   }
-  return out
+  // The older per-bucket fields fill in whatever the list leaves out.
+  const buckets = [['five_hour', '5-hour', 300], ['seven_day', 'Weekly', 10080], ['seven_day_opus', 'Weekly · Opus', 10080], ['seven_day_sonnet', 'Weekly · Sonnet', 10080]] as const
+  for (const [key, label, windowMinutes] of buckets) {
+    const b = obj?.[key]
+    if (b && typeof b.utilization === 'number' && !has(label)) out.push({ label, percent: b.utilization, resetsAt: time(b.resets_at), windowMinutes })
+  }
+  // 5-hour first, then the all-models week, then per-model weeks.
+  const rank = (l: UsageLimit) => (l.label === '5-hour' ? 0 : l.label === 'Weekly' ? 1 : 2)
+  return out.sort((x, y) => rank(x) - rank(y))
 }

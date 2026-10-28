@@ -1,3 +1,4 @@
+import { app } from 'electron'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -8,13 +9,40 @@ import * as claude from './claude'
 // Plan limits of the agents you use, for the bottom of the sidebar. Claude's come live from the
 // endpoint Claude Code's /usage uses; Codex's from the last report in its own session logs.
 
-let claudeCache: { at: number; value: ProviderUsage | null } | undefined
+// Claude's numbers: fetched at most every few minutes, longer when the endpoint asks us to wait, and
+// the last good answer kept on disk so a failed or throttled fetch (or a fresh launch) still shows something.
+let claudeLast: ProviderUsage | null | undefined
+let nextFetch = 0
+
+const cacheFile = () => path.join(app.getPath('userData'), 'usage-cache.json')
+
+function readCache(): ProviderUsage | null {
+  try {
+    const p = JSON.parse(fs.readFileSync(cacheFile(), 'utf8')) as ProviderUsage
+    return p?.id === 'claude' && Array.isArray(p.limits) ? { ...p, live: false } : null
+  } catch {
+    return null
+  }
+}
 
 async function claudeUsage(): Promise<ProviderUsage | null> {
-  if (claudeCache && Date.now() - claudeCache.at < 170_000) return claudeCache.value
-  const value = await claude.usage()
-  claudeCache = { at: Date.now(), value: value ?? claudeCache?.value ?? null }
-  return claudeCache.value
+  if (claudeLast === undefined) claudeLast = readCache()
+  if (Date.now() < nextFetch) return claudeLast
+  nextFetch = Date.now() + 170_000
+  try {
+    const fresh = await claude.usage()
+    if (fresh) {
+      claudeLast = fresh
+      fs.writeFileSync(cacheFile(), JSON.stringify(fresh))
+    } else if (claudeLast) claudeLast = { ...claudeLast, live: false }
+  } catch (e) {
+    if (e instanceof claude.RateLimited) nextFetch = Date.now() + Math.max(e.waitMs, 170_000)
+    if (claudeLast) claudeLast = { ...claudeLast, live: false }
+  }
+  // A limit whose reset time has passed since has started over.
+  if (!claudeLast) return null
+  const now = Date.now()
+  return { ...claudeLast, limits: claudeLast.limits.map((l) => (l.resetsAt && l.resetsAt < now ? { ...l, percent: 0, resetsAt: undefined } : l)) }
 }
 
 /** "5-hour", "Weekly"… from a window length. */
