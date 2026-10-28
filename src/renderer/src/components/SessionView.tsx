@@ -176,8 +176,26 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
   }, [title, pane?.kind, session.id])
 
   const blocked = rootRecord(rt)?.state === 'blocked'
+  const [dropping, setDropping] = useState(false)
   return (
-    <div className={`pane ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''}`} onMouseDown={() => A.focusPane(session.id, paneId)}>
+    <div
+      className={`pane ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${dropping ? 'dropping' : ''}`}
+      onMouseDown={() => A.focusPane(session.id, paneId)}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+        setDropping(true)
+      }}
+      onDragLeave={() => setDropping(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDropping(false)
+        const paths = [...e.dataTransfer.files].map((f) => window.tz.pathForFile(f)).filter(Boolean)
+        A.focusPane(session.id, paneId)
+        terms.insertPaths(paneId, paths)
+      }}
+    >
       <div className="term-slot" ref={slot} />
       {rt?.exited && (
         <div className="exited">

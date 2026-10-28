@@ -4,6 +4,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { applyReport, parseOsc7501 } from './osc'
+import { shellPath } from './paths'
 import { store } from './store'
 
 // Every pane's terminal lives here for the whole app session, so switching sessions
@@ -185,6 +186,20 @@ export function paste(paneId: string, text: string, submit: boolean): void {
   if (!entry) return
   entry.term.paste(text)
   if (submit) setTimeout(() => window.tz.ptyWrite(paneId, '\r'), 150)
+}
+
+/** Types file paths into a pane, separated by spaces, like dropping files on Terminal.app. */
+export function insertPaths(paneId: string, paths: string[]): void {
+  if (!paths.length) return
+  entries.get(paneId)?.term.paste(paths.map((p) => shellPath(p, window.tz.platform === 'win32')).join(' ') + ' ')
+  focus(paneId)
+}
+
+/** Paste into the focused pane: copied files and images as paths, otherwise text. */
+export async function pasteClipboard(paneId: string): Promise<void> {
+  const { paths, text } = await window.tz.clipboardPaste()
+  if (paths.length) insertPaths(paneId, paths)
+  else if (text) entries.get(paneId)?.term.paste(text)
 }
 
 export function clear(paneId: string): void {

@@ -147,6 +147,12 @@ export interface Api {
   onNotificationClick(cb: (sessionId: string) => void): () => void
   onMenu(cb: (action: string) => void): () => void
   openExternal(url: string): void
+  /** What a paste should insert: files copied in Finder/Explorer or an image (saved to a temp PNG) as paths, otherwise text. */
+  clipboardPaste(): Promise<{ paths: string[]; text: string }>
+  /** The browser's own paste, for text fields. */
+  nativePaste(): void
+  /** A dropped file's path on disk. */
+  pathForFile(file: File): string
   revealPath(path: string): void
   onOpenFolder(cb: (path: string) => void): () => void
 }

@@ -118,6 +118,13 @@ function useMenu() {
         case 'interrupt': return A.interrupt()
         case 'restart': return void A.restartPane()
         case 'clear': return s && terms.clear(s.focusedPane)
+        case 'paste': {
+          // Text fields (dialogs, notes) get the normal paste; terminals get files/images as paths.
+          const el = document.activeElement
+          const inField = el instanceof HTMLInputElement || (el instanceof HTMLTextAreaElement && !el.classList.contains('xterm-helper-textarea'))
+          if (inField || !s) return window.tz.nativePaste()
+          return void terms.pasteClipboard(s.focusedPane)
+        }
         case 'font-up': return store().setSettings({ fontSize: Math.min(24, store().settings.fontSize + 1) })
         case 'font-down': return store().setSettings({ fontSize: Math.max(9, store().settings.fontSize - 1) })
         case 'font-reset': return store().setSettings({ fontSize: 13 })

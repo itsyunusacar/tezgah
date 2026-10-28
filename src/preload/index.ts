@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { Api } from '../shared/types'
 
 function listen<A extends unknown[]>(channel: string, cb: (...args: A) => void): () => void {
@@ -37,6 +37,9 @@ const api: Api = {
   onNotificationClick: (cb) => listen('notification-click', cb),
   onMenu: (cb) => listen('menu', cb),
   openExternal: (url) => ipcRenderer.send('open-external', url),
+  clipboardPaste: () => ipcRenderer.invoke('clipboard-paste'),
+  nativePaste: () => ipcRenderer.send('native-paste'),
+  pathForFile: (file) => webUtils.getPathForFile(file),
   revealPath: (p) => ipcRenderer.send('reveal', p),
   onOpenFolder: (cb) => listen('open-folder', cb),
 }

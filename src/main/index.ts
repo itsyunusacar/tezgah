@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, shell } from 'electron'
+import { app, BrowserWindow, clipboard as anyClipboard, dialog, ipcMain, Menu, nativeTheme, Notification, shell } from 'electron'
+import os from 'node:os'
 import type { MenuItemConstructorOptions } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -139,7 +140,8 @@ function buildMenu(): void {
         ...(isMac ? [{ role: 'undo' }, { role: 'redo' }, sep] as MenuItemConstructorOptions[] : []),
         { role: 'cut', accelerator: isMac ? 'Cmd+X' : 'Ctrl+Shift+X' },
         role('copy', 'copy'),
-        role('paste', 'paste'),
+        // Tezgah's own paste: files and images become paths Claude Code can attach.
+        item('Paste', 'paste'),
         role('selectAll', 'selectAll'),
         sep,
         item('Clear Terminal', 'clear'),
@@ -242,6 +244,57 @@ function registerIpc(): void {
     if (/^https?:/.test(url)) shell.openExternal(url)
   })
   ipcMain.on('reveal', (_e, p: string) => shell.showItemInFolder(p))
+  ipcMain.handle('clipboard-paste', () => clipboardPaste())
+  ipcMain.on('native-paste', (e) => e.sender.paste())
+}
+
+// Clipboard: files copied in the file manager, or an image, paste as paths.
+
+// TypeScript resolves Electron's `Clipboard` to the DOM lib's interface of the same name;
+// spell out the part of Electron's API used here.
+const clipboard = anyClipboard as unknown as {
+  read(format: string): string
+  readBuffer(format: string): Buffer
+  readText(): string
+  readImage(): { isEmpty(): boolean; toPNG(): Buffer }
+}
+
+function copiedFiles(): string[] {
+  const fromUrls = (text: string) =>
+    text.split(/\r?\n/).filter((l) => l.startsWith('file://')).map((u) => decodeURIComponent(new URL(u).pathname))
+  try {
+    if (process.platform === 'darwin') {
+      const list = clipboard.read('NSFilenamesPboardType')
+      const many = [...list.matchAll(/<string>(.*?)<\/string>/g)].map((m) => m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'))
+      if (many.length) return many
+      const one = clipboard.read('public.file-url')
+      return one ? fromUrls(one) : []
+    }
+    if (process.platform === 'win32') {
+      const raw = clipboard.readBuffer('FileNameW')
+      const text = raw.toString('utf16le').replace(/\0+$/, '')
+      return text ? text.split('\0').filter(Boolean) : []
+    }
+    return fromUrls(clipboard.read('text/uri-list') || '')
+  } catch {
+    return []
+  }
+}
+
+function clipboardPaste(): { paths: string[]; text: string } {
+  const files = copiedFiles().filter((p) => fs.existsSync(p))
+  if (files.length) return { paths: files, text: '' }
+  const text = clipboard.readText()
+  const image = clipboard.readImage()
+  if (!text && !image.isEmpty()) {
+    // A screenshot or copied image: save it so the agent can read it by path.
+    const dir = path.join(os.tmpdir(), 'tezgah-images')
+    fs.mkdirSync(dir, { recursive: true })
+    const file = path.join(dir, `image-${new Date().toISOString().replace(/[:.]/g, '-')}.png`)
+    fs.writeFileSync(file, image.toPNG())
+    return { paths: [file], text: '' }
+  }
+  return { paths: [], text }
 }
 
 // App lifecycle
