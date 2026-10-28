@@ -116,7 +116,7 @@ function MiniRow({ title, lines, dot }: { title: string; lines: string[]; dot: s
         <b>{title}</b>
         <div className="lines">
           {lines.map((l, n) => (
-            <span key={n} style={{ animationDelay: `${n * -2}s` }}>{l}</span>
+            <span key={n} style={{ animationDelay: `${n * 2}s` }}>{l}</span>
           ))}
         </div>
       </div>

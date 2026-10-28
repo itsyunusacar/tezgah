@@ -273,8 +273,9 @@ function tokens(n: number): string {
 /** What a pane is, in a word: Claude, the agent running in it, or its command. */
 function paneName(pane: Pane, rt?: PaneRuntime): string {
   if (pane.kind === 'claude') return 'Claude'
+  // Whatever reports from the pane names it, even when it was started by hand (`claude`, `codex`…).
   const app = rootRecord(rt)?.app
-  if (app && app !== 'claude') return agentName(app)
+  if (app) return agentName(app)
   if (pane.ssh) return pane.ssh
   if (pane.command) return pane.command.split(/\s+/).slice(0, 3).join(' ')
   return t('Terminal')

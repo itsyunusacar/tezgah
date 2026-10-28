@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: Geist; src: url('../../src/renderer/src/assets/fonts/Geist-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: Geist; src: url('../../src/renderer/src/assets/fonts/Geist-Medium.ttf'); font-weight: 500; }
+  @font-face { font-family: Geist; src: url('../../src/renderer/src/assets/fonts/Geist-SemiBold.ttf'); font-weight: 600; }
+  @font-face { font-family: 'Geist Mono'; src: url('../../src/renderer/src/assets/fonts/GeistMono-Regular.ttf'); }
+  html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    font-family: Geist; color: #F5F3F1; position: relative;
+    background: radial-gradient(1200px 700px at 78% 30%, #23201D 0%, #0E0D0C 62%);
+  }
+  .grid {
+    position: absolute; inset: 0; opacity: 0.55;
+    background-image: linear-gradient(#22201E 1px, transparent 1px), linear-gradient(90deg, #22201E 1px, transparent 1px);
+    background-size: 32px 32px;
+    -webkit-mask-image: radial-gradient(circle at 26% 46%, #000 0%, rgba(0,0,0,.5) 45%, transparent 80%);
+  }
+  .copy { position: absolute; left: 76px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; }
+  .mark { width: 74px; height: 63px; color: #F5F3F1; }
+  h1 { margin: 26px 0 14px; font-size: 76px; line-height: 1; font-weight: 600; letter-spacing: -2.6px; }
+  p { margin: 0; font-size: 25px; line-height: 1.38; color: #BDB6AD; letter-spacing: -0.3px; }
+  .agents { display: flex; gap: 8px; margin-top: 30px; flex-wrap: wrap; }
+  .agents span { font-size: 15px; font-weight: 500; padding: 6px 13px; border-radius: 999px; background: #1C1B1A; border: 1px solid #2E2B28; color: #E6E1DB; display: inline-flex; align-items: center; gap: 7px; }
+  .agents i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .os { margin-top: 18px; font: 14px 'Geist Mono'; color: #7E776F; letter-spacing: 0.2px; }
+  .shot {
+    position: absolute; left: 600px; top: 78px; width: 900px; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 1px #34302C; transform: perspective(1800px) rotateY(-9deg) rotateX(3deg); transform-origin: left center;
+  }
+  .shot img { display: block; width: 100%; }
+</style></head>
+<body>
+  <div class="grid"></div>
+  <div class="copy">
+    <svg class="mark" viewBox="16 23 68 58" fill="currentColor"><rect x="16" y="45" width="68" height="12" rx="3"/><rect x="25" y="50" width="10" height="31" rx="2"/><rect x="65" y="50" width="10" height="31" rx="2"/><rect x="27" y="23" width="13" height="18" rx="2"/></svg>
+    <h1>Tezgah</h1>
+    <p id="tagline">A terminal for working with AI coding agents. Every agent, and what it's doing, at a glance.</p>
+    <div class="agents">
+      <span><i style="background:#D77757"></i>Claude Code</span>
+      <span><i style="background:#9AA0A6"></i>Codex</span>
+      <span><i style="background:#7FA6F5"></i>Gemini</span>
+      <span><i style="background:#F5F3F1"></i>Grok</span>
+    </div>
+    <div class="os" id="os">macOS · Windows · Linux · free &amp; open source</div>
+  </div>
+  <div class="shot"><img id="shot" src="../images/hero-dark.png"></div>
+  <script>
+    const q = new URLSearchParams(location.search)
+    if (q.get('lang') === 'tr') {
+      document.getElementById('tagline').textContent = 'Yapay zekâ kodlama ajanlarıyla çalışmak için bir terminal. Her ajan ve ne yaptığı, tek bakışta.'
+      document.getElementById('os').textContent = 'macOS · Windows · Linux · ücretsiz ve açık kaynak'
+      document.getElementById('shot').src = '../images/hero-dark-tr.png'
+    }
+  </script>
+</body></html>

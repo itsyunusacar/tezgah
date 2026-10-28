@@ -35,7 +35,7 @@ export function decide(screen: string): AgentState {
   return QUESTION.test(tail) ? 'blocked' : 'done'
 }
 
-const NAMES: Record<string, string> = { grok: 'Grok', gemini: 'Gemini', codex: 'Codex', aider: 'Aider', opencode: 'OpenCode', amp: 'Amp', goose: 'Goose', 'cursor-agent': 'Cursor', 'kiro-cli': 'Kiro', qwen: 'Qwen', agy: 'Antigravity' }
+const NAMES: Record<string, string> = { claude: 'Claude', grok: 'Grok', gemini: 'Gemini', codex: 'Codex', aider: 'Aider', opencode: 'OpenCode', amp: 'Amp', goose: 'Goose', 'cursor-agent': 'Cursor', 'kiro-cli': 'Kiro', qwen: 'Qwen', agy: 'Antigravity' }
 export const agentName = (id: string) => NAMES[id] ?? id[0].toUpperCase() + id.slice(1)
 
 function set(paneId: string, w: Watch, state: AgentState): void {

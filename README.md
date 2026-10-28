@@ -1,45 +1,64 @@
-<p align="center"><img src="resources/icon.png" width="112" alt="Tezgah"></p>
+<p align="center"><img src="docs/images/cover.png" alt="Tezgah — a terminal for working with AI coding agents" width="100%"></p>
 
-<h1 align="center">Tezgah</h1>
+<p align="center">
+  <a href="https://github.com/itsyunusacar/tezgah/releases"><img alt="Download" src="https://img.shields.io/github/v/release/itsyunusacar/tezgah?include_prereleases&label=download&color=1A1918"></a>
+  <a href="https://github.com/itsyunusacar/tezgah/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/itsyunusacar/tezgah/ci.yml?branch=main&label=tests"></a>
+  <img alt="macOS · Windows · Linux" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-777169">
+  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-777169"></a>
+</p>
 
-<p align="center"><i>tezgâh</i> — Turkish for workbench. A terminal for working with AI coding agents.</p>
+<p align="center"><b>English</b> · <a href="README.tr.md">Türkçe</a></p>
 
-Tezgah keeps your projects in a sidebar and the sessions you run in each one under it. Every [Claude Code](https://claude.com/claude-code) session tells you what it's doing — working, waiting for you, done — and lists the subagents it has running, so you can keep several going and still know where to look. It runs on macOS, Windows and Linux.
+**Tezgah** (*tezgâh*, Turkish for workbench) is a terminal for working with AI coding agents. Your projects sit in a sidebar with the sessions you run in each one, and every agent in them — [Claude Code](https://claude.com/claude-code), Codex, Gemini, Grok and others — shows what it's doing: working, waiting for you, done. Keep several going and still know where to look.
 
-> **Early version.** This is a rewrite of the first Tezgah (a macOS-only Swift app, kept in [tezgah-legacy](https://github.com/itsyunusacar/tezgah-legacy)) into something smaller that runs everywhere.
+<p align="center"><img src="docs/images/demo.gif" alt="Allowing Claude and Codex from the sidebar, then reading the notifications" width="100%"></p>
 
-## What it does
+<p align="center"><sub><a href="docs/images/demo.mp4">Watch in full quality</a></sub></p>
 
-- **Projects and sessions.** A project is a folder; sessions live under it. A session is usually one Claude Code conversation, or a plain shell.
-- **Live status, no setup.** Claude Code reports its state to the terminal (OSC 7501). Tezgah shows it on each session — *Working*, *Needs you*, *Done* — with a badge for the ones waiting on you and a notification when you're elsewhere. Other agents (Grok, Gemini, Codex, Aider, OpenCode…) get the same, read from what they do: output while they work, a question when they need you, quiet when they're done. Codex reports exactly, through hooks Tezgah passes when you run `codex` in it (Codex asks you to trust them once; your Codex config isn't changed), including Allow and Deny for its permission requests.
-- **Allow or Deny from the sidebar.** When Claude asks for a permission, answer it without switching to the session.
-- **Subagents.** While Claude runs subagents, the session lists each one and what it's doing right now.
-- **Conversations that resume.** Each Claude session is pinned to its conversation, so quitting and reopening Tezgah picks up where you left off. ⇧⌘O reopens any past conversation.
-- **Split panes.** Put a shell or a dev server next to Claude in the same session.
-- **Changes.** The session's diff, against its base branch or uncommitted. Click a line to leave a note, then send all notes to Claude in one message.
-- **Worktree sessions.** A session can get its own git branch and folder (`<repo>.worktrees/<branch>`) so parallel agents don't touch each other's files. Merge it back from the session's menu.
-- **Plan limits.** Claude's 5-hour and weekly limits, and Codex's, at the bottom of the sidebar: how much is used, when each resets, and a tick for how far into the window you are.
-- **What's running where.** Each session shows its git branch, the ports its programs listen on (click one to open it) and the branch's pull request when the [GitHub CLI](https://cli.github.com) is installed.
-- **Notifications that don't get lost.** A pane that finished or called for you while you looked away gets a blue ring. ⌘I lists every notification, ⇧⌘U jumps to the newest unread. Other agents and scripts can notify too, with OSC 9, 777 or 99, or `tezgah notify`.
-- **A browser your agents can use.** Open your dev server, docs or a PR in a pane beside the terminal. Agents read the page, click, fill forms, press keys, take screenshots and check the console and network, so they can try what they built. It keeps working while you look at another session.
-- **Follow a subagent.** Click one to read its task, tool calls and results as it works.
-- **Find** in any terminal (⌘F), **drop or paste files and screenshots** to type their paths, **SSH sessions** that upload dropped files, and shell panes that keep their screen across relaunches.
-- **Your own commands** (Settings → Commands) in the quick switcher, each running in a new pane. Codex, Gemini CLI or any other agent fits here.
-- Light and dark, Geist type, optional font and colors from your Ghostty config, a quick switcher, and keyboard shortcuts for everything.
+## Download
 
-## Install
+| | |
+| --- | --- |
+| **macOS** | [Apple silicon (.dmg)](https://github.com/itsyunusacar/tezgah/releases) · [Intel (.dmg)](https://github.com/itsyunusacar/tezgah/releases) |
+| **Windows** | [Installer (.exe)](https://github.com/itsyunusacar/tezgah/releases) |
+| **Linux** | [AppImage](https://github.com/itsyunusacar/tezgah/releases) · [.deb](https://github.com/itsyunusacar/tezgah/releases) |
 
-Download the latest build for your system from [Releases](https://github.com/itsyunusacar/tezgah/releases):
+Builds aren't signed yet. On macOS, the first time, right-click Tezgah in Applications and choose *Open*; on Windows, choose *More info → Run anyway*. You need [Claude Code](https://claude.com/claude-code) for Claude sessions; shell sessions and other agents work without it. Tezgah is free and has no account.
 
-- **macOS:** `Tezgah-<version>-arm64.dmg` (Apple silicon) or `-x64.dmg` (Intel). Builds aren't notarized yet: the first time, right-click Tezgah in Applications and choose *Open*.
-- **Windows:** `Tezgah-Setup-<version>-x64.exe`.
-- **Linux:** `Tezgah-<version>-x86_64.AppImage` (make it executable and run it) or the `.deb`.
+## Every agent at a glance
 
-You need [Claude Code](https://claude.com/claude-code) installed as `claude` for Claude sessions. Shell sessions work without it.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
+  <img alt="Tezgah with six sessions across three projects, a Claude session asking to run tests, and the app beside it in a browser pane" src="docs/images/hero-light.png">
+</picture>
+
+- **Live status, no setup.** Claude Code reports its state itself; Codex through hooks Tezgah passes when you run it (Codex asks you to trust them once); Gemini, Grok, Aider, OpenCode and others are read from what they do. Each session says *Working*, *Needs you* or *Done*, with what it's doing right now.
+- **Answer without switching.** Allow or deny a permission request right from the sidebar. A ring marks the pane that needs you, the bell counts what you missed, and the menu bar icon shows who's waiting.
+- **Subagents** listed under their session, each one followable as it works.
+- **What's running where:** each session's git branch, the ports its programs listen on (click to open) and its pull request.
+- **Conversations that resume.** Sessions are pinned to their Claude conversation, and shell panes keep their screen, across relaunches.
+- **Organize:** split panes, saved layouts, worktree sessions so parallel agents don't collide, drag to reorder, pin, archive.
+- **Plan limits** for Claude and Codex at the bottom of the sidebar, and the context and tokens of each Claude session in its header.
+
+## A browser your agents can use
+
+Open your dev server beside the terminal. Agents read the page as text with element refs, click, fill forms, press keys, take screenshots, and check the console and network, so they can try what they built. It keeps working while you look at another session. Claude gets these tools automatically; any agent can use them through the [`tezgah` command](#the-tezgah-command) or [MCP](#agents-and-the-browser).
+
+## Review, commit, ship
+
+<img alt="The Changes panel with a note for Claude on a line, a commit message and Commit All" src="docs/images/changes.png">
+
+See every change the session made, click a line to leave a note, and send all notes to Claude in one message. Then commit, push and open a pull request from the same panel.
+
+## Made to be at home in
+
+<p align="center"><img src="docs/images/tour.png" alt="The first-run tour" width="70%"></p>
+
+A short tour on first launch; Turkish and English; light and dark; find in terminal; drop or paste files and screenshots as paths; SSH sessions; your own commands in the + menu and the quick switcher; every shortcut changeable; a quiet note when a new version is out.
 
 ## Keyboard shortcuts
 
-On Windows and Linux, plain Ctrl+letter keys belong to the shell, so Tezgah uses Ctrl+Shift.
+On Windows and Linux, plain Ctrl+letter keys belong to the shell, so Tezgah uses Ctrl+Shift. Change any of them in Settings → Keyboard Shortcuts.
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
@@ -124,6 +143,7 @@ cd tezgah
 npm install
 npm run dev          # run with hot reload
 npm test             # unit tests
+npm run e2e          # end-to-end tests
 npm run dist         # installers for your platform, in dist/
 ```
 

@@ -549,7 +549,6 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 @keyframes dot-b { 0%, 32% { background: var(--done); } 33%, 100% { background: var(--working); } }
 @keyframes dot-c { 0%, 32% { background: var(--waiting); } 33%, 65% { background: var(--done); } 66%, 100% { background: var(--working); } }
 @keyframes dot-d { 0%, 65% { background: var(--working); } 66%, 100% { background: var(--done); } }
-.scene.sessions .mini-row:nth-of-type(2) .lines span:nth-child(2) { animation-delay: 2s; }
 
 /* 3 · answer: a cursor clicks Allow, the row starts working, a notification slides in */
 .scene.answer .mini-sidebar { position: relative; height: 120px; }
