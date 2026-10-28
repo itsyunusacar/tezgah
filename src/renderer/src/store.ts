@@ -72,7 +72,7 @@ interface State {
   /** The user's home folder, where a shell opens when there's no project. */
   home: string
   /** A newer release, when there is one. */
-  update: { version: string; url: string } | null
+  update: { version: string; url: string; ready: boolean } | null
   ui: UI
 
   setWs(fn: (ws: Workspace) => Workspace): void

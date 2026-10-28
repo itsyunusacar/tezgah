@@ -4,6 +4,10 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ## [Unreleased]
 
+### Added
+
+- Updates install themselves: a new version downloads in the background and goes in place when you quit Tezgah, or right away with Restart in the sidebar (Settings → Install updates). For the macOS app, the Windows installer and AppImages; a .deb still tells you and links the release.
+
 ## [1.0.2] - 2026-10-28
 
 ### Fixed

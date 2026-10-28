@@ -182,7 +182,13 @@ export function Sidebar() {
 
       <div className="sidebar-foot">
         <Usage />
-        {update && (
+        {update?.ready ? (
+          <button className="update" title={t('Installs when you quit Tezgah. Restart installs it now.')} onClick={() => window.tz.installUpdate()}>
+            <span className="dot" />
+            {t('Tezgah {version} is ready', { version: update.version })}
+            <span className="go">{t('Restart')}</span>
+          </button>
+        ) : update && (
           <button className="update" title={update.url} onClick={() => window.tz.openExternal(update.url)}>
             <span className="dot" />
             {t('Tezgah {version} is out', { version: update.version })}

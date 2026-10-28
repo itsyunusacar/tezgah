@@ -245,6 +245,11 @@ export function SettingsDialog() {
   useEffect(() => setCommands(formatCommands(settings.commands)), [open, settings.commands])
   const [ghostty, setGhostty] = useState<TerminalLook | null | undefined>()
   const [defaultTerm, setDefaultTerm] = useState<Awaited<ReturnType<typeof window.tz.defaultTerminal>>>()
+  // Only where this copy can replace itself: not a dev build, a .deb or a folder you can't write to.
+  const [canInstall, setCanInstall] = useState(false)
+  useEffect(() => {
+    if (open) window.tz.canInstallUpdates().then(setCanInstall)
+  }, [open])
   useEffect(() => {
     if (open) window.tz.defaultTerminal().then(setDefaultTerm)
   }, [open])
@@ -369,12 +374,21 @@ export function SettingsDialog() {
             <button className="pill" onClick={() => store().setUI({ settings: false, shortcuts: true })}>{t('Edit…')}</button>
           </div>
           <div className="row">
-            <div className="l"><b>{t('Check for updates')}</b><span>{t('Looks for a newer Tezgah on GitHub at launch and every six hours. Nothing is installed by itself.')}</span></div>
+            <div className="l"><b>{t('Check for updates')}</b><span>{t('Looks for a newer Tezgah on GitHub at launch and every six hours.')}</span></div>
             <div className="seg">
               <button className={settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: true })}>{t('On')}</button>
               <button className={!settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: false })}>{t('Off')}</button>
             </div>
           </div>
+          {canInstall && settings.checkUpdates && (
+            <div className="row">
+              <div className="l"><b>{t('Install updates')}</b><span>{t('Downloads a new version in the background and puts it in place when you quit Tezgah.')}</span></div>
+              <div className="seg">
+                <button className={settings.installUpdates ? 'on' : ''} onClick={() => setSettings({ installUpdates: true })}>{t('On')}</button>
+                <button className={!settings.installUpdates ? 'on' : ''} onClick={() => setSettings({ installUpdates: false })}>{t('Off')}</button>
+              </div>
+            </div>
+          )}
           <div className="row">
             <div className="l"><b>{t('Notifications')}</b><span>{t('When an agent needs you or finishes while you\'re elsewhere')}</span></div>
             <div className="seg">

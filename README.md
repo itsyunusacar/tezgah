@@ -148,7 +148,7 @@ Electron, [xterm.js](https://xtermjs.org) and [node-pty](https://github.com/micr
 
 ## Privacy
 
-Tezgah has no telemetry and no account. It makes two kinds of network request. To tell you about new versions, it asks GitHub for this repository's latest releases at launch and every six hours (Settings → Check for updates turns this off; nothing is ever installed by itself). To show your plan limits, it reads Claude Code's login (the macOS Keychain item `Claude Code-credentials`, or `~/.claude/.credentials.json` elsewhere) and calls `https://api.anthropic.com/api/oauth/usage`, the endpoint Claude Code's `/usage` uses. That endpoint is undocumented and may stop working.
+Tezgah has no telemetry and no account. It makes two kinds of network request. To tell you about new versions, it asks GitHub for this repository's latest releases at launch and every six hours (Settings → Check for updates turns this off). Where Tezgah can replace itself (the macOS app, the Windows installer or an AppImage, in a folder you can write to), it downloads the new version from the release and puts it in place when you quit; Settings → Install updates turns that off, and the sidebar's Restart installs it right away. To show your plan limits, it reads Claude Code's login (the macOS Keychain item `Claude Code-credentials`, or `~/.claude/.credentials.json` elsewhere) and calls `https://api.anthropic.com/api/oauth/usage`, the endpoint Claude Code's `/usage` uses. That endpoint is undocumented and may stop working.
 
 For Codex limits it reads the last rate-limit report in Codex's own session logs (`~/.codex/sessions`); nothing is sent anywhere. Other agents (Gemini CLI, Cursor, OpenCode) don't keep their limits on your computer, so Tezgah can't show them.
 

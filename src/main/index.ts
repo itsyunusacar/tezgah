@@ -24,6 +24,8 @@ const isMac = process.platform === 'darwin'
 let win: BrowserWindow | null = null
 /** The shortcuts the menu was last built with. */
 let lastShortcuts = '{}'
+/** Quitting from the sidebar's Restart button opens the updated Tezgah again; a plain quit doesn't. */
+let relaunchAfterUpdate = false
 
 
 // Persistence: two small JSON files in the user data folder, written atomically.
@@ -325,7 +327,17 @@ function registerIpc(): void {
   ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => allUsage())
-  ipcMain.handle('check-update', () => updates.check())
+  ipcMain.handle('check-update', async (_e, install: boolean) => {
+    const update = await updates.check()
+    if (!update) return null
+    if (install) void updates.prepare(update, () => win?.webContents.send('update-ready', update.version))
+    return { version: update.version, url: update.url, ready: updates.ready(update.version) }
+  })
+  ipcMain.handle('can-install-updates', () => updates.canInstall())
+  ipcMain.on('install-update', () => {
+    relaunchAfterUpdate = true
+    app.quit()
+  })
   ipcMain.handle('tools', () => meta.tools())
   ipcMain.handle('default-terminal', () => defaultTerminal.status())
   ipcMain.handle('make-default-terminal', () => defaultTerminal.makeDefault())
@@ -487,6 +499,7 @@ if (!app.requestSingleInstanceLock({ argv: process.argv, cwd: process.cwd() })) 
     setOverrides(saved.shortcuts as never)
     lastShortcuts = JSON.stringify(saved.shortcuts ?? {})
     registerIpc()
+    updates.cleanUp()
     browser.watchNetwork()
     startControl(() => win?.webContents)
     buildMenu()
@@ -502,4 +515,5 @@ if (!app.requestSingleInstanceLock({ argv: process.argv, cwd: process.cwd() })) 
     if (!isMac) app.quit()
   })
   app.on('before-quit', () => pty.killAll())
+  app.on('will-quit', () => updates.installOnQuit(relaunchAfterUpdate))
 }
