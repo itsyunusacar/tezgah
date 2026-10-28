@@ -1,7 +1,7 @@
 {
   "name": "tezgah",
   "productName": "Tezgah",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A terminal for working with AI coding agents. Projects, sessions, and every agent's status at a glance.",
   "author": "Yunus Acar",
   "license": "MIT",
