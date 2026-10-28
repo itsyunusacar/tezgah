@@ -11,5 +11,5 @@ export function normalizeUrl(input: string): string {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t) || /^(about|data):/i.test(t)) return t
   if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/.test(t)) return `http://${t}`
   if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/|$)/.test(t)) return `https://${t}`
-  return `https://duckduckgo.com/?q=${encodeURIComponent(t)}`
+  return `https://www.google.com/search?q=${encodeURIComponent(t)}`
 }

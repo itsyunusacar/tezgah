@@ -1,5 +1,7 @@
-import type { ProviderUsage, UsageLimit } from '../../../shared/types'
-import { useStore } from '../store'
+import { useState } from 'react'
+import { usageProviders, type ProviderUsage, type UsageLimit } from '../../../shared/types'
+import { store, useStore } from '../store'
+import { ContextMenu, type MenuItem } from './Overlays'
 
 // Plan limits at the bottom of the sidebar, one compact row per agent: "5h 34%  Week 21%  Fable 18%",
 // each over a thin bar. Hover a limit for when it resets and how far into its window you are.
@@ -38,13 +40,37 @@ function ago(t: number): string {
 export function Usage() {
   const usage = useStore((s) => s.usage)
   const hidden = useStore((s) => s.settings.hiddenUsage)
+  const [menu, setMenu] = useState<{ x: number; y: number }>()
   const shown = usage.filter((p) => !hidden.includes(p.id) && p.limits.length)
   if (!shown.length) return null
+
+  // Right-click: pick which agents' limits to show.
+  const items: MenuItem[] = [
+    ...usageProviders
+      .filter((p) => !p.unavailable)
+      .map((p) => {
+        const on = !hidden.includes(p.id)
+        const has = usage.some((u) => u.id === p.id)
+        return {
+          label: `${on ? '✓' : '   '} ${p.name}${has ? '' : ' (no data)'}`,
+          run: () => store().setSettings({ hiddenUsage: on ? [...hidden, p.id] : hidden.filter((x) => x !== p.id) }),
+        }
+      }),
+    'divider',
+    { label: 'Limit Settings…', run: () => store().setUI({ settings: true }) },
+  ]
   return (
-    <div className="sidebar-bottom limits">
+    <div
+      className="sidebar-bottom limits"
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setMenu({ x: e.clientX, y: e.clientY })
+      }}
+    >
       {shown.map((p) => (
         <Provider key={p.id} usage={p} named={shown.length > 1 || p.id !== 'claude'} />
       ))}
+      {menu && <ContextMenu {...menu} items={items} onClose={() => setMenu(undefined)} />}
     </div>
   )
 }

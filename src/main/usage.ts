@@ -133,6 +133,12 @@ function codexLogs(limit: number): string[] {
 
 const codexCache = new Map<string, { mtime: number; report: ReturnType<typeof codexReport> }>()
 
+/** Codex is signed in (its login file), or was used this past week. A cancelled plan or a signed-out
+ *  Codex shouldn't keep showing old numbers. */
+function codexActive(asOf: number): boolean {
+  return fs.existsSync(path.join(codexHome(), 'auth.json')) || Date.now() - asOf < 7 * 86_400_000
+}
+
 function codexUsage(): ProviderUsage | null {
   for (const file of codexLogs(5)) {
     try {
@@ -146,6 +152,7 @@ function codexUsage(): ProviderUsage | null {
         codexCache.set(file, hit)
       }
       if (hit.report) {
+        if (!codexActive(hit.report.asOf)) return null
         const now = Date.now()
         const limits = hit.report.limits.map((l) => (l.resetsAt && l.resetsAt < now ? { ...l, percent: 0, resetsAt: undefined } : l))
         return { id: 'codex', name: 'Codex', ...hit.report, limits }

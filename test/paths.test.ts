@@ -29,6 +29,6 @@ describe('normalizeUrl', () => {
     expect(normalizeUrl('github.com/itsyunusacar')).toBe('https://github.com/itsyunusacar')
   })
   it('searches anything else', () => {
-    expect(normalizeUrl('react useEffect')).toBe('https://duckduckgo.com/?q=react%20useEffect')
+    expect(normalizeUrl('react useEffect')).toBe('https://www.google.com/search?q=react%20useEffect')
   })
 })

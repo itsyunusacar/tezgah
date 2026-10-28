@@ -322,13 +322,14 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 .row .l span { color: var(--secondary); font-size: 12px; }
 .seg { display: inline-flex; background: var(--subtle); border-radius: 999px; padding: 2px; }
 .seg button { border: 0; background: transparent; height: 24px; padding: 0 12px; border-radius: 999px; font-size: 12px; cursor: default; color: var(--secondary); }
+.seg button:disabled { opacity: 0.4; }
 .seg button.on { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 
 .menu {
   position: fixed; z-index: 60; min-width: 200px; background: var(--raised); border: 1px solid var(--border); border-radius: 12px;
   box-shadow: var(--shadow); padding: 5px;
 }
-.menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; cursor: default; }
+.menu button { display: block; white-space: pre; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; cursor: default; }
 .menu button:hover { background: var(--subtle); }
 .menu button.danger { color: var(--failed); }
 .menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 6px; }

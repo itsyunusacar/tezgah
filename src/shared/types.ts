@@ -138,6 +138,14 @@ export interface UsageLimit {
   windowMinutes?: number
 }
 
+/** Agents whose plan limits Tezgah knows about, and whether it can read them. */
+export const usageProviders: { id: string; name: string; unavailable?: string }[] = [
+  { id: 'claude', name: 'Claude' },
+  { id: 'codex', name: 'Codex' },
+  { id: 'gemini', name: 'Gemini', unavailable: "Gemini doesn't keep its limits on your computer" },
+  { id: 'grok', name: 'Grok', unavailable: "Grok doesn't keep its limits on your computer" },
+]
+
 /** One agent's plan limits. */
 export interface ProviderUsage {
   id: 'claude' | 'codex'
