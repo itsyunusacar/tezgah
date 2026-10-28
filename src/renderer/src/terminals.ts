@@ -26,8 +26,9 @@ export const isMac = window.tz.platform === 'darwin'
 const light: ITheme = {
   background: '#FDFCFC', foreground: '#1A1918', cursor: '#0C0B0A', cursorAccent: '#FDFCFC',
   selectionBackground: '#DCE6FB',
-  black: '#1A1918', red: '#C4352B', green: '#2E7D46', yellow: '#946200', blue: '#2F5FD0', magenta: '#8E44AD', cyan: '#1F7A8C', white: '#B8B2AA',
-  brightBlack: '#5C5751', brightRed: '#E5484D', brightGreen: '#3A9A5B', brightYellow: '#B58400', brightBlue: '#4B7BEC', brightMagenta: '#A35BC2', brightCyan: '#2C96A8', brightWhite: '#FFFFFF',
+  // "White" is meant for dark backgrounds; on paper it becomes a readable gray.
+  black: '#1A1918', red: '#C4352B', green: '#2E7D46', yellow: '#946200', blue: '#2F5FD0', magenta: '#8E44AD', cyan: '#1F7A8C', white: '#8F8981',
+  brightBlack: '#5C5751', brightRed: '#E5484D', brightGreen: '#3A9A5B', brightYellow: '#B58400', brightBlue: '#4B7BEC', brightMagenta: '#A35BC2', brightCyan: '#2C96A8', brightWhite: '#6B665F',
 }
 const dark: ITheme = {
   background: '#0E0D0C', foreground: '#EDEAE6', cursor: '#F5F3F1', cursorAccent: '#0E0D0C',
@@ -37,6 +38,10 @@ const dark: ITheme = {
 }
 
 export const isDark = () => document.documentElement.dataset.theme === 'dark'
+
+/** Programs often assume a dark background and print white or pale text. On the light theme,
+ *  xterm darkens any color (16, 256 or true color) that would fall below this contrast. */
+const contrast = () => (isDark() ? 1 : 4.5)
 
 function parkingSpot(): HTMLDivElement {
   if (!parking) {
@@ -58,6 +63,7 @@ function create(paneId: string): Entry {
     allowProposedApi: true,
     macOptionIsMeta: false,
     theme: isDark() ? dark : light,
+    minimumContrastRatio: contrast(),
   })
   const fit = new FitAddon()
   term.loadAddon(fit)
@@ -123,7 +129,7 @@ export function attach(paneId: string, container: HTMLElement, start: () => { cw
     if (!entry.started) {
       entry.started = true
       const { cwd, command } = start()
-      window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows })
+      window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: !isDark() })
     }
   })
 }
@@ -157,7 +163,7 @@ export function restart(paneId: string, start: () => { cwd: string; command?: st
   entry.term.reset()
   store().setPane(paneId, { records: [], exited: false, title: '' })
   const { cwd, command } = start()
-  window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows })
+  window.tz.ptyStart({ paneId, cwd, command, cols: entry.term.cols, rows: entry.term.rows, light: !isDark() })
 }
 
 export function dispose(paneId: string): void {
@@ -186,7 +192,10 @@ export function clear(paneId: string): void {
 }
 
 export function applyTheme(): void {
-  for (const { term } of entries.values()) term.options.theme = isDark() ? dark : light
+  for (const { term } of entries.values()) {
+    term.options.theme = isDark() ? dark : light
+    term.options.minimumContrastRatio = contrast()
+  }
 }
 
 export function applyFontSize(size: number): void {

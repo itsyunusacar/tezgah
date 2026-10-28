@@ -25,7 +25,7 @@ function shell(): { file: string; args: string[] } {
 
 /** The parent's environment, minus markers that would confuse programs started here
  *  (Tezgah itself may have been launched from inside a Claude Code session). */
-function environment(): Record<string, string> {
+function environment(light: boolean): Record<string, string> {
   const env: Record<string, string> = {}
   for (const [k, v] of Object.entries(process.env)) {
     if (v === undefined) continue
@@ -35,13 +35,15 @@ function environment(): Record<string, string> {
   env.TERM = 'xterm-256color'
   env.COLORTERM = 'truecolor'
   env.TERM_PROGRAM = 'Tezgah'
+  // foreground;background in ANSI color numbers: lets vim, less and others pick readable colors.
+  env.COLORFGBG = light ? '0;15' : '15;0'
   if (!env.LANG && process.platform !== 'win32') env.LANG = 'en_US.UTF-8'
   return env
 }
 
 export function start(
   web: WebContents,
-  opts: { paneId: string; cwd: string; command?: string; cols: number; rows: number },
+  opts: { paneId: string; cwd: string; command?: string; cols: number; rows: number; light?: boolean },
 ): void {
   kill(opts.paneId)
   const cwd = fs.existsSync(opts.cwd) ? opts.cwd : os.homedir()
@@ -51,7 +53,7 @@ export function start(
     cols: Math.max(2, opts.cols),
     rows: Math.max(2, opts.rows),
     cwd,
-    env: environment(),
+    env: environment(opts.light ?? false),
   })
   const entry: Running = { proc, pending: opts.command }
   running.set(opts.paneId, entry)

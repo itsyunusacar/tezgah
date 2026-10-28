@@ -2,6 +2,12 @@
 
 All notable changes to Tezgah are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Fixed
+
+- On the light theme, white and pale text from programs that assume a dark background (Claude Code among them) was invisible. Tezgah now raises such text to a readable contrast, maps the palette's whites to grays, and tells programs the background is light (`COLORFGBG`).
+
 ## [1.0.0-alpha.1] - 2026-10-28
 
 A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on macOS, Windows and Linux.

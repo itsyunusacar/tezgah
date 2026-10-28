@@ -122,7 +122,8 @@ export interface Api {
   saveWorkspace(ws: Workspace): void
   saveSettings(s: Settings): void
 
-  ptyStart(opts: { paneId: string; cwd: string; command?: string; cols: number; rows: number }): Promise<void>
+  /** `light`: the terminal has a light background (told to programs through COLORFGBG). */
+  ptyStart(opts: { paneId: string; cwd: string; command?: string; cols: number; rows: number; light?: boolean }): Promise<void>
   ptyWrite(paneId: string, data: string): void
   ptyResize(paneId: string, cols: number, rows: number): void
   ptyKill(paneId: string): void
