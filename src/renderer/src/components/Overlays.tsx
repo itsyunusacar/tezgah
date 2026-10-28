@@ -254,9 +254,11 @@ export function SettingsDialog() {
   }
   return (
     <Scrim onClose={close}>
-      <div className="dialog">
-        <div className="dialog-body">
+      <div className="dialog settings">
+        <div className="dialog-head">
           <h2>{t('Settings')}</h2>
+        </div>
+        <div className="dialog-body scroll">
           <div className="row">
             <div className="l"><b>{t('Appearance')}</b></div>
             <div className="seg">

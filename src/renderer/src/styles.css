@@ -371,7 +371,14 @@ body.dragging .browser-frame, body.dragging webview { pointer-events: none; }
 
 /* Overlays */
 
-.scrim { position: fixed; inset: 0; background: rgba(12, 11, 10, 0.2); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; z-index: 50; }
+.scrim { position: fixed; inset: 0; background: rgba(12, 11, 10, 0.2); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 0 4vh; z-index: 50; }
+.scrim > div { max-height: 100%; display: flex; }
+/* Long dialogs scroll inside, keeping their title and buttons in view. */
+.dialog.settings { display: flex; flex-direction: column; max-height: 100%; }
+.dialog-head { padding: 18px 20px 4px; flex: none; }
+.dialog-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.dialog-body.scroll { overflow-y: auto; min-height: 0; padding-top: 4px; }
+.dialog.settings .dialog-actions { flex: none; border-top: 1px solid var(--border); padding-top: 12px; }
 .dialog {
   width: 560px; max-width: calc(100vw - 40px); background: var(--raised); border: 1px solid var(--border); border-radius: 16px;
   box-shadow: var(--shadow); overflow: hidden;
