@@ -14,7 +14,8 @@ import * as claude from './claude'
 let claudeLast: ProviderUsage | null | undefined
 let nextFetch = 0
 
-const cacheFile = () => path.join(app.getPath('userData'), 'usage-cache.json')
+// Not usage-cache.json: the first (Swift) Tezgah keeps its own file by that name in the same folder.
+const cacheFile = () => path.join(app.getPath('userData'), 'claude-limits.json')
 
 function readCache(): ProviderUsage | null {
   try {
@@ -33,7 +34,11 @@ async function claudeUsage(): Promise<ProviderUsage | null> {
     const fresh = await claude.usage()
     if (fresh) {
       claudeLast = fresh
-      fs.writeFileSync(cacheFile(), JSON.stringify(fresh))
+      try {
+        fs.writeFileSync(cacheFile(), JSON.stringify(fresh))
+      } catch (e) {
+        console.error('claude limits cache:', e)
+      }
     } else if (claudeLast) claudeLast = { ...claudeLast, live: false }
   } catch (e) {
     if (e instanceof claude.RateLimited) nextFetch = Date.now() + Math.max(e.waitMs, 170_000)
