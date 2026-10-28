@@ -15,6 +15,7 @@ declare module 'react' {
         src?: string
         partition?: string
         allowpopups?: boolean
+        webpreferences?: string
       }
     }
   }

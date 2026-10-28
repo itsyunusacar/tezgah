@@ -10,7 +10,9 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 - Attention rings on panes and sessions that finished or notified while you looked away; a notification panel (⌘I) and a jump to the newest unread (⇧⌘U).
 - Notifications from any program through OSC 9, 777 and 99, so agents other than Claude Code can call you too.
 - Find in terminal (⌘F / Ctrl+Shift+F).
-- Browser panes beside the terminal, opened from a port, the header, ⇧⌘L / Ctrl+Shift+Y or `tezgah open`.
+- Browser panes beside the terminal, opened from a port, the header, ⇧⌘L / Ctrl+Shift+Y or `tezgah open`. They stay alive while you look at other sessions.
+- Agents can use the browser: a text snapshot with element refs, real clicks and typing, form filling, key presses, screenshots, waiting, and the page's console and network log (`tezgah browser …`).
+- `tezgah mcp`, an MCP server with the browser and pane tools. Claude sessions started by Tezgah get it automatically (Settings → Browser and pane tools); other agents can add it.
 - The `tezgah` command in every Tezgah terminal: notify, status, split, new, open, browser, send, read, list, run, focus.
 - Custom commands (Settings → Commands), run in a new pane from the quick switcher or `tezgah run`.
 - SSH sessions; files dropped on them are uploaded with scp.

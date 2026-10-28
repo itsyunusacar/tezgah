@@ -8,8 +8,9 @@ import * as pty from './pty'
 import * as claude from './claude'
 import * as git from './git'
 import * as meta from './meta'
-import { startControl } from './control'
+import { mcpConfigFile, startControl } from './control'
 import { ghosttyLook } from './ghostty'
+import * as browser from './browser'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -236,9 +237,12 @@ function registerIpc(): void {
       return null
     }
   })
+  // A closed pane leaves nothing behind: its saved screen and its MCP config.
   ipcMain.on('drop-scrollback', (_e, id: string) => {
     const f = scrollbackFile(id)
-    if (f) fs.rmSync(f, { force: true })
+    if (!f) return
+    fs.rmSync(f, { force: true })
+    fs.rmSync(path.join(dataDir(), 'mcp', `${id}.json`), { force: true })
   })
   ipcMain.handle('pty-start', (e, opts) => pty.start(e.sender, opts))
   ipcMain.on('pty-write', (_e, id: string, data: string) => pty.write(id, data))
@@ -254,7 +258,9 @@ function registerIpc(): void {
   ipcMain.handle('agent-transcript', (_e, claudeId: string, agentId: string) => claude.agentTranscript(claudeId, agentId))
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => claude.usage())
+  ipcMain.handle('mcp-config', (_e, paneId: string) => mcpConfigFile(paneId))
   ipcMain.handle('ghostty-look', () => ghosttyLook())
+  ipcMain.handle('browser-act', (_e, id: number, action: string, args: browser.BrowserArgs) => browser.act(id, action, args))
 
   ipcMain.handle('session-meta', (_e, cwd: string, paneIds: string[]) =>
     meta.sessionMeta(cwd, paneIds.map(pty.pid).filter((p): p is number => !!p)))
@@ -396,6 +402,7 @@ if (!app.requestSingleInstanceLock()) {
     app.setName('Tezgah')
     nativeTheme.themeSource = readJson<Settings>('settings.json', defaultSettings).theme
     registerIpc()
+    browser.watchNetwork()
     startControl(() => win?.webContents)
     buildMenu()
     pendingFolders.push(...foldersIn(process.argv))

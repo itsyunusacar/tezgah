@@ -11,6 +11,17 @@ import * as terms from './terminals'
 type Args = Record<string, unknown>
 const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
 
+/** A browser pane's page, once it exists. */
+async function contentsOf(paneId: string, timeout: number): Promise<number> {
+  const end = Date.now() + timeout
+  for (;;) {
+    const id = browsers.contentsId(paneId)
+    if (id !== undefined) return id
+    if (Date.now() > end) throw new Error('the browser pane did not start')
+    await new Promise((r) => setTimeout(r, 100))
+  }
+}
+
 async function handle(cmd: string, args: Args, callerPane?: string): Promise<unknown> {
   const caller = callerPane ? A.sessionOfPane(callerPane) : undefined
   const s = caller ?? A.selected()
@@ -56,7 +67,7 @@ async function handle(cmd: string, args: Args, callerPane?: string): Promise<unk
     }
     case 'open': {
       const url = str(args.url)
-      if (url) return void A.openBrowser(url, need().id)
+      if (url) return handle('browser', { action: 'open', url }, callerPane)
       const path = str(args.path)
       if (path) return void A.openFolder(path)
       throw new Error('nothing to open')
@@ -64,16 +75,16 @@ async function handle(cmd: string, args: Args, callerPane?: string): Promise<unk
     case 'browser': {
       const session = need()
       const action = String(args.action)
-      if (action === 'open') return void A.openBrowser(str(args.url) ?? 'about:blank', session.id)
-      const pane = session.panes.find((p) => p.kind === 'browser')
-      const view = pane && browsers.get(pane.id)
-      if (!view) throw new Error('this session has no browser pane; tezgah browser <url> opens one')
-      if (action === 'reload') return void view.reload()
-      if (action === 'back') return void view.goBack()
-      if (action === 'forward') return void view.goForward()
-      if (action === 'text') return await view.executeJavaScript('document.body ? document.body.innerText : ""')
-      if (action === 'eval') return await view.executeJavaScript(String(args.script ?? ''))
-      throw new Error(`unknown browser action ${action}`)
+      if (action === 'open') {
+        const url = str(args.url) ?? 'about:blank'
+        const paneId = A.openBrowser(url, session.id, str(args.pane), !!args.newPane)
+        if (!paneId) throw new Error('could not open a browser pane')
+        const id = await contentsOf(paneId, 15000)
+        return { pane: paneId, ...(await window.tz.browserAct(id, 'load', {}) as object) }
+      }
+      const paneId = str(args.pane) ?? session.panes.find((p) => p.kind === 'browser')?.id
+      if (!paneId) throw new Error('this session has no browser pane; open one first (tezgah browser open <url>)')
+      return window.tz.browserAct(await contentsOf(paneId, 5000), action, args)
     }
     case 'send': {
       const session = need()

@@ -30,6 +30,8 @@ const api: Api = {
   agentTranscript: (claudeId, agentId) => ipcRenderer.invoke('agent-transcript', claudeId, agentId),
   recentConversations: () => ipcRenderer.invoke('recent'),
   usage: () => ipcRenderer.invoke('usage'),
+  mcpConfig: (paneId) => ipcRenderer.invoke('mcp-config', paneId),
+  browserAct: (id, action, args) => ipcRenderer.invoke('browser-act', id, action, args),
   ghosttyLook: () => ipcRenderer.invoke('ghostty-look'),
 
   sessionMeta: (cwd, paneIds) => ipcRenderer.invoke('session-meta', cwd, paneIds),

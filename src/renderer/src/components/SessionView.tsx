@@ -5,7 +5,7 @@ import { rootRecord, sessionStatus, statusLine, useStore } from '../store'
 import * as terms from '../terminals'
 import { Branch, Close, Globe, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
 import { ChangesPanel } from './Changes'
-import { BrowserPane } from './Browser'
+import { BrowserSlot } from './Browser'
 
 export function SessionView({ session }: { session: Session }) {
   const panes = useStore((s) => s.panes)
@@ -113,11 +113,13 @@ function SplitView({ session, layout, path }: { session: Session; layout: Extrac
       A.setSizes(session.id, path, next)
     }
     const up = () => {
+      document.body.classList.remove('dragging')
       window.removeEventListener('mousemove', move)
       window.removeEventListener('mouseup', up)
     }
     window.addEventListener('mousemove', move)
     window.addEventListener('mouseup', up)
+    document.body.classList.add('dragging')
   }
 
   return (
@@ -178,7 +180,7 @@ function PaneView({ session, paneId }: { session: Session; paneId: string }) {
         A.dropFiles(session.id, paneId, paths)
       }}
     >
-      {browser ? <BrowserPane session={session} pane={pane} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}
+      {browser ? <BrowserSlot paneId={paneId} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}
       {finding && !browser && <FindBar paneId={paneId} />}
       {rt?.exited && (
         <div className="exited">

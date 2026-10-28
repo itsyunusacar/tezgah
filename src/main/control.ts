@@ -37,6 +37,28 @@ export function cliEnv(paneId: string): Record<string, string> {
   }
 }
 
+/** An MCP config that gives a Claude Code session Tezgah's tools (passed with --mcp-config, so the
+ *  user's own Claude settings are never touched). */
+export function mcpConfigFile(paneId: string): string {
+  if (!/^[\w-]{8,64}$/.test(paneId)) throw new Error('bad pane id')
+  const dir = path.join(app.getPath('userData'), 'mcp')
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, `${paneId}.json`)
+  const env = cliEnv(paneId)
+  const config = {
+    mcpServers: {
+      tezgah: {
+        type: 'stdio',
+        command: env.TEZGAH_ELECTRON,
+        args: [env.TEZGAH_CLI, 'mcp'],
+        env: { ELECTRON_RUN_AS_NODE: '1', TEZGAH_SOCKET: env.TEZGAH_SOCKET, TEZGAH_PANE_ID: paneId },
+      },
+    },
+  }
+  fs.writeFileSync(file, JSON.stringify(config, null, 2))
+  return file
+}
+
 const pending = new Map<string, (res: { ok: boolean; result?: unknown; error?: string }) => void>()
 
 export function startControl(target: () => WebContents | undefined): void {
@@ -71,7 +93,7 @@ export function startControl(target: () => WebContents | undefined): void {
       const timer = setTimeout(() => {
         pending.delete(id)
         conn.end(JSON.stringify({ ok: false, error: 'timed out' }) + '\n')
-      }, 30_000)
+      }, 130_000)
       pending.set(id, (res) => {
         clearTimeout(timer)
         conn.end(JSON.stringify(res) + '\n')

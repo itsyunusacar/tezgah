@@ -66,6 +66,8 @@ export interface Settings {
   notify: boolean
   /** Terminal font and colors: Tezgah's own, or the ones in your Ghostty config. */
   terminalLook: 'tezgah' | 'ghostty'
+  /** Claude sessions get Tezgah's browser and pane tools (MCP, for sessions Tezgah starts). */
+  agentTools: boolean
   /** Your own commands, in the palette and `tezgah run <name>`; each runs in a new pane. */
   commands: CustomCommand[]
 }
@@ -90,7 +92,7 @@ export interface CustomCommand {
   command: string
 }
 
-export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah' }
+export const defaultSettings: Settings = { theme: 'system', fontSize: 13, claudeArgs: '', notify: true, commands: [], terminalLook: 'tezgah', agentTools: true }
 
 // Live status, reported by Claude Code through OSC 7501.
 
@@ -195,6 +197,10 @@ export interface Api {
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<UsageLimit[] | null>
   ghosttyLook(): Promise<TerminalLook | null>
+  /** Writes the MCP config that gives a Claude pane Tezgah's tools; returns its path. */
+  mcpConfig(paneId: string): Promise<string>
+  /** Drives a browser pane's page (snapshot, click, fill, screenshot…); see src/main/browser.ts. */
+  browserAct(contentsId: number, action: string, args: Record<string, unknown>): Promise<unknown>
 
   sessionMeta(cwd: string, paneIds: string[]): Promise<SessionMeta>
   diff(cwd: string, base?: string): Promise<Diff | null>

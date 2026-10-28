@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
 import { AgentDialog, ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
 import { Mark } from './components/Icons'
+import { BrowserLayer } from './components/Browser'
 import { label, type Command } from '../../shared/shortcuts'
 
 const key = (c: Command) => label(c, terms.isMac)
@@ -57,6 +58,7 @@ export function App() {
     <div className={`app ${platform}`}>
       {sidebar && <Sidebar />}
       {session ? <SessionView key={session.id} session={session} /> : <Empty />}
+      <BrowserLayer />
       <Palette />
       <RecentDialog />
       <SettingsDialog />

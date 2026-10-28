@@ -286,6 +286,16 @@ export function SettingsDialog() {
               <button className={!settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: false })}>Off</button>
             </div>
           </div>
+          <div className="row">
+            <div className="l">
+              <b>Browser and pane tools for Claude</b>
+              <span>Claude sessions can open, read and click through pages in the browser pane, and read other panes. Other agents: see <code>tezgah help</code>.</span>
+            </div>
+            <div className="seg">
+              <button className={settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: true })}>On</button>
+              <button className={!settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: false })}>Off</button>
+            </div>
+          </div>
           <div className="row" style={{ display: 'block' }}>
             <div className="l" style={{ marginBottom: 8 }}><b>Claude arguments</b><span>Added every time a session starts Claude Code, e.g. <code>--model opus</code></span></div>
             <input className="field" value={args} placeholder="--model opus" onChange={(e) => setArgs(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />

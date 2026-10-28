@@ -25,13 +25,18 @@ function updateSession(id: string, fn: (s: Session) => Session): void {
   store().setWs((ws) => ({ ...ws, sessions: ws.sessions.map((s) => (s.id === id ? fn(s) : s)) }))
 }
 
+/** Single-quoted for zsh, bash, fish and PowerShell alike. */
+const quote = (s: string) => `'${s.replace(/'/g, window.tz.platform === 'win32' ? "''" : `'\\''`)}'`
+
 /** What a pane runs at start: a Claude conversation it can resume, or just the shell. */
 export async function startCommand(pane: Pane): Promise<string | undefined> {
   if (pane.kind === 'shell') return pane.command
   if (pane.kind !== 'claude' || !pane.claudeId) return undefined
   const exists = await window.tz.claudeHasConversation(pane.claudeId)
   const extra = store().settings.claudeArgs.trim()
-  return `claude ${exists ? '--resume' : '--session-id'} ${pane.claudeId}${extra ? ' ' + extra : ''}`
+  // Tezgah's browser and pane tools, for this session only.
+  const tools = store().settings.agentTools ? await window.tz.mcpConfig(pane.id).then((f) => ` --mcp-config ${quote(f)}`, () => '') : ''
+  return `claude ${exists ? '--resume' : '--session-id'} ${pane.claudeId}${tools}${extra ? ' ' + extra : ''}`
 }
 
 /** How a pane starts: its folder and command. Resolved synchronously from a pre-fetched command. */
@@ -282,18 +287,21 @@ export function updatePane(sessionId: string, paneId: string, patch: Partial<Pan
   updateSession(sessionId, (x) => ({ ...x, panes: x.panes.map((p) => (p.id === paneId ? { ...p, ...patch } : p)) }))
 }
 
-/** Opens a page in a browser pane beside the session's terminal, reusing one that's already open. */
-export function openBrowser(url: string, sessionId?: string): void {
+/** Opens a page in a browser pane beside the session's terminal: in `paneId`, the session's
+ *  first browser pane, or a new one. Returns the pane. */
+export function openBrowser(url: string, sessionId?: string, paneId?: string, newPane = false): string | undefined {
   const s = session(sessionId) ?? selected()
-  if (!s) return
-  select(s.id)
-  const existing = s.panes.find((p) => p.kind === 'browser')
+  if (!s) return undefined
+  const existing = newPane ? undefined : s.panes.find((p) => p.kind === 'browser' && (!paneId || p.id === paneId))
   if (existing) {
     updatePane(s.id, existing.id, { url: normalizeUrl(url) })
-    focusPane(s.id, existing.id)
-    return
+    return existing.id
   }
-  split('row', 'browser', { url: normalizeUrl(url) }, s.id)
+  // Beside the terminal that asked, without taking focus from it.
+  const focused = s.focusedPane
+  const pane = split('row', 'browser', { url: normalizeUrl(url) }, s.id)
+  if (pane) focusPane(s.id, focused)
+  return pane?.id
 }
 
 export function focusPane(sessionId: string, paneId: string): void {
@@ -352,15 +360,20 @@ export function markAllRead(): void {
 
 export function closePane(): void {
   const s = selected()
+  if (s) closePaneById(s.id, s.focusedPane)
+}
+
+export function closePaneById(sessionId: string, paneId: string): void {
+  const s = session(sessionId)
   if (!s) return
   if (s.panes.length <= 1) return closeSession(s.id)
-  const layout = removeFromLayout(s.layout, s.focusedPane)!
-  terms.dispose(s.focusedPane)
+  const layout = removeFromLayout(s.layout, paneId)!
+  terms.dispose(paneId)
   updateSession(s.id, (x) => ({
     ...x,
-    panes: x.panes.filter((p) => p.id !== x.focusedPane),
+    panes: x.panes.filter((p) => p.id !== paneId),
     layout,
-    focusedPane: layoutPanes(layout)[0],
+    focusedPane: x.focusedPane === paneId ? layoutPanes(layout)[0] : x.focusedPane,
   }))
 }
 
@@ -431,12 +444,15 @@ export function openBrowserHere(): void {
   const s = selected()
   if (!s) return
   const port = store().meta[s.id]?.ports[0]
-  openBrowser(port ? `http://localhost:${port}` : 'about:blank', s.id)
+  const id = openBrowser(port ? `http://localhost:${port}` : 'about:blank', s.id)
+  if (id) focusPane(s.id, id)
 }
 
 /** Opens a port one of the session's programs listens on. */
 export function openPort(sessionId: string, port: number): void {
-  openBrowser(`http://localhost:${port}`, sessionId)
+  select(sessionId)
+  const id = openBrowser(`http://localhost:${port}`, sessionId)
+  if (id) focusPane(sessionId, id)
 }
 
 // Custom commands (Settings → Commands): run in a new pane beside the session.
