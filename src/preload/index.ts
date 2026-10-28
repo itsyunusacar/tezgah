@@ -26,6 +26,7 @@ const api: Api = {
   recentConversations: () => ipcRenderer.invoke('recent'),
   usage: () => ipcRenderer.invoke('usage'),
 
+  sessionMeta: (cwd, paneIds) => ipcRenderer.invoke('session-meta', cwd, paneIds),
   diff: (cwd, base) => ipcRenderer.invoke('diff', cwd, base),
   isGitRepo: (cwd) => ipcRenderer.invoke('is-repo', cwd),
   worktreeAdd: (repo, branch) => ipcRenderer.invoke('wt-add', repo, branch),

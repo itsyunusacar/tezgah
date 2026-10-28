@@ -78,6 +78,10 @@ export function start(
   })
 }
 
+export function pid(paneId: string): number | undefined {
+  return running.get(paneId)?.proc.pid
+}
+
 export function write(paneId: string, data: string): void {
   running.get(paneId)?.proc.write(data)
 }

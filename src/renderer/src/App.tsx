@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as A from './actions'
-import { rootRecord, sessionStatus, statusLine, store, useStore } from './store'
+import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
@@ -202,6 +202,23 @@ function useWatchers() {
     }
     poll()
     const t = setInterval(poll, 2000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Branch, listening ports and pull request of every session.
+  useEffect(() => {
+    const load = async () => {
+      const { ws } = store()
+      const entries = await Promise.all(
+        ws.sessions.map(async (s) => {
+          const cwd = sessionCwd(s, A.project(s.projectId))
+          return [s.id, await window.tz.sessionMeta(cwd, s.panes.map((p) => p.id))] as const
+        }),
+      )
+      useStore.setState({ meta: Object.fromEntries(entries) })
+    }
+    load()
+    const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [])
 

@@ -93,6 +93,7 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
   const line = statusLine(session, panes, agents)
   const activity = !selected && session.panes.some((p) => panes[p.id]?.activity)
   const ring = !blocked && session.panes.some((p) => panes[p.id]?.attention)
+  const meta = useStore((s) => s.meta[session.id])
   const lastNote = useStore((s) => s.notes.findLast((n) => n.sessionId === session.id && n.kind === 'notice'))
 
   const menu = (e: React.MouseEvent) => {
@@ -132,6 +133,23 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
           )}
           {line || lastNote?.body || (activity ? 'New output' : session.panes[0]?.kind === 'shell' && !session.worktree ? 'Shell' : '')}
         </div>
+        {meta && (meta.ports.length > 0 || meta.pr || (meta.branch && !session.worktree)) && (
+          <div className="meta">
+            {meta.branch && !session.worktree && (
+              <span className="branch" title={`Branch ${meta.branch}`}><Branch size={10} /> {meta.branch}</span>
+            )}
+            {meta.pr && (
+              <button className={`tag pr ${meta.pr.state}`} title={`${meta.pr.title}\n${meta.pr.state} · open on GitHub`} onClick={(e) => (e.stopPropagation(), window.tz.openExternal(meta.pr!.url))}>
+                #{meta.pr.number}
+              </button>
+            )}
+            {meta.ports.map((port) => (
+              <button key={port} className="tag" title={`Open localhost:${port}`} onClick={(e) => (e.stopPropagation(), A.openPort(session.id, port))}>
+                :{port}
+              </button>
+            ))}
+          </div>
+        )}
         {blocked && permission && (
           <div className="actions">
             <button className="pill small primary" onClick={(e) => (e.stopPropagation(), A.answer(session.id, true))}>

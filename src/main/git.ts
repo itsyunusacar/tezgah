@@ -19,7 +19,7 @@ export async function isRepo(cwd: string): Promise<boolean> {
   }
 }
 
-async function currentBranch(cwd: string): Promise<string> {
+export async function currentBranch(cwd: string): Promise<string> {
   return (await git(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
 }
 

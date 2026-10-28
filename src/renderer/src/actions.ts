@@ -366,6 +366,11 @@ export function openConversation(id: string, cwd: string): void {
   newSession(p.id, 'claude', undefined, id)
 }
 
+/** Opens a port one of the session's programs listens on. */
+export function openPort(_sessionId: string, port: number): void {
+  window.tz.openExternal(`http://localhost:${port}`)
+}
+
 // Feedback
 
 export function toast(message: string): void {

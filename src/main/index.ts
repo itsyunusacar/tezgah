@@ -6,6 +6,7 @@ import path from 'node:path'
 import * as pty from './pty'
 import * as claude from './claude'
 import * as git from './git'
+import * as meta from './meta'
 import { defaultSettings, type Settings, type Workspace } from '../shared/types'
 import { accelerator, gotoAccelerator, type Command } from '../shared/shortcuts'
 
@@ -223,6 +224,8 @@ function registerIpc(): void {
   ipcMain.handle('recent', () => claude.recentConversations())
   ipcMain.handle('usage', () => claude.usage())
 
+  ipcMain.handle('session-meta', (_e, cwd: string, paneIds: string[]) =>
+    meta.sessionMeta(cwd, paneIds.map(pty.pid).filter((p): p is number => !!p)))
   ipcMain.handle('diff', (_e, cwd: string, base?: string) => git.diff(cwd, base))
   ipcMain.handle('is-repo', (_e, cwd: string) => git.isRepo(cwd))
   ipcMain.handle('wt-add', (_e, repo: string, branch: string) => git.worktreeAdd(repo, branch))
@@ -301,6 +304,13 @@ function clipboardPaste(): { paths: string[]; text: string } {
 }
 
 // App lifecycle
+
+// Started from the Dock or Finder, the app gets a bare PATH; add the usual places for git, gh and claude.
+if (process.platform !== 'win32') {
+  const extra = ['/opt/homebrew/bin', '/usr/local/bin', path.join(os.homedir(), '.local/bin'), path.join(os.homedir(), 'bin')]
+  const parts = (process.env.PATH ?? '/usr/bin:/bin').split(':')
+  process.env.PATH = [...parts, ...extra.filter((d) => !parts.includes(d))].join(':')
+}
 
 // Lets tests and screenshots run against a throwaway profile (set before the single-instance lock).
 if (process.env.TEZGAH_USER_DATA) app.setPath('userData', process.env.TEZGAH_USER_DATA)

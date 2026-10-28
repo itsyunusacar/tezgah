@@ -108,6 +108,21 @@ export interface Diff {
   against: string
 }
 
+export interface PullRequest {
+  number: number
+  url: string
+  title: string
+  state: 'open' | 'draft' | 'merged' | 'closed'
+}
+
+/** Live facts about a session's folder and processes, shown in the sidebar. */
+export interface SessionMeta {
+  branch?: string
+  /** TCP ports its processes listen on, e.g. a dev server. */
+  ports: number[]
+  pr: PullRequest | null
+}
+
 export interface RecentConversation {
   id: string
   cwd: string
@@ -136,6 +151,7 @@ export interface Api {
   recentConversations(): Promise<RecentConversation[]>
   usage(): Promise<UsageLimit[] | null>
 
+  sessionMeta(cwd: string, paneIds: string[]): Promise<SessionMeta>
   diff(cwd: string, base?: string): Promise<Diff | null>
   isGitRepo(cwd: string): Promise<boolean>
   worktreeAdd(repo: string, branch: string): Promise<Worktree>
