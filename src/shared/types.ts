@@ -213,6 +213,8 @@ export interface Api {
   ptyKill(paneId: string): void
   onPtyData(cb: (paneId: string, data: string) => void): () => void
   onPtyExit(cb: (paneId: string, code: number) => void): () => void
+  /** The coding agent now in a terminal's foreground (Grok, Gemini, Codex…), or null when it leaves. */
+  onPtyAgent(cb: (paneId: string, agent: string | null) => void): () => void
 
   pickFolder(): Promise<string | undefined>
   claudeHasConversation(id: string): Promise<boolean>

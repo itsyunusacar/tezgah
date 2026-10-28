@@ -3,6 +3,7 @@ import * as A from './actions'
 import { rootRecord, sessionCwd, sessionStatus, statusLine, store, useStore } from './store'
 import * as terms from './terminals'
 import { startControl } from './control'
+import { start as startActivity } from './activity'
 import { Sidebar } from './components/Sidebar'
 import { SessionView } from './components/SessionView'
 import { AgentDialog, ConfirmDialog, Inbox, Palette, PromptDialog, RecentDialog, SettingsDialog, Toast } from './components/Overlays'
@@ -35,6 +36,7 @@ export function App() {
   }, [selectedId])
 
   useEffect(() => startControl(), [])
+  useEffect(() => startActivity(), [])
 
   // Shell screens survive a relaunch.
   useEffect(() => {

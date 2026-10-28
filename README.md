@@ -11,7 +11,7 @@ Tezgah keeps your projects in a sidebar and the sessions you run in each one und
 ## What it does
 
 - **Projects and sessions.** A project is a folder; sessions live under it. A session is usually one Claude Code conversation, or a plain shell.
-- **Live status, no setup.** Claude Code reports its state to the terminal (OSC 7501). Tezgah shows it on each session — *Working*, *Needs you*, *Done* — with a badge for the ones waiting on you and a notification when you're elsewhere.
+- **Live status, no setup.** Claude Code reports its state to the terminal (OSC 7501). Tezgah shows it on each session — *Working*, *Needs you*, *Done* — with a badge for the ones waiting on you and a notification when you're elsewhere. Other agents (Grok, Gemini, Codex, Aider, OpenCode…) get the same, read from what they do: output while they work, a question when they need you, quiet when they're done.
 - **Allow or Deny from the sidebar.** When Claude asks for a permission, answer it without switching to the session.
 - **Subagents.** While Claude runs subagents, the session lists each one and what it's doing right now.
 - **Conversations that resume.** Each Claude session is pinned to its conversation, so quitting and reopening Tezgah picks up where you left off. ⇧⌘O reopens any past conversation.

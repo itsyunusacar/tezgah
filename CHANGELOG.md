@@ -6,6 +6,7 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ### Added
 
+- Status for agents other than Claude Code (Grok, Gemini, Codex, Aider, OpenCode, Amp…): Tezgah notices the agent running in a terminal, names the session after it, and shows Working, Needs you (a question at the bottom of the screen) and Done from what it does, with notifications. macOS and Linux.
 - Plan limits per agent: Claude (live) and Codex (from its last run's logs), each with its plan, reset times and a tick for how far into the window you are. Choose which agents' limits to show in Settings or by right-clicking them. Codex's are hidden once it's signed out and unused for a week.
 - Sidebar rows show the session's git branch, the ports its programs listen on (click to open) and the branch's pull request (with the GitHub CLI).
 - Attention rings on panes and sessions that finished or notified while you looked away; a notification panel (⌘I) and a jump to the newest unread (⇧⌘U).

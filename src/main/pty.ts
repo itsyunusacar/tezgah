@@ -4,9 +4,13 @@ import fs from 'node:fs'
 import type { WebContents } from 'electron'
 import path from 'node:path'
 import { binDir, cliEnv } from './control'
+import * as agents from './agents'
 
 interface Running {
   proc: pty.IPty
+  web: WebContents
+  /** The agent last seen in its foreground. */
+  agent?: string
   /** Typed into the shell once it has printed its first prompt. */
   pending?: string
 }
@@ -61,7 +65,8 @@ export function start(
     cwd,
     env: environment(opts.paneId, opts.light ?? false),
   })
-  const entry: Running = { proc, pending: opts.command }
+  const entry: Running = { proc, web, pending: opts.command }
+  watchAgents()
   running.set(opts.paneId, entry)
 
   let timer: NodeJS.Timeout | undefined
@@ -82,6 +87,23 @@ export function start(
     if (running.get(opts.paneId)?.proc === proc) running.delete(opts.paneId)
     if (!web.isDestroyed()) web.send('pty:exit', opts.paneId, exitCode)
   })
+}
+
+// Agents in the foreground of each terminal, for the renderer's activity-based status.
+let watching: NodeJS.Timeout | undefined
+function watchAgents(): void {
+  if (watching || process.platform === 'win32') return
+  watching = setInterval(async () => {
+    if (!running.size) return
+    const byTty = await agents.scan()
+    for (const [paneId, entry] of running) {
+      const tty = (entry.proc as unknown as { ptsName?: string }).ptsName
+      const agent = tty ? byTty.get(agents.ttyName(tty)) : undefined
+      if (agent === entry.agent) continue
+      entry.agent = agent
+      if (!entry.web.isDestroyed()) entry.web.send('pty:agent', paneId, agent ?? null)
+    }
+  }, 2000)
 }
 
 export function pid(paneId: string): number | undefined {

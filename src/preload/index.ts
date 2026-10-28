@@ -23,6 +23,7 @@ const api: Api = {
   ptyKill: (id) => ipcRenderer.send('pty-kill', id),
   onPtyData: (cb) => listen('pty:data', cb),
   onPtyExit: (cb) => listen('pty:exit', cb),
+  onPtyAgent: (cb) => listen('pty:agent', cb),
 
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   claudeHasConversation: (id) => ipcRenderer.invoke('claude-has', id),

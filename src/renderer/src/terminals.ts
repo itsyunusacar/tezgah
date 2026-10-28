@@ -29,6 +29,14 @@ interface Entry {
 const entries = new Map<string, Entry>()
 let noticeHandler: (paneId: string, notice: Notice) => void = () => undefined
 
+const inputHandlers = new Set<(paneId: string) => void>()
+
+/** Called whenever you type into a pane. */
+export function onInput(cb: (paneId: string) => void): () => void {
+  inputHandlers.add(cb)
+  return () => inputHandlers.delete(cb)
+}
+
 /** Called when a program in a pane sends a desktop notification (OSC 9, 777 or 99). */
 export function onNotice(cb: (paneId: string, notice: Notice) => void): void {
   noticeHandler = cb
@@ -152,6 +160,7 @@ function create(paneId: string): Entry {
   term.onTitleChange((title) => store().setPane(paneId, { title }))
   term.onData((data) => {
     window.tz.ptyWrite(paneId, data)
+    for (const cb of inputHandlers) cb(paneId)
     // Typing into a pane means you've seen it.
     if (store().panes[paneId]?.attention) store().setPane(paneId, { attention: false })
   })
