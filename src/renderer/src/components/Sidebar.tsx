@@ -20,6 +20,7 @@ export function Sidebar() {
     return s.notes.filter((n) => !n.read && live.has(n.sessionId)).length
   })
   const layouts = useStore((s) => s.settings.layouts)
+  const version = useStore((s) => s.version)
   const commands = useStore((s) => s.settings.commands)
 
   // The + menu, like cmux's: new sessions, new panes, layouts and your commands.
@@ -66,10 +67,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
-        <div className="brand">
-          <Mark size={18} />
-          <span>tezgah</span>
-        </div>
+        <div className="grow" />
         <button
           className={`icon-btn ${menu?.kind === 'new' ? 'active' : ''}`}
           title="New…"
@@ -119,7 +117,14 @@ export function Sidebar() {
         })}
       </div>
 
-      <Usage />
+      <div className="sidebar-foot">
+        <Usage />
+        <button className="signature" title="Settings" onClick={() => setUI({ settings: true })}>
+          <Mark size={12} />
+          <span>tezgah</span>
+          <span className="version">{version}</span>
+        </button>
+      </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(undefined)} />}
     </aside>
   )

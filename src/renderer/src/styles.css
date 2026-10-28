@@ -81,8 +81,7 @@ input, textarea { font: inherit; color: var(--ink); user-select: text; }
   -webkit-app-region: drag;
 }
 .mac .sidebar-top { padding-left: 84px; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; letter-spacing: -0.2px; flex: 1; }
-.mac .brand span { display: none; }
+.sidebar-top .grow { flex: 1; }
 .sidebar-top .icon-btn { -webkit-app-region: no-drag; }
 .icon-btn.bell { position: relative; }
 .icon-btn.bell .count {
@@ -146,7 +145,16 @@ input, textarea { font: inherit; color: var(--ink); user-select: text; }
 .agent-row .what { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
 .agent-row .tool { font-family: var(--mono); font-size: 10.5px; color: var(--tertiary); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.sidebar-bottom { flex: none; border-top: 1px solid var(--border); padding: 11px 14px 13px; }
+.sidebar-foot { flex: none; border-top: 1px solid var(--border); }
+.sidebar-bottom { padding: 11px 14px 4px; }
+/* A quiet signature at the very bottom: the mark, the name, the version. */
+.signature {
+  display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; cursor: default;
+  padding: 7px 14px 10px; color: var(--tertiary); font-size: 11px; font-weight: 500; letter-spacing: -0.1px; text-align: left;
+}
+.signature svg { opacity: 0.8; }
+.signature:hover { color: var(--secondary); }
+.signature .version { margin-left: auto; font-family: var(--mono); font-size: 10px; font-weight: 400; }
 .limits { display: flex; flex-direction: column; gap: 10px; }
 .provider-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 11px; }
 .provider-head .name { font-weight: 600; }

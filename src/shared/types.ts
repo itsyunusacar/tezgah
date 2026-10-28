@@ -212,7 +212,7 @@ export interface RecentConversation {
 /** The API the preload script exposes as `window.tz`. */
 export interface Api {
   platform: NodeJS.Platform
-  load(): Promise<{ workspace: Workspace; settings: Settings }>
+  load(): Promise<{ workspace: Workspace; settings: Settings; version: string }>
   saveWorkspace(ws: Workspace): void
   saveSettings(s: Settings): void
 

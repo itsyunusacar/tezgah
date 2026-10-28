@@ -32,6 +32,8 @@ All notable changes to Tezgah are listed here. Versions follow [Semantic Version
 
 ### Changed
 
+- The mark moved from the top of the sidebar to a quiet signature at its bottom (mark, name, version; click for Settings), leaving the top to the window controls and buttons.
+
 - Searches typed in a browser pane's address bar go to Google.
 
 ### Fixed

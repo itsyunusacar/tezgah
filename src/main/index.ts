@@ -211,6 +211,7 @@ function registerIpc(): void {
   ipcMain.handle('load', () => ({
     workspace: readJson<Workspace>('workspace.json', { projects: [], sessions: [] }),
     settings: readJson<Settings>('settings.json', defaultSettings),
+    version: app.getVersion(),
   }))
   ipcMain.on('save-workspace', (_e, ws: Workspace) => writeJson('workspace.json', ws))
   ipcMain.on('save-settings', (_e, s: Settings) => {
