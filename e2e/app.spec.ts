@@ -100,7 +100,10 @@ test('pastes text, and copied images and files as paths', async () => {
 
   await app.evaluate(({ clipboard }) => clipboard.writeText('https://example.com/pasted-link'))
   await paste()
-  await screen(pane, /example\.com\/pasted-link/)
+  // A long prompt (CI machines have long host names) wraps the link; read it as one line.
+  await expect
+    .poll(() => page.evaluate((id) => ((window as never as { __tezgah: any }).__tezgah.terminals.screenText(id, 200) as string).replace(/\n/g, ''), pane))
+    .toContain('https://example.com/pasted-link')
 
   await app.evaluate(async ({ clipboard, ClipboardItem }) => {
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
