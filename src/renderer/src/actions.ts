@@ -269,9 +269,64 @@ export function move(delta: number): void {
   select(list[(i + delta + list.length) % list.length].id)
 }
 
+/** A project's sessions as the sidebar lists them: pinned first, then in order; archived ones left out. */
+export function projectSessions(projectId: string, archived = false): Session[] {
+  return store()
+    .ws.sessions.filter((s) => s.projectId === projectId && !!s.archived === archived)
+    .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || a.createdAt - b.createdAt)
+}
+
 export function orderedSessions(): Session[] {
-  const { projects, sessions } = store().ws
-  return projects.flatMap((p) => sessions.filter((s) => s.projectId === p.id).sort((a, b) => a.createdAt - b.createdAt))
+  return store().ws.projects.flatMap((p) => projectSessions(p.id))
+}
+
+export function togglePin(id: string): void {
+  updateSession(id, (x) => ({ ...x, pinned: !x.pinned }))
+}
+
+/** Puts a session away: its programs stop, its Claude conversation is kept and resumes when restored. */
+export function archiveSession(id: string): void {
+  const s = session(id)
+  if (!s) return
+  disposeSession(s)
+  store().setWs((ws) => {
+    const visible = ws.sessions.filter((x) => !x.archived && x.id !== id)
+    const i = ws.sessions.filter((x) => !x.archived).findIndex((x) => x.id === id)
+    const next = ws.selectedSession === id ? (visible[i] ?? visible[i - 1])?.id : ws.selectedSession
+    return { ...ws, sessions: ws.sessions.map((x) => (x.id === id ? { ...x, archived: true, pinned: false } : x)), selectedSession: next }
+  })
+}
+
+export function restoreSession(id: string): void {
+  updateSession(id, (x) => ({ ...x, archived: false, createdAt: Date.now() }))
+  select(id)
+}
+
+/** Moves a session before another one in the same project (drag and drop). */
+export function moveSession(id: string, beforeId: string | undefined, projectId: string): void {
+  const s = session(id)
+  if (!s || id === beforeId) return
+  const list = projectSessions(projectId).filter((x) => x.id !== id)
+  const at = beforeId ? list.findIndex((x) => x.id === beforeId) : list.length
+  list.splice(at < 0 ? list.length : at, 0, { ...s, projectId })
+  const base = Date.now()
+  const order = new Map(list.map((x, i) => [x.id, base + i]))
+  store().setWs((ws) => ({
+    ...ws,
+    sessions: ws.sessions.map((x) => (order.has(x.id) ? { ...x, projectId: x.id === id ? projectId : x.projectId, createdAt: order.get(x.id)! } : x)),
+  }))
+}
+
+/** Moves a project before another one. */
+export function moveProject(id: string, beforeId: string | undefined): void {
+  store().setWs((ws) => {
+    const p = ws.projects.find((x) => x.id === id)
+    if (!p || id === beforeId) return ws
+    const rest = ws.projects.filter((x) => x.id !== id)
+    const at = beforeId ? rest.findIndex((x) => x.id === beforeId) : rest.length
+    rest.splice(at < 0 ? rest.length : at, 0, p)
+    return { ...ws, projects: rest }
+  })
 }
 
 export function nextWaiting(): void {

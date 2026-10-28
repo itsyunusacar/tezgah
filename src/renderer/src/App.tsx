@@ -258,7 +258,7 @@ function useWatchers() {
     const load = async () => {
       const { ws } = store()
       const entries = await Promise.all(
-        ws.sessions.map(async (s) => {
+        ws.sessions.filter((s) => !s.archived).map(async (s) => {
           const cwd = sessionCwd(s, A.project(s.projectId))
           return [s.id, await window.tz.sessionMeta(cwd, s.panes.map((p) => p.id))] as const
         }),

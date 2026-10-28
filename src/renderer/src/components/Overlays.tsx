@@ -178,6 +178,9 @@ export function Palette() {
       hint: [A.project(s.projectId)?.name, statusLine(s, panes) || (sessionStatus(s, panes) === 'exited' ? 'Stopped' : '')].filter(Boolean).join(' · '),
       run: () => A.select(s.id),
     })),
+    ...ws.sessions
+      .filter((s) => s.archived)
+      .map((s) => ({ key: s.id, text: s.title, hint: [A.project(s.projectId)?.name, t('Archived')].filter(Boolean).join(' · '), run: () => A.restoreSession(s.id) })),
     ...ws.projects.map((p) => ({ key: 'new-' + p.id, text: t('New session in {name}', { name: p.name }), hint: key('new-claude'), run: () => A.newSession(p.id, 'claude') })),
     { key: 'open', text: t('Open folder…'), hint: key('open-folder'), run: () => A.openFolder() },
     { key: 'recent', text: t('Recent conversations…'), hint: key('recent'), run: () => store().setUI({ recent: true }) },

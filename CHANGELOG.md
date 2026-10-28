@@ -14,6 +14,7 @@ A rewrite of Tezgah on Electron, xterm.js and node-pty: smaller, and it runs on 
 - Live status from Claude Code's own reports (OSC 7501): working, needs you, done. Allow and Deny for permission prompts from the sidebar.
 - Status for other agents too. Codex reports exactly through hooks Tezgah passes when you run `codex` in it (Codex asks you to trust them once; your Codex config isn't changed). Grok, Gemini, Aider, OpenCode, Amp and others are read from what they do: output while working, a question when they need you, quiet when done (macOS and Linux).
 - Subagents listed under their session; click one to follow its transcript.
+- Drag sessions and projects to reorder them, pin sessions to the top, and archive ones you're done with (their conversation resumes when you restore them; the quick switcher finds them too).
 - Split panes with a bar for each (status, split, close), layouts you can save and reopen, worktree sessions with merge, SSH sessions that upload dropped files.
 - Each session shows its git branch, the ports its programs listen on and its pull request (with the GitHub CLI).
 

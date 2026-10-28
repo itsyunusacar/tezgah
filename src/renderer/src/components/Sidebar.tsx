@@ -4,7 +4,7 @@ import type { Session, SubAgent } from '../../../shared/types'
 import * as A from '../actions'
 import { sessionStatus, statusLine, useStore } from '../store'
 import { isMac } from '../terminals'
-import { Bell, Branch, Chevron, Clock, Close, Gear, Mark, Plus } from './Icons'
+import { Bell, Branch, Chevron, Clock, Close, Gear, Mark, Pin, Plus } from './Icons'
 import { ContextMenu, type MenuItem } from './Overlays'
 import { label, type Command } from '../../../shared/shortcuts'
 
@@ -13,9 +13,12 @@ import { Usage } from './Usage'
 
 export function Sidebar() {
   const projects = useStore((s) => s.ws.projects)
-  const sessions = useStore((s) => s.ws.sessions)
+  // Re-render when sessions change; the lists below read them in order from the store.
+  useStore((s) => s.ws.sessions)
   const setUI = useStore((s) => s.setUI)
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; kind?: string }>()
+  const [dropOn, setDropOn] = useState<string>()
+  const [openArchive, setOpenArchive] = useState<Record<string, boolean>>({})
   const unread = useStore((s) => {
     const live = new Set(s.ws.sessions.map((x) => x.id))
     return s.notes.filter((n) => !n.read && live.has(n.sessionId)).length
@@ -94,10 +97,36 @@ export function Sidebar() {
 
       <div className="sidebar-list">
         {projects.map((p) => {
-          const list = sessions.filter((s) => s.projectId === p.id).sort((a, b) => a.createdAt - b.createdAt)
+          const list = A.projectSessions(p.id)
+          const archived = A.projectSessions(p.id, true)
           return (
             <div key={p.id}>
-              <div className="project-row" onClick={() => A.toggleProject(p.id)} onContextMenu={(e) => projectMenu(e, p.id)} title={p.path}>
+              <div
+                className={`project-row ${dropOn === 'p:' + p.id ? 'drop' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/tezgah-project', p.id)
+                  e.dataTransfer.effectAllowed = 'move'
+                }}
+                onDragOver={(e) => {
+                  const kinds = e.dataTransfer.types
+                  if (!kinds.includes('text/tezgah-project') && !kinds.includes('text/tezgah-session')) return
+                  e.preventDefault()
+                  setDropOn('p:' + p.id)
+                }}
+                onDragLeave={() => setDropOn(undefined)}
+                onDrop={(e) => {
+                  setDropOn(undefined)
+                  const project = e.dataTransfer.getData('text/tezgah-project')
+                  const sessionId = e.dataTransfer.getData('text/tezgah-session')
+                  if (project) A.moveProject(project, p.id)
+                  // A session dropped on a project goes to the end of it.
+                  else if (sessionId) A.moveSession(sessionId, undefined, p.id)
+                }}
+                onClick={() => A.toggleProject(p.id)}
+                onContextMenu={(e) => projectMenu(e, p.id)}
+                title={p.path}
+              >
                 <span className={`chev ${p.collapsed ? 'closed' : ''}`}>
                   <Chevron />
                 </span>
@@ -113,7 +142,39 @@ export function Sidebar() {
                   <Plus size={12} />
                 </button>
               </div>
-              {!p.collapsed && list.map((s) => <SessionRow key={s.id} session={s} onMenu={setMenu} />)}
+              {!p.collapsed && list.map((s) => <SessionRow key={s.id} session={s} onMenu={setMenu} dropOn={dropOn} setDropOn={setDropOn} />)}
+              {!p.collapsed && archived.length > 0 && (
+                <>
+                  <button className="archive-toggle" onClick={() => setOpenArchive((o) => ({ ...o, [p.id]: !o[p.id] }))}>
+                    <span className={`chev ${openArchive[p.id] ? '' : 'closed'}`}><Chevron size={8} /></span>
+                    {t('Archived ({n})', { n: archived.length })}
+                  </button>
+                  {openArchive[p.id] &&
+                    archived.map((s) => (
+                      <div
+                        key={s.id}
+                        className="archived-row"
+                        title={t('Restore')}
+                        onClick={() => A.restoreSession(s.id)}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          setMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: [
+                              { label: t('Restore'), run: () => A.restoreSession(s.id) },
+                              'divider',
+                              { label: t('Delete'), danger: true, run: () => A.closeSession(s.id, true) },
+                            ],
+                          })
+                        }}
+                      >
+                        <span className="title">{s.title}</span>
+                        <span className="restore">{t('Restore')}</span>
+                      </div>
+                    ))}
+                </>
+              )}
             </div>
           )
         })}
@@ -139,7 +200,17 @@ export function Sidebar() {
   )
 }
 
-function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: number; y: number; items: MenuItem[] }) => void }) {
+function SessionRow({
+  session,
+  onMenu,
+  dropOn,
+  setDropOn,
+}: {
+  session: Session
+  onMenu: (m: { x: number; y: number; items: MenuItem[] }) => void
+  dropOn?: string
+  setDropOn: (id: string | undefined) => void
+}) {
   const selected = useStore((s) => s.ws.selectedSession === session.id)
   const panes = useStore((s) => s.panes)
   const agents = useStore((s) => s.agents[session.id]) ?? []
@@ -160,11 +231,13 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       y: e.clientY,
       items: [
         { label: t('Rename…'), run: () => A.renameSession(session.id) },
+        { label: session.pinned ? t('Unpin') : t('Pin to Top'), run: () => A.togglePin(session.id) },
         { label: t('Restart'), run: () => A.restartPane(session.id) },
         ...(session.worktree
           ? (['divider', { label: t('Merge into {base}', { base: session.worktree.base }), run: () => A.mergeWorktree(session.id) }] as MenuItem[])
           : []),
         'divider',
+        { label: t('Archive'), run: () => A.archiveSession(session.id) },
         { label: t('Close Session'), danger: true, run: () => A.closeSession(session.id) },
       ],
     })
@@ -172,7 +245,26 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
 
   return (
     <div
-      className={`session-row ${selected ? 'selected' : ''}`}
+      className={`session-row ${selected ? 'selected' : ''} ${dropOn === 's:' + session.id ? 'drop' : ''}`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/tezgah-session', session.id)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('text/tezgah-session')) return
+        e.preventDefault()
+        e.stopPropagation()
+        setDropOn('s:' + session.id)
+      }}
+      onDragLeave={() => setDropOn(undefined)}
+      onDrop={(e) => {
+        e.stopPropagation()
+        setDropOn(undefined)
+        const id = e.dataTransfer.getData('text/tezgah-session')
+        // Dropped on a row: it goes just before it, in that row's project.
+        if (id) A.moveSession(id, session.id, session.projectId)
+      }}
       onClick={() => A.select(session.id)}
       onDoubleClick={() => A.renameSession(session.id)}
       onContextMenu={menu}
@@ -180,7 +272,10 @@ function SessionRow({ session, onMenu }: { session: Session; onMenu: (m: { x: nu
       {ring && <span className="ring" />}
       <span className={`dot ${status === 'done' && !unseen ? '' : status ?? ''}`} />
       <div className="body">
-        <div className="title">{session.title}</div>
+        <div className="title">
+          {session.pinned && <span className="pin" title={t('Pinned')}><Pin size={10} /></span>}
+          {session.title}
+        </div>
         <div className="sub">
           {session.worktree && (
             <span className="branch">

@@ -49,7 +49,12 @@ export interface Session {
   layout: Layout
   focusedPane: string
   worktree?: Worktree
+  /** Order within its project; drag to change. */
   createdAt: number
+  /** Kept at the top of its project. */
+  pinned?: boolean
+  /** Put away: its programs are stopped, its conversation kept to resume. */
+  archived?: boolean
 }
 
 export interface Workspace {
