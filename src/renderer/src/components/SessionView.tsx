@@ -1,0 +1,425 @@
+import { plural, t } from '../../../shared/i18n'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ConversationStats, Diff, Layout, Pane, Session } from '../../../shared/types'
+import * as A from '../actions'
+import { type PaneRuntime, isTerminal, rootRecord, sessionStatus, statusLine, useStore } from '../store'
+import { agentName } from '../activity'
+import { ContextMenu, type MenuItem } from './Overlays'
+import { label, type Command } from '../../../shared/shortcuts'
+
+const key = (c: Command) => label(c, terms.isMac)
+import * as terms from '../terminals'
+import { Branch, Close, Globe, Diff as DiffIcon, Sidebar as SidebarIcon, SplitCol, SplitRow } from './Icons'
+import { ChangesPanel } from './Changes'
+import { BrowserSlot } from './Browser'
+import { moveItems, startPaneDrag } from './Dock'
+import { ScreenPane } from './Screen'
+
+export function SessionView({ session }: { session: Session }) {
+  const panes = useStore((s) => s.panes)
+  const agents = useStore((s) => s.agents[session.id]) ?? []
+  const ui = useStore((s) => s.ui)
+  const setUI = useStore((s) => s.setUI)
+  const project = A.project(session.projectId)
+  const [diff, setDiff] = useState<Diff | null>(null)
+  const line = statusLine(session, panes, agents)
+  const status = sessionStatus(session, panes)
+
+  // Header counts and the Changes panel share one diff, refreshed while the session is on screen.
+  useEffect(() => {
+    let alive = true
+    const cwd = session.worktree?.path ?? project?.path
+    const load = () => cwd && window.tz.diff(cwd, session.worktree?.base).then((d) => alive && setDiff(d))
+    load()
+    const t = setInterval(load, status === 'working' ? 3000 : 8000)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [session.id, session.worktree, project?.path, status])
+
+  // Token use of the session's Claude conversations, refreshed while it's on screen.
+  const [stats, setStats] = useState<ConversationStats | null>(null)
+  const claudeIds = session.panes.filter((p) => p.kind === 'claude' && p.claudeId).map((p) => p.claudeId!).join(',')
+  useEffect(() => {
+    if (!claudeIds) return setStats(null)
+    let alive = true
+    const load = () =>
+      Promise.all(claudeIds.split(',').map((id) => window.tz.conversationStats(id))).then((list) => {
+        if (!alive) return
+        const found = list.filter((x): x is ConversationStats => !!x && x.messages > 0)
+        setStats(
+          found.length
+            ? found.reduce((a, b) => ({ input: a.input + b.input, output: a.output + b.output, cacheRead: a.cacheRead + b.cacheRead, context: Math.max(a.context, b.context), messages: a.messages + b.messages, model: a.model ?? b.model }))
+            : null,
+        )
+      })
+    load()
+    const timer = setInterval(load, status === 'working' ? 4000 : 15000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [claudeIds, status])
+
+  const added = diff?.files.reduce((n, f) => n + f.added, 0) ?? 0
+  const removed = diff?.files.reduce((n, f) => n + f.removed, 0) ?? 0
+
+  return (
+    <div className="main">
+      <div className="header">
+        {!ui.sidebar && (
+          <button className="icon-btn" title={t('Show sidebar')} onClick={() => setUI({ sidebar: true })}>
+            <SidebarIcon />
+          </button>
+        )}
+        <span className={`dot ${status ?? ''}`} style={{ marginTop: 0 }} />
+        <span className="title">{session.title}</span>
+        <span className="status">{line || session.worktree?.path || project?.path || (isTerminal(session) ? t('Terminal in your home folder') : '')}</span>
+        {agents.some((a) => a.running) && (
+          <span className="chip" title={agents.map((a) => `${a.running ? '●' : '○'} ${a.description}`).join('\n')}>
+            {plural(agents.filter((a) => a.running).length, '{n} agent', '{n} agents')}
+          </span>
+        )}
+        {stats && (
+          <span
+            className="chip tokens"
+            title={[
+              stats.model,
+              t('Context now: {n} tokens', { n: stats.context.toLocaleString() }),
+              t('Sent: {n} tokens ({cached} from cache)', { n: stats.input.toLocaleString(), cached: stats.cacheRead.toLocaleString() }),
+              t('Written: {n} tokens', { n: stats.output.toLocaleString() }),
+              t('{n} replies', { n: stats.messages }),
+            ].filter(Boolean).join('\n')}
+          >
+            {t('{n} context', { n: tokens(stats.context) })} · {tokens(stats.input + stats.output)}
+          </span>
+        )}
+        {session.worktree && (
+          <span className="chip" title={`${session.worktree.path}\n${t('based on {base}', { base: session.worktree.base })}`}>
+            <Branch /> {session.worktree.branch}
+          </span>
+        )}
+        {diff && diff.files.length > 0 && (
+          <button className={`pill ${ui.changes ? 'primary' : ''}`} onClick={() => setUI({ changes: !ui.changes })} title={t('Changes')}>
+            <DiffIcon size={13} />
+            <span>
+              {diff.files.length} · <span style={{ color: ui.changes ? undefined : 'var(--add)' }}>+{added}</span>{' '}
+              <span style={{ color: ui.changes ? undefined : 'var(--del)' }}>−{removed}</span>
+            </span>
+          </button>
+        )}
+        <button className="icon-btn" title={t('Open browser')} onClick={() => A.openBrowserHere()}>
+          <Globe />
+        </button>
+        <button className="icon-btn" title={t('Split right')} onClick={() => A.split('row')}>
+          <SplitRow />
+        </button>
+        <button className="icon-btn" title={t('Split down')} onClick={() => A.split('column')}>
+          <SplitCol />
+        </button>
+      </div>
+      <div className="workspace">
+        <div className="panes">
+          <LayoutView session={session} layout={session.layout} path={[]} />
+        </div>
+        {ui.changes && project && <ChangesPanel session={session} diff={diff} onRefresh={() => {
+          const cwd = session.worktree?.path ?? project?.path
+          if (cwd) window.tz.diff(cwd, session.worktree?.base).then(setDiff)
+        }} />}
+      </div>
+    </div>
+  )
+}
+
+function LayoutView({ session, layout, path }: { session: Session; layout: Layout; path: number[] }) {
+  if (layout.type === 'pane') return <PaneView session={session} paneId={layout.paneId} />
+  return <SplitView session={session} layout={layout} path={path} />
+}
+
+function SplitView({ session, layout, path }: { session: Session; layout: Extract<Layout, { type: 'split' }>; path: number[] }) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Sizes while a divider is dragged; the session (and the saved workspace) gets them on release.
+  const [dragged, setDragged] = useState<number[]>()
+  const sizes = dragged && dragged.length === layout.sizes.length ? dragged : layout.sizes
+  const total = sizes.reduce((a, b) => a + b, 0)
+
+  const drag = (i: number) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    const box = ref.current!.getBoundingClientRect()
+    const horizontal = layout.dir === 'row'
+    const length = horizontal ? box.width : box.height
+    const start = horizontal ? e.clientX : e.clientY
+    const sizes = [...layout.sizes]
+    const pair = sizes[i] + sizes[i + 1]
+    let next = sizes
+    const move = (m: MouseEvent) => {
+      const delta = (((horizontal ? m.clientX : m.clientY) - start) / length) * total
+      const minimum = (120 / length) * total
+      const a = Math.min(Math.max(layout.sizes[i] + delta, minimum), pair - minimum)
+      next = [...sizes]
+      next[i] = a
+      next[i + 1] = pair - a
+      setDragged(next)
+    }
+    const up = () => {
+      if (next !== sizes) A.setSizes(session.id, path, next)
+      setDragged(undefined)
+      document.body.classList.remove('dragging')
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+    document.body.classList.add('dragging')
+  }
+
+  return (
+    <div className={`split dir-${layout.dir}`} ref={ref}>
+      {layout.children.map((child, i) => (
+        <Cell key={child.type === 'pane' ? child.paneId : i} grow={sizes[i] / total} divider={i < layout.children.length - 1} onDrag={drag(i)} onEven={() => A.evenOut(session.id)}>
+          <LayoutView session={session} layout={child} path={[...path, i]} />
+        </Cell>
+      ))}
+    </div>
+  )
+}
+
+function Cell({ grow, divider, onDrag, onEven, children }: { grow: number; divider: boolean; onDrag: (e: React.MouseEvent) => void; onEven: () => void; children: React.ReactNode }) {
+  return (
+    <>
+      <div className="cell" style={{ flex: `${grow} 1 0` }}>{children}</div>
+      {divider && <div className="divider" title={t('Drag to resize · double-click to even out')} onMouseDown={onDrag} onDoubleClick={onEven} />}
+    </>
+  )
+}
+
+function PaneView({ session, paneId }: { session: Session; paneId: string }) {
+  const rt = useStore((s) => s.panes[paneId])
+  const focused = session.focusedPane === paneId
+  const multi = session.panes.length > 1
+  const pane = session.panes.find((p) => p.id === paneId)
+
+  // Claude's conversation title becomes the session title.
+  const title = rootRecord(rt)?.title ?? rt?.title
+  useEffect(() => {
+    if (pane?.kind === 'claude' && title) A.adoptTitle(session.id, title)
+  }, [title, pane?.kind, session.id])
+
+  const blocked = rootRecord(rt)?.state === 'blocked'
+  const ring = !blocked && rt?.attention
+  const finding = useStore((s) => s.ui.find === paneId)
+  const [dropping, setDropping] = useState(false)
+  const [menu, setMenu] = useState<{ x: number; y: number; link?: string; selection: boolean }>()
+  if (!pane) return null
+  const browser = pane.kind === 'browser'
+  // A screen pane draws its own bar and menu.
+  const screen = pane.kind === 'screen'
+  if (screen) {
+    return (
+      <div data-pane={paneId} className={`pane screen has-bar ${focused ? 'focused' : ''} ${multi ? 'multi' : ''}`} onMouseDown={() => A.focusPane(session.id, paneId)}>
+        <ScreenPane session={session} pane={pane} />
+      </div>
+    )
+  }
+  return (
+    <div
+      data-pane={paneId}
+      onContextMenu={(e) => {
+        if (browser) return
+        e.preventDefault()
+        A.focusPane(session.id, paneId)
+        setMenu({ x: e.clientX, y: e.clientY, link: terms.linkAt(paneId), selection: terms.hasSelection(paneId) })
+      }}
+      className={`pane ${browser ? 'web' : ''} ${multi && !browser ? 'has-bar' : ''} ${focused ? 'focused' : ''} ${multi ? 'multi' : ''} ${blocked ? 'blocked' : ''} ${ring ? 'attention' : ''} ${dropping ? 'dropping' : ''}`}
+      onMouseDown={() => A.focusPane(session.id, paneId)}
+      onDragOver={(e) => {
+        if (browser || !e.dataTransfer.types.includes('Files')) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+        setDropping(true)
+      }}
+      onDragLeave={() => setDropping(false)}
+      onDrop={(e) => {
+        if (browser) return
+        e.preventDefault()
+        setDropping(false)
+        const paths = [...e.dataTransfer.files].map((f) => window.tz.pathForFile(f)).filter(Boolean)
+        A.focusPane(session.id, paneId)
+        A.dropFiles(session.id, paneId, paths)
+      }}
+    >
+      {multi && !browser && <PaneBar session={session} pane={pane} />}
+      {browser ? <BrowserSlot paneId={paneId} /> : <TerminalSlot session={session} pane={pane} focused={focused} />}
+      {finding && !browser && <FindBar paneId={paneId} />}
+      {menu && (
+        <ContextMenu
+          {...menu}
+          onClose={() => setMenu(undefined)}
+          items={[
+            ...(menu.link
+              ? ([
+                  { label: t('Open Link'), run: () => window.tz.openExternal(menu.link!) },
+                  { label: t('Open in Browser Pane'), run: () => A.openBrowser(menu.link!, session.id) },
+                  { label: t('Copy Link'), run: () => navigator.clipboard.writeText(menu.link!) },
+                  'divider',
+                ] as MenuItem[])
+              : []),
+            { label: t('Copy'), hint: key('copy'), disabled: !menu.selection, run: () => terms.copySelection(paneId) },
+            { label: t('Paste'), hint: key('paste'), run: () => void A.pasteInto(session.id, paneId) },
+            { label: t('Select All'), hint: key('selectAll'), run: () => terms.selectAll(paneId) },
+            'divider',
+            { label: t('Find…'), hint: key('find'), run: () => useStore.getState().setUI({ find: paneId }) },
+            { label: t('Clear'), hint: key('clear'), run: () => terms.clear(paneId) },
+            'divider',
+            { label: t('Split Right'), hint: key('split-row'), run: () => A.split('row', 'shell', {}, session.id) },
+            { label: t('Split Down'), hint: key('split-column'), run: () => A.split('column', 'shell', {}, session.id) },
+            { label: t('Open Browser Beside'), hint: key('browser'), run: () => A.openBrowserHere() },
+            ...(multi ? [{ label: t('Even Out Panes'), run: () => A.evenOut(session.id) }] : []),
+            ...moveItems(session.id, paneId),
+            'divider',
+            { label: t('Restart'), run: () => A.restartPane(session.id, paneId) },
+            { label: multi ? t('Close Pane') : t('Close Session'), hint: key('close-pane'), danger: true, run: () => A.closePaneById(session.id, paneId) },
+          ]}
+        />
+      )}
+      {rt?.exited && (
+        <div className="exited">
+          <span>{pane.kind === 'claude' ? t('Claude exited') : t('Process exited')}</span>
+          <button className="pill small primary" onClick={() => A.restartPane(session.id, paneId)}>{t('Restart')}</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** 1234 → "1.2k", 3400000 → "3.4M". */
+function tokens(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}k`
+  return String(n)
+}
+
+/** What a pane is, in a word: Claude, the agent running in it, or its command. */
+function paneName(pane: Pane, rt?: PaneRuntime): string {
+  if (pane.kind === 'claude') return 'Claude'
+  // Whatever reports from the pane names it, even when it was started by hand (`claude`, `codex`…).
+  const app = rootRecord(rt)?.app
+  if (app) return agentName(app)
+  if (pane.ssh) return pane.ssh
+  if (pane.command) return pane.command.split(/\s+/).slice(0, 3).join(' ')
+  return t('Terminal')
+}
+
+/** The strip above each pane of a split: what runs there, and split / close. */
+function PaneBar({ session, pane }: { session: Session; pane: Pane }) {
+  const rt = useStore((s) => s.panes[pane.id])
+  const focused = session.focusedPane === pane.id
+  const rec = rootRecord(rt)
+  const state = rt?.exited ? 'exited' : rec?.state
+  return (
+    <div
+      className={`pane-bar ${focused ? 'focused' : ''}`}
+      onMouseDown={(e) => startPaneDrag(e, session.id, pane.id, paneName(pane, rt))}
+      onDoubleClick={() => A.split('row', 'shell', {}, session.id)}
+    >
+      <span className={`dot ${state ?? ''}`} />
+      <span className="label" title={[paneName(pane, rt), rec?.message].filter(Boolean).join(' · ')}>
+        <span className="name">{paneName(pane, rt)}</span>
+        {rec?.message && <span className="msg">{rec.message}</span>}
+      </span>
+      <span className="tools">
+        <button className="icon-btn tiny" title={t('Split right')} onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('row', 'shell', {}, session.id))}>
+          <SplitRow size={12} />
+        </button>
+        <button className="icon-btn tiny" title={t('Split down')} onClick={(e) => (e.stopPropagation(), A.focusPane(session.id, pane.id), A.split('column', 'shell', {}, session.id))}>
+          <SplitCol size={12} />
+        </button>
+      </span>
+      <button className="icon-btn tiny close" title={t('Close pane ({keys})', { keys: key('close-pane') })} onClick={(e) => (e.stopPropagation(), A.closePaneById(session.id, pane.id))}>
+        <Close size={10} />
+      </button>
+    </div>
+  )
+}
+
+function TerminalSlot({ session, pane, focused }: { session: Session; pane: Pane; focused: boolean }) {
+  const slot = useRef<HTMLDivElement>(null)
+  const fontSize = useStore((s) => s.settings.fontSize)
+  const paneId = pane.id
+
+  useLayoutEffect(() => {
+    const el = slot.current
+    if (!el) return
+    let cancelled = false
+    // The startup command needs an async check (does the conversation exist yet?), so resolve it first.
+    // Shells come back with what they showed last time; Claude restores its own conversation.
+    const restore = pane.kind === 'claude' ? Promise.resolve(undefined) : window.tz.loadScrollback(paneId)
+    Promise.all([A.startCommand(pane), restore]).then(([command, saved]) => {
+      if (cancelled) return
+      terms.attach(paneId, el, A.paneStart(session.id, paneId, command), saved)
+      if (focused) terms.focus(paneId)
+    })
+    const ro = new ResizeObserver(() => terms.fit(paneId))
+    ro.observe(el)
+    return () => {
+      cancelled = true
+      ro.disconnect()
+      terms.detach(paneId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paneId])
+
+  useEffect(() => {
+    if (focused) terms.focus(paneId)
+  }, [focused, paneId])
+  useEffect(() => terms.fit(paneId), [fontSize, paneId])
+
+  return <div className="term-slot" ref={slot} />
+}
+
+function FindBar({ paneId }: { paneId: string }) {
+  const [query, setQuery] = useState('')
+  const [caseSensitive, setCase] = useState(false)
+  const [result, setResult] = useState<{ index: number; count: number }>()
+  const input = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    input.current?.focus()
+    const off = terms.onSearchResults(paneId, (index, count) => setResult({ index, count }))
+    return () => {
+      off()
+      terms.endFind(paneId)
+    }
+  }, [paneId])
+  useEffect(() => {
+    if (!query) {
+      terms.endFind(paneId)
+      setResult(undefined)
+    } else terms.find(paneId, query, false, { caseSensitive })
+  }, [query, caseSensitive, paneId])
+
+  const close = () => {
+    useStore.getState().setUI({ find: undefined })
+    terms.focus(paneId)
+  }
+  return (
+    <div className="find-bar" onMouseDown={(e) => e.stopPropagation()}>
+      <input
+        ref={input}
+        value={query}
+        placeholder={t('Find')}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') close()
+          if (e.key === 'Enter') terms.find(paneId, query, e.shiftKey, { caseSensitive })
+        }}
+      />
+      <span className="count">{query ? (result && result.count > 0 ? `${result.index + 1}/${result.count}` : t('No results')) : ''}</span>
+      <button className={`icon-btn small ${caseSensitive ? 'active' : ''}`} title={t('Match case')} onClick={() => setCase(!caseSensitive)}>{t('Aa')}</button>
+      <button className="icon-btn small" title={t('Previous (Shift+Enter)')} onClick={() => terms.find(paneId, query, true, { caseSensitive })}>↑</button>
+      <button className="icon-btn small" title={t('Next (Enter)')} onClick={() => terms.find(paneId, query, false, { caseSensitive })}>↓</button>
+      <button className="icon-btn small" title={t('Close (Esc)')} onClick={close}><Close size={11} /></button>
+    </div>
+  )
+}

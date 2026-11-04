@@ -1,0 +1,138 @@
+// Keyboard shortcuts, per platform. On macOS they use ⌘, which terminals never see.
+// On Windows and Linux plain Ctrl+<letter> belongs to the shell (Ctrl+C, Ctrl+W, Ctrl+K…),
+// so app commands use Ctrl+Shift, like other terminals there.
+
+export const shortcuts = {
+  'new-claude': ['Cmd+T', 'Ctrl+Shift+T'],
+  'new-shell': ['Cmd+Shift+T', 'Ctrl+Shift+N'],
+  'new-terminal': ['Cmd+N', 'Ctrl+Shift+E'],
+  'new-worktree': ['Cmd+Alt+T', 'Ctrl+Alt+Shift+T'],
+  'open-folder': ['Cmd+O', 'Ctrl+Shift+O'],
+  recent: ['Cmd+Shift+O', 'Ctrl+Shift+H'],
+  'close-pane': ['Cmd+W', 'Ctrl+Shift+W'],
+  'close-session': ['Cmd+Shift+W', 'Ctrl+Alt+Shift+W'],
+  clear: ['Cmd+K', 'Ctrl+Shift+K'],
+  palette: ['Cmd+P', 'Ctrl+Shift+P'],
+  'find-project': ['Cmd+Shift+F', 'Ctrl+Shift+S'],
+  changes: ['Cmd+Shift+D', 'Ctrl+Shift+G'],
+  sidebar: ['Cmd+B', 'Ctrl+Shift+B'],
+  browser: ['Cmd+Shift+L', 'Ctrl+Shift+Y'],
+  screen: ['', ''],
+  'split-row': ['Cmd+D', 'Alt+Shift+='],
+  'split-column': ['Cmd+Alt+D', 'Alt+Shift+-'],
+  'move-left': ['Cmd+Ctrl+Left', ''],
+  'move-right': ['Cmd+Ctrl+Right', ''],
+  'move-up': ['Cmd+Ctrl+Up', ''],
+  'move-down': ['Cmd+Ctrl+Down', ''],
+  next: ['Cmd+Shift+]', 'Ctrl+Tab'],
+  prev: ['Cmd+Shift+[', 'Ctrl+Shift+Tab'],
+  'next-waiting': ['Cmd+J', 'Ctrl+Shift+J'],
+  'jump-unread': ['Cmd+Shift+U', 'Ctrl+Shift+L'],
+  inbox: ['Cmd+I', 'Ctrl+Shift+I'],
+  find: ['Cmd+F', 'Ctrl+Shift+F'],
+  allow: ['Cmd+Shift+Enter', 'Ctrl+Shift+Enter'],
+  deny: ['Cmd+Shift+Backspace', 'Ctrl+Shift+Backspace'],
+  interrupt: ['Cmd+.', ''],
+  restart: ['Cmd+Shift+R', 'Ctrl+Shift+R'],
+  settings: ['Cmd+,', 'Ctrl+,'],
+  'font-up': ['Cmd+=', 'Ctrl+='],
+  'font-down': ['Cmd+-', 'Ctrl+-'],
+  'font-reset': ['Cmd+0', 'Ctrl+0'],
+  copy: ['Cmd+C', 'Ctrl+Shift+C'],
+  paste: ['Cmd+V', 'Ctrl+Shift+V'],
+  selectAll: ['Cmd+A', 'Ctrl+Shift+A'],
+} as const
+
+export type Command = keyof typeof shortcuts
+
+/** Names for the shortcut editor (English; the interface translates them). */
+export const commandNames: Record<Command, string> = {
+  'new-claude': 'New Claude Session',
+  'new-shell': 'New Shell Session',
+  'new-terminal': 'New Terminal',
+  'new-worktree': 'New Session in a Worktree…',
+  'open-folder': 'Open Folder…',
+  recent: 'Recent Conversations…',
+  'close-pane': 'Close Pane',
+  'close-session': 'Close Session',
+  clear: 'Clear Terminal',
+  palette: 'Go to Session…',
+  'find-project': 'Find a Project or Session',
+  changes: 'Changes',
+  sidebar: 'Toggle Sidebar',
+  'split-row': 'Split Right',
+  'split-column': 'Split Down',
+  'move-left': 'Move Pane Left',
+  'move-right': 'Move Pane Right',
+  'move-up': 'Move Pane Up',
+  'move-down': 'Move Pane Down',
+  browser: 'Open Browser',
+  screen: 'Open Screen Pane…',
+  next: 'Next Session',
+  prev: 'Previous Session',
+  'next-waiting': 'Next Session That Needs You',
+  'jump-unread': 'Latest Unread Notification',
+  inbox: 'Notifications',
+  find: 'Find…',
+  allow: 'Allow',
+  deny: 'Deny',
+  interrupt: 'Interrupt',
+  restart: 'Restart Pane',
+  settings: 'Settings…',
+  'font-up': 'Bigger',
+  'font-down': 'Smaller',
+  'font-reset': 'Actual Size',
+  copy: 'Copy',
+  paste: 'Paste',
+  selectAll: 'Select All',
+}
+
+/** Your own shortcuts (Settings → Keyboard Shortcuts), by command; "" turns one off. */
+let overrides: Partial<Record<Command, string>> = {}
+
+export function setOverrides(next: Partial<Record<Command, string>> | undefined): void {
+  overrides = next ?? {}
+}
+
+export function accelerator(cmd: Command, mac: boolean): string | undefined {
+  if (cmd in overrides) return overrides[cmd] || undefined
+  return shortcuts[cmd][mac ? 0 : 1] || undefined
+}
+
+export function defaultAccelerator(cmd: Command, mac: boolean): string | undefined {
+  return shortcuts[cmd][mac ? 0 : 1] || undefined
+}
+
+/** The accelerator a key press makes ("Cmd+Shift+K"), or undefined for a bare modifier. */
+export function fromKeyEvent(e: { key: string; code: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean }, mac: boolean): string | undefined {
+  if (['Meta', 'Control', 'Alt', 'Shift', 'CapsLock', 'Fn'].includes(e.key)) return undefined
+  const named: Record<string, string> = {
+    ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', ' ': 'Space', Escape: 'Esc',
+    Enter: 'Enter', Backspace: 'Backspace', Delete: 'Delete', Tab: 'Tab', Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown',
+  }
+  // Letters and digits by their key position, so Shift and Option don't turn them into symbols.
+  let key: string | undefined = named[e.key]
+  if (!key && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(3)
+  if (!key && /^Digit\d$/.test(e.code)) key = e.code.slice(5)
+  if (!key && /^F\d{1,2}$/.test(e.key)) key = e.key
+  if (!key) key = { Equal: '=', Minus: '-', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Backslash: '\\', Backquote: '`' }[e.code]
+  if (!key) return undefined
+  const mods = [mac && e.metaKey ? 'Cmd' : '', e.ctrlKey ? 'Ctrl' : '', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : ''].filter(Boolean)
+  if (!mac && e.metaKey) mods.push('Super')
+  return [...mods, key].join('+')
+}
+
+/** "⌘T" on macOS, "Ctrl+Shift+T" elsewhere. */
+export function label(cmd: Command, mac: boolean): string {
+  const acc = accelerator(cmd, mac)
+  if (!acc) return ''
+  if (!mac) return acc
+  const symbols: Record<string, string> = { Cmd: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↩', Backspace: '⌫', Up: '↑', Down: '↓', Left: '←', Right: '→', Esc: '⎋', Tab: '⇥' }
+  const parts = acc.split('+').map((p) => symbols[p] ?? p)
+  const key = parts.pop()!
+  const order = ['⌃', '⌥', '⇧', '⌘']
+  return parts.sort((a, b) => order.indexOf(a) - order.indexOf(b)).join('') + key
+}
+
+/** Session N: ⌘1…⌘9 on macOS, Alt+1…9 elsewhere. */
+export const gotoAccelerator = (n: number, mac: boolean) => (mac ? `Cmd+${n}` : `Alt+${n}`)

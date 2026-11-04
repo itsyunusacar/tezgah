@@ -1,0 +1,82 @@
+name: Release
+
+# Push a tag like v1.0.0-alpha.1 to build installers for all three platforms
+# and attach them to a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            args: --mac
+          - os: windows-latest
+            args: --win
+          - os: ubuntu-latest
+            args: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # Downloads (npm, Electron headers for node-pty) fail now and then on hosted runners; try again.
+      - name: Install
+        shell: bash
+        run: npm ci || (sleep 15 && npm ci) || (sleep 45 && npm ci)
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+      - run: npm test
+      - run: npx electron-vite build
+      # macOS is signed (and notarized) when the repository has a Developer ID certificate in its
+      # secrets (CSC_LINK, CSC_KEY_PASSWORD; APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID);
+      # without one the build goes on unsigned.
+      # (An empty CSC_LINK would make electron-builder try to import nothing, so it is only set when there is one.)
+      - name: Package
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ] && [ -n "$MAC_CSC_LINK" ]; then
+            export CSC_LINK="$MAC_CSC_LINK" CSC_KEY_PASSWORD="$MAC_CSC_KEY_PASSWORD"
+          else
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          MAC_CSC_LINK: ${{ secrets.CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # Without a Developer ID, Tezgah's own certificate signs the Mac app (scripts/sign-mac.cjs), so
+          # macOS keeps permissions like Screen Recording from one update to the next.
+          MAC_SIGN_P12: ${{ secrets.MAC_SIGN_P12 }}
+          MAC_SIGN_PASSWORD: ${{ secrets.MAC_SIGN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          node -e "
+            const v = process.argv[1].replace(/^v/, '')
+            const log = require('fs').readFileSync('CHANGELOG.md', 'utf8')
+            const start = log.indexOf('## [' + v + ']')
+            const rest = start < 0 ? '' : log.slice(log.indexOf('\\n', start) + 1)
+            const end = rest.search(/^## \\[/m)
+            require('fs').writeFileSync('notes.md', (end < 0 ? rest : rest.slice(0, end)).trim() + '\\n')
+          " "${{ github.ref_name }}"
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body_path: notes.md
+          files: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb

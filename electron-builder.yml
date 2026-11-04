@@ -1,0 +1,78 @@
+appId: dev.tezgah.app
+productName: Tezgah
+copyright: Copyright © 2026 Yunus Acar
+directories:
+  output: dist
+  buildResources: resources
+# Signs the Mac app with Tezgah's own certificate when the release workflow provides it (scripts/sign-mac.cjs).
+afterPack: scripts/sign-mac.cjs
+files:
+  - out/**
+  - resources/icon.png
+  - resources/tray*Template*.png
+  - package.json
+# The `tezgah` command line, put on PATH in every Tezgah terminal.
+extraResources:
+  - from: resources/bin
+    to: bin
+# node-pty is a native module; it has to live outside the asar archive.
+asarUnpack:
+  - node_modules/node-pty/**
+mac:
+  category: public.app-category.developer-tools
+  icon: resources/icon.icns
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  # Signed with a Developer ID when one is configured (CSC_LINK, or CSC_NAME from the keychain);
+  # without one, electron-builder skips signing, as for earlier releases.
+  extendInfo:
+    NSDesktopFolderUsageDescription: Terminals in Tezgah can read and write files in your Desktop folder.
+    NSDocumentsFolderUsageDescription: Terminals in Tezgah can read and write files in your Documents folder.
+    NSDownloadsFolderUsageDescription: Terminals in Tezgah can read and write files in your Downloads folder.
+    # Finder's Open With for folders and shell scripts; ssh:// links once Tezgah is the default terminal.
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: Folder
+        CFBundleTypeRole: Viewer
+        LSHandlerRank: Alternate
+        LSItemContentTypes: [public.folder, public.directory]
+      - CFBundleTypeName: Shell Script
+        CFBundleTypeRole: Shell
+        LSHandlerRank: Alternate
+        LSItemContentTypes: [com.apple.terminal.shell-script, public.shell-script, public.unix-executable]
+    CFBundleURLTypes:
+      - CFBundleURLName: SSH
+        CFBundleURLSchemes: [ssh]
+dmg:
+  artifactName: Tezgah-${version}-${arch}.dmg
+win:
+  icon: resources/icon.png
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  artifactName: Tezgah-Setup-${version}-${arch}.exe
+  # "Open in Tezgah" on folders and folder backgrounds in Explorer.
+  include: resources/installer.nsh
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  icon: resources/icon.png
+  category: Development
+  # Listed as a terminal; `-x cmd` or `-e cmd` runs a command, like other terminals. It claims no file or
+  # link types on install (folders would open in it); Settings → Make default terminal does that.
+  desktop:
+    entry:
+      Categories: System;TerminalEmulator;Development;
+      Keywords: terminal;shell;claude;agent;
+  maintainer: Yunus Acar
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+  artifactName: Tezgah-${version}-${arch}.${ext}
+publish: null

@@ -1,0 +1,642 @@
+import { plural, t } from '../../../shared/i18n'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { usageProviders, type CustomCommand, type RecentConversation, type TerminalLook, type TranscriptEntry } from '../../../shared/types'
+import * as A from '../actions'
+import { isTerminal, sessionStatus, statusLine, store, useStore } from '../store'
+import { isMac } from '../terminals'
+import { Refresh, Search } from './Icons'
+import { matches } from '../search'
+import { accelerator, commandNames, defaultAccelerator, fromKeyEvent, label, shortcuts, type Command } from '../../../shared/shortcuts'
+
+export type MenuItem = { label: string; hint?: string; danger?: boolean; disabled?: boolean; run: () => void } | 'divider' | { header: string }
+
+export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }) {
+  // Measured once drawn, then moved inside the window: up or left of the pointer near an edge.
+  const ref = useRef<HTMLDivElement>(null)
+  const [at, setAt] = useState<{ left: number; top: number }>()
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const left = x + el.offsetWidth > window.innerWidth - 8 ? Math.max(8, x - el.offsetWidth) : x
+    const top = y + el.offsetHeight > window.innerHeight - 8 ? Math.max(8, Math.min(y - el.offsetHeight, window.innerHeight - el.offsetHeight - 8)) : y
+    setAt({ left, top })
+  }, [x, y, items.length])
+  useEffect(() => {
+    const close = () => onClose()
+    window.addEventListener('mousedown', close)
+    window.addEventListener('blur', close)
+    return () => {
+      window.removeEventListener('mousedown', close)
+      window.removeEventListener('blur', close)
+    }
+  }, [onClose])
+  return (
+    <div ref={ref} className="menu" role="menu" style={at ?? { left: x, top: y, visibility: 'hidden' }} onMouseDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+      {items.map((it, i) =>
+        it === 'divider' ? (
+          <hr key={i} />
+        ) : 'header' in it ? (
+          <div key={i} className="menu-header">{it.header}</div>
+        ) : (
+          <button key={i} role="menuitem" className={it.danger ? 'danger' : ''} disabled={it.disabled} onClick={() => (onClose(), it.run(), requestAnimationFrame(A.refocus))}>
+            <span>{it.label}</span>
+            {it.hint && <span className="hint">{it.hint}</span>}
+          </button>
+        ),
+      )}
+    </div>
+  )
+}
+
+function Scrim({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    // On the document, so a window listener inside the dialog (the shortcut recorder) sees keys first.
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', key, true)
+    return () => document.removeEventListener('keydown', key, true)
+  }, [onClose])
+  return (
+    <div className="scrim" onMouseDown={onClose}>
+      <div onMouseDown={(e) => e.stopPropagation()}>{children}</div>
+    </div>
+  )
+}
+
+export function PromptDialog() {
+  const prompt = useStore((s) => s.ui.prompt)
+  const [value, setValue] = useState('')
+  useEffect(() => setValue(prompt?.value ?? ''), [prompt])
+  if (!prompt) return null
+  const close = () => store().setUI({ prompt: undefined })
+  const submit = () => {
+    close()
+    prompt.onSubmit(value)
+  }
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog small">
+        <div className="dialog-body">
+          <h2>{prompt.title}</h2>
+          <input className="field" autoFocus value={value} placeholder={prompt.placeholder} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} onFocus={(e) => e.target.select()} />
+        </div>
+        <div className="dialog-actions">
+          <button className="pill" onClick={close}>{t('Cancel')}</button>
+          <button className="pill primary" onClick={submit} disabled={!value.trim()}>{prompt.confirm}</button>
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+export function ConfirmDialog() {
+  const confirm = useStore((s) => s.ui.confirm)
+  if (!confirm) return null
+  const close = () => store().setUI({ confirm: undefined })
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog small">
+        <div className="dialog-body">
+          <h2>{confirm.title}</h2>
+          <p>{confirm.body}</p>
+        </div>
+        <div className="dialog-actions">
+          {/* Return right after the shortcut that opened it must never delete anything. */}
+          <button className="pill" autoFocus onClick={close}>{t('Cancel')}</button>
+          {confirm.actions.map((a) => (
+            <button key={a.label} className={`pill ${a.danger ? 'danger' : 'primary'}`} onClick={() => (close(), a.run())}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+export function Toast() {
+  const toast = useStore((s) => s.ui.toast)
+  return toast ? <div className="toast">{toast}</div> : null
+}
+
+// A searchable list, shared by the quick switcher and recent conversations.
+
+interface Row {
+  key: string
+  text: string
+  hint?: string
+  run: () => void
+}
+
+function Picker({ placeholder, rows, onClose, empty }: { placeholder: string; rows: Row[]; onClose: () => void; empty: string }) {
+  const [query, setQuery] = useState('')
+  const [active, setActive] = useState(0)
+  const list = useRef<HTMLDivElement>(null)
+  const shown = useMemo(() => rows.filter((r) => matches(query, r.text, r.hint)).slice(0, 80), [rows, query])
+  useEffect(() => setActive(0), [query])
+  useEffect(() => {
+    list.current?.children[active]?.scrollIntoView({ block: 'nearest' })
+  }, [active])
+  const run = (r?: Row) => {
+    if (!r) return
+    onClose()
+    r.run()
+  }
+  return (
+    <Scrim onClose={onClose}>
+      <div className="dialog">
+        <div className="search">
+          <Search />
+          <input
+            autoFocus
+            placeholder={placeholder}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') (e.preventDefault(), setActive((a) => Math.min(a + 1, shown.length - 1)))
+              if (e.key === 'ArrowUp') (e.preventDefault(), setActive((a) => Math.max(a - 1, 0)))
+              if (e.key === 'Enter') run(shown[active])
+            }}
+          />
+        </div>
+        <div className="items" ref={list}>
+          {shown.map((r, i) => (
+            <div key={r.key} className={`item ${i === active ? 'active' : ''}`} onMouseMove={() => setActive(i)} onClick={() => run(r)}>
+              <span className="main-text">{r.text}</span>
+              {r.hint && <span className="hint">{r.hint}</span>}
+            </div>
+          ))}
+          {!shown.length && <div className="muted">{empty}</div>}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+const key = (c: Command) => label(c, isMac)
+
+export function Palette() {
+  const open = useStore((s) => s.ui.palette)
+  const ws = useStore((s) => s.ws)
+  const panes = useStore((s) => s.panes)
+  const commands = useStore((s) => s.settings.commands)
+  const home = useStore((s) => s.home)
+  if (!open) return null
+  const tilde = (path: string) => (home && path.startsWith(home) ? '~' + path.slice(home.length) : path)
+  const rows: Row[] = [
+    ...commands.map((c) => ({ key: 'cmd-' + c.name, text: c.name, hint: c.command, run: () => A.runCustomCommand(c.name) })),
+    ...A.orderedSessions().map((s) => ({
+      key: s.id,
+      text: s.title,
+      hint: [A.project(s.projectId)?.name ?? (isTerminal(s) ? t('Terminals') : ''), statusLine(s, panes) || (sessionStatus(s, panes) === 'exited' ? t('Stopped') : '')].filter(Boolean).join(' · '),
+      run: () => A.select(s.id),
+    })),
+    ...ws.sessions
+      .filter((s) => s.archived)
+      .map((s) => ({ key: s.id, text: s.title, hint: [A.project(s.projectId)?.name, t('Archived')].filter(Boolean).join(' · '), run: () => A.restoreSession(s.id) })),
+    // Projects: jump to one (its first session, or a new one), or start a session in it.
+    ...ws.projects.map((p) => ({ key: 'project-' + p.id, text: p.name, hint: [tilde(p.path), t('Project')].join(' · '), run: () => A.openFolder(p.path) })),
+    ...ws.projects.map((p) => ({ key: 'new-' + p.id, text: t('New session in {name}', { name: p.name }), hint: key('new-claude'), run: () => A.newSession(p.id, 'claude') })),
+    { key: 'terminal', text: t('New terminal'), hint: key('new-terminal'), run: () => A.newTerminal() },
+    { key: 'open', text: t('Open folder…'), hint: key('open-folder'), run: () => A.openFolder() },
+    { key: 'recent', text: t('Recent conversations…'), hint: key('recent'), run: () => store().setUI({ recent: true }) },
+    { key: 'wt', text: t('New session in a worktree…'), hint: key('new-worktree'), run: () => A.newWorktreeSession() },
+    { key: 'browser', text: t('Open browser'), hint: key('browser'), run: () => A.openBrowserHere() },
+    { key: 'screen', text: t('Watch a window live…'), hint: key('screen'), run: () => A.openScreen() },
+    { key: 'inbox', text: t('Notifications'), hint: key('inbox'), run: () => store().setUI({ inbox: true }) },
+    { key: 'find', text: t('Find in terminal'), hint: key('find'), run: () => A.selected() && store().setUI({ find: A.selected()!.focusedPane }) },
+    { key: 'ssh', text: t('New SSH session…'), run: () => A.newSshSession() },
+    { key: 'intro', text: t('Show the Introduction'), run: () => store().setUI({ intro: true }) },
+    { key: 'shortcuts', text: t('Keyboard Shortcuts'), run: () => store().setUI({ shortcuts: true }) },
+    { key: 'settings', text: t('Settings'), hint: key('settings'), run: () => store().setUI({ settings: true }) },
+  ]
+  return <Picker placeholder={t('Go to a project or session, or run a command')} rows={rows} onClose={() => store().setUI({ palette: false })} empty={t('No match')} />
+}
+
+export function ago(at: number): string {
+  const m = Math.round((Date.now() - at) / 60000)
+  if (m < 1) return t('now')
+  if (m < 60) return t('{n}m ago', { n: m })
+  if (m < 1440) return t('{n}h ago', { n: Math.round(m / 60) })
+  return t('{n}d ago', { n: Math.round(m / 1440) })
+}
+
+export function RecentDialog() {
+  const open = useStore((s) => s.ui.recent)
+  const [items, setItems] = useState<RecentConversation[]>()
+  useEffect(() => {
+    if (open) window.tz.recentConversations().then(setItems)
+    else setItems(undefined)
+  }, [open])
+  if (!open) return null
+  const home = (p: string) => p.replace(/^\/(Users|home)\/[^/]+/, '~')
+  const rows: Row[] = (items ?? []).map((c) => ({
+    key: c.id,
+    text: c.prompt,
+    hint: `${home(c.cwd).split(/[\\/]/).slice(-2).join('/')} · ${ago(c.updatedAt)}`,
+    run: () => A.openConversation(c.id, c.cwd),
+  }))
+  return <Picker placeholder={t('Find a Claude conversation')} rows={rows} onClose={() => store().setUI({ recent: false })} empty={items ? t('No conversations yet') : t('Loading…')} />
+}
+
+const formatCommands = (list: CustomCommand[]) => list.map((c) => `${c.name}: ${c.command}`).join('\n')
+
+export function parseCommands(text: string): CustomCommand[] {
+  return text
+    .split('\n')
+    .map((line) => {
+      const i = line.indexOf(':')
+      return i > 0 ? { name: line.slice(0, i).trim(), command: line.slice(i + 1).trim() } : undefined
+    })
+    .filter((c): c is CustomCommand => !!c && !!c.name && !!c.command)
+}
+
+export function SettingsDialog() {
+  const open = useStore((s) => s.ui.settings)
+  const settings = useStore((s) => s.settings)
+  const setSettings = useStore((s) => s.setSettings)
+  const usage = useStore((s) => s.usage)
+  const [args, setArgs] = useState(settings.claudeArgs)
+  const [commands, setCommands] = useState(formatCommands(settings.commands))
+  useEffect(() => setArgs(settings.claudeArgs), [open, settings.claudeArgs])
+  useEffect(() => setCommands(formatCommands(settings.commands)), [open, settings.commands])
+  const [ghostty, setGhostty] = useState<TerminalLook | null | undefined>()
+  const [defaultTerm, setDefaultTerm] = useState<Awaited<ReturnType<typeof window.tz.defaultTerminal>>>()
+  // Only where this copy can replace itself: not a dev build, a .deb or a folder you can't write to.
+  const [canInstall, setCanInstall] = useState(false)
+  useEffect(() => {
+    if (open) window.tz.canInstallUpdates().then(setCanInstall)
+  }, [open])
+  // "Open in Tezgah" in Finder: an installed copy on macOS.
+  const [finderAction, setFinderAction] = useState(false)
+  useEffect(() => {
+    if (open) window.tz.finderActionSupported().then(setFinderAction)
+  }, [open])
+  useEffect(() => {
+    if (open) window.tz.defaultTerminal().then(setDefaultTerm)
+  }, [open])
+  useEffect(() => {
+    if (open) window.tz.ghosttyLook().then(setGhostty)
+  }, [open])
+  if (!open) return null
+  const close = () => {
+    if (args !== settings.claudeArgs) setSettings({ claudeArgs: args })
+    if (commands !== formatCommands(settings.commands)) setSettings({ commands: parseCommands(commands) })
+    store().setUI({ settings: false })
+  }
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog settings">
+        <div className="dialog-head">
+          <h2>{t('Settings')}</h2>
+        </div>
+        <div className="dialog-body scroll">
+          <div className="row">
+            <div className="l"><b>{t('Appearance')}</b></div>
+            <div className="seg">
+              {(['system', 'light', 'dark'] as const).map((theme) => (
+                <button key={theme} className={settings.theme === theme ? 'on' : ''} onClick={() => setSettings({ theme })}>
+                  {t({ system: 'System', light: 'Light', dark: 'Dark' }[theme])}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Language')}</b></div>
+            <div className="seg">
+              {(['system', 'tr', 'en'] as const).map((lang) => (
+                <button key={lang} className={settings.language === lang ? 'on' : ''} onClick={() => setSettings({ language: lang })}>
+                  {lang === 'system' ? t('System') : lang === 'tr' ? 'Türkçe' : 'English'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Terminal font size')}</b><span>{t('Also {up} and {down}', { up: key('font-up'), down: key('font-down') })}</span></div>
+            <div className="seg">
+              <button title={t('Smaller')} aria-label={t('Smaller')} disabled={settings.fontSize <= 9} onClick={() => setSettings({ fontSize: Math.max(9, settings.fontSize - 1) })}>−</button>
+              <span className="value">{settings.fontSize}</span>
+              <button title={t('Bigger')} aria-label={t('Bigger')} disabled={settings.fontSize >= 24} onClick={() => setSettings({ fontSize: Math.min(24, settings.fontSize + 1) })}>+</button>
+            </div>
+          </div>
+          {(ghostty || settings.terminalLook === 'ghostty') && (
+          <div className="row">
+              <div className="l"><b>{t('Terminal look')}</b><span>{ghostty ? t('Use the font and colors from your Ghostty config') : t('No Ghostty config found')}</span></div>
+              <div className="seg">
+                <button className={settings.terminalLook !== 'ghostty' ? 'on' : ''} onClick={() => setSettings({ terminalLook: 'tezgah' })}>Tezgah</button>
+                <button
+                  className={settings.terminalLook === 'ghostty' ? 'on' : ''}
+                  disabled={ghostty === null}
+                  onClick={() => setSettings({ terminalLook: 'ghostty', ...(ghostty?.fontSize ? { fontSize: ghostty.fontSize } : {}) })}
+                >
+                  Ghostty
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="row">
+            <div className="l">
+              <b>{t('Plan limits in the sidebar')}</b>
+              <span>{t('Gemini and Grok keep their limits on their servers only, so Tezgah can\'t show them.')}</span>
+            </div>
+            <div className="seg">
+              {usageProviders.filter((p) => !p.unavailable).map((p) => {
+                const on = !settings.hiddenUsage.includes(p.id)
+                const has = usage.some((u) => u.id === p.id)
+                return (
+                  <button
+                    key={p.id}
+                    className={on ? 'on' : ''}
+                    title={has ? undefined : p.id === 'codex' ? t('Shows while Codex is signed in or was used this week') : t('No {name} limits found right now', { name: p.name })}
+                    onClick={() => setSettings({ hiddenUsage: on ? [...settings.hiddenUsage, p.id] : settings.hiddenUsage.filter((x) => x !== p.id) })}
+                  >
+                    {p.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {/* Where Tezgah can't be the default (some Linux desktops), there's nothing to set. */}
+          {defaultTerm && (defaultTerm.supported || window.tz.platform === 'win32') && (
+          <div className="row">
+            <div className="l">
+              <b>{t('Default terminal')}</b>
+              <span>
+                {!defaultTerm.supported
+                  ? t('Right-click a folder and choose “Open in Tezgah”. Windows keeps its own default terminal setting for itself.')
+                  : defaultTerm.isDefault
+                      ? window.tz.platform === 'darwin'
+                        ? t('Shell scripts (.command, .sh), programs you double-click and ssh:// links open in Tezgah.')
+                        : t('Your desktop opens terminals and ssh:// links in Tezgah.')
+                      : window.tz.platform === 'darwin'
+                        ? t('Open shell scripts (.command, .sh) and ssh:// links in Tezgah.')
+                        : t('Make Tezgah the terminal your desktop opens.')}
+              </span>
+            </div>
+            {defaultTerm.supported &&
+              (defaultTerm.isDefault ? (
+                <span className="default-badge">✓ {t('Default')}</span>
+              ) : (
+                <button
+                  className="pill"
+                  onClick={() =>
+                    window.tz.makeDefaultTerminal().then((d) => {
+                      setDefaultTerm(d)
+                      if (d.supported && d.isDefault) A.toast(t('Tezgah is now your default terminal.'))
+                    })
+                  }
+                >
+                  {t('Make Default')}
+                </button>
+              ))}
+          </div>
+          )}
+          {finderAction && (
+            <div className="row">
+              <div className="l"><b>{t('Open in Tezgah in Finder')}</b><span>{t('Right-click a folder, then Quick Actions → Open in Tezgah.')}</span></div>
+              <div className="seg">
+                <button className={settings.finderAction ? 'on' : ''} onClick={() => setSettings({ finderAction: true })}>{t('On')}</button>
+                <button className={!settings.finderAction ? 'on' : ''} onClick={() => setSettings({ finderAction: false })}>{t('Off')}</button>
+              </div>
+            </div>
+          )}
+          <div className="row">
+            <div className="l"><b>{t('Opening a folder starts')}</b><span>{t('From Finder, Explorer, your file manager or the command line.')}</span></div>
+            <div className="seg">
+              <button className={settings.folderStarts !== 'shell' ? 'on' : ''} onClick={() => setSettings({ folderStarts: 'claude' })}>Claude</button>
+              <button className={settings.folderStarts === 'shell' ? 'on' : ''} onClick={() => setSettings({ folderStarts: 'shell' })}>{t('Shell')}</button>
+            </div>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Introduction')}</b><span>{t('The short tour shown on first launch.')}</span></div>
+            <button className="pill" onClick={() => store().setUI({ settings: false, intro: true })}>{t('Show Again')}</button>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Keyboard Shortcuts')}</b><span>{t('Change any of them.')}</span></div>
+            <button className="pill" onClick={() => store().setUI({ settings: false, shortcuts: true })}>{t('Edit…')}</button>
+          </div>
+          <div className="row">
+            <div className="l"><b>{t('Check for updates')}</b><span>{t('Looks for a newer Tezgah on GitHub at launch and every six hours.')}</span></div>
+            <div className="seg">
+              <button className={settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: true })}>{t('On')}</button>
+              <button className={!settings.checkUpdates ? 'on' : ''} onClick={() => setSettings({ checkUpdates: false })}>{t('Off')}</button>
+            </div>
+          </div>
+          {canInstall && settings.checkUpdates && (
+            <div className="row">
+              <div className="l"><b>{t('Install updates')}</b><span>{t('Downloads a new version in the background and puts it in place when you quit Tezgah.')}</span></div>
+              <div className="seg">
+                <button className={settings.installUpdates ? 'on' : ''} onClick={() => setSettings({ installUpdates: true })}>{t('On')}</button>
+                <button className={!settings.installUpdates ? 'on' : ''} onClick={() => setSettings({ installUpdates: false })}>{t('Off')}</button>
+              </div>
+            </div>
+          )}
+          <div className="row">
+            <div className="l"><b>{t('Notifications')}</b><span>{t('When an agent needs you or finishes while you\'re elsewhere')}</span></div>
+            <div className="seg">
+              <button className={settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: true })}>{t('On')}</button>
+              <button className={!settings.notify ? 'on' : ''} onClick={() => setSettings({ notify: false })}>{t('Off')}</button>
+            </div>
+          </div>
+          <div className="row">
+            <div className="l">
+              <b>{t('Browser and pane tools for Claude')}</b>
+              <span>{t('Claude sessions can open, read and click through pages in the browser pane, and read other panes. Other agents: see `tezgah help`.')}</span>
+            </div>
+            <div className="seg">
+              <button className={settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: true })}>{t('On')}</button>
+              <button className={!settings.agentTools ? 'on' : ''} onClick={() => setSettings({ agentTools: false })}>{t('Off')}</button>
+            </div>
+          </div>
+          <div className="row">
+            <div className="l">
+              <b>{t('Let agents control other sessions')}</b>
+              <span>{t('Agents can type into, read and use the browser of panes in other sessions. Off: only their own session.')}</span>
+            </div>
+            <div className="seg">
+              <button className={settings.otherSessions ? 'on' : ''} onClick={() => setSettings({ otherSessions: true })}>{t('On')}</button>
+              <button className={!settings.otherSessions ? 'on' : ''} onClick={() => setSettings({ otherSessions: false })}>{t('Off')}</button>
+            </div>
+          </div>
+          <div className="row" style={{ display: 'block' }}>
+            <div className="l" style={{ marginBottom: 8 }}><b>{t('Claude arguments')}</b><span>{t('Added every time a session starts Claude Code, e.g. --model opus')}</span></div>
+            <input className="field" value={args} placeholder="--model opus" onChange={(e) => setArgs(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />
+          </div>
+          <div className="row" style={{ display: 'block' }}>
+            <div className="l" style={{ marginBottom: 8 }}>
+              <b>{t('Commands')}</b>
+              <span>{t('One per line as “Name: command”. Each runs in a new pane, from the + menu, the quick switcher or `tezgah run <name>`. Other agents work too, e.g. “Codex: codex”.')}</span>
+            </div>
+            <textarea className="field area" value={commands} placeholder={'Dev server: npm run dev\nTests: npm test -- --watch\nCodex: codex'} onChange={(e) => setCommands(e.target.value)} rows={4} spellCheck={false} />
+          </div>
+        </div>
+        <div className="dialog-actions">
+          <button className="pill primary" onClick={close}>{t('Done')}</button>
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+export function Inbox() {
+  const open = useStore((s) => s.ui.inbox)
+  const notes = useStore((s) => s.notes)
+  const sessions = useStore((s) => s.ws.sessions)
+  if (!open) return null
+  const close = () => store().setUI({ inbox: false })
+  const live = A.liveSessionIds(sessions)
+  const list = [...notes].reverse().filter((n) => live.has(n.sessionId))
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog inbox">
+        <div className="head">
+          <b>{t('Notifications')}</b>
+          <span className="kbd">{t('{keys} latest unread', { keys: key('jump-unread') })}</span>
+          {list.some((n) => !n.read) && <button className="pill small" onClick={() => A.markAllRead()}>{t('Mark All Read')}</button>}
+        </div>
+        <div className="items">
+          {list.map((n) => (
+            <div key={n.id} className={`note-item ${n.read ? 'read' : ''}`} onClick={() => (close(), A.openNote(n))}>
+              <span className={`dot ${n.read ? '' : n.kind === 'blocked' ? 'blocked' : n.kind === 'done' ? 'done' : 'working'}`} style={n.read || n.kind !== 'notice' ? undefined : { animation: 'none' }} />
+              <div className="body">
+                <div className="t"><span>{n.title}</span><span className="when">{ago(n.at)}</span></div>
+                {n.body && <div className="b">{n.body}</div>}
+              </div>
+            </div>
+          ))}
+          {!list.length && <div className="muted">{t('Nothing yet. Agents that finish, need you or send a notification show up here.')}</div>}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+/** A subagent's transcript, following along while it works. */
+export function AgentDialog() {
+  const target = useStore((s) => s.ui.agent)
+  const agent = useStore((s) => (target ? Object.values(s.agents).flat().find((a) => a.id === target.id && a.claudeId === target.claudeId) : undefined))
+  const [entries, setEntries] = useState<TranscriptEntry[]>([])
+  const list = useRef<HTMLDivElement>(null)
+  const stick = useRef(true)
+
+  useEffect(() => {
+    if (!target) return setEntries([])
+    let alive = true
+    const load = () => window.tz.agentTranscript(target.claudeId, target.id).then((e) => alive && setEntries(e))
+    load()
+    const t = setInterval(load, 1500)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [target])
+  useEffect(() => {
+    const el = list.current
+    if (el && stick.current) el.scrollTop = el.scrollHeight
+  }, [entries])
+
+  if (!target) return null
+  const close = () => store().setUI({ agent: undefined })
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog transcript">
+        <div className="head">
+          <span className={`dot ${agent?.running ? 'working' : 'done'}`} style={{ marginTop: 0 }} />
+          <b>{agent?.description ?? target.id}</b>
+          <span className="kbd">{agent ? `${agent.type} · ${plural(agent.toolUses, '{n} tool', '{n} tools')}` : ''}</span>
+        </div>
+        <div className="steps" ref={list} onScroll={(e) => {
+          const el = e.currentTarget
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+        }}>
+          {entries.map((e, i) => (
+            <div key={i} className={`step ${e.kind}`}>{e.text}</div>
+          ))}
+          {!entries.length && <div className="muted">{t('Nothing written yet.')}</div>}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+/** Every command's shortcut: click one, press new keys. Conflicts are refused; each can go back to its default. */
+export function ShortcutsDialog() {
+  const open = useStore((s) => s.ui.shortcuts)
+  const custom = useStore((s) => s.settings.shortcuts)
+  const setSettings = useStore((s) => s.setSettings)
+  const [recording, setRecording] = useState<Command>()
+  const [problem, setProblem] = useState<string>()
+
+  // While recording, the menu's own shortcuts are off so pressing one doesn't run it.
+  useEffect(() => {
+    if (!recording) return
+    window.tz.suspendMenu(true)
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation() // Escape cancels the recording, not the dialog
+      if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) return setRecording(undefined)
+      const acc = fromKeyEvent(e, isMac)
+      if (!acc) return
+      if (!acc.includes('+')) return setProblem(t('Use a modifier key too (⌘, Ctrl, ⌥ or ⇧).'))
+      if (!isMac && /^Ctrl\+[A-Z]$/.test(acc)) return setProblem(t('Ctrl with a single letter belongs to the shell; add Shift or Alt.'))
+      const clash = (Object.keys(shortcuts) as Command[]).find((c) => c !== recording && accelerator(c, isMac) === acc)
+      if (clash) return setProblem(t('{keys} is already used by “{command}”.', { keys: label2(acc), command: t(commandNames[clash]) }))
+      setSettings({ shortcuts: { ...custom, [recording]: acc } })
+      setProblem(undefined)
+      setRecording(undefined)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.tz.suspendMenu(false)
+    }
+  }, [recording, custom, setSettings])
+
+  if (!open) return null
+  const close = () => {
+    setRecording(undefined)
+    store().setUI({ shortcuts: false })
+  }
+  const reset = (cmd: Command) => {
+    const next = { ...custom }
+    delete next[cmd]
+    setSettings({ shortcuts: next })
+  }
+  return (
+    <Scrim onClose={close}>
+      <div className="dialog shortcuts">
+        <div className="head">
+          <b>{t('Keyboard Shortcuts')}</b>
+          {Object.keys(custom).length > 0 && <button className="pill small" onClick={() => setSettings({ shortcuts: {} })}>{t('Reset All')}</button>}
+        </div>
+        {problem && <div className="problem">{problem}</div>}
+        <div className="items">
+          {(Object.keys(shortcuts) as Command[]).map((cmd) => {
+            const changed = cmd in custom
+            return (
+              <div key={cmd} className={`shortcut-row ${recording === cmd ? 'recording' : ''}`}>
+                <span className="what">{t(commandNames[cmd])}</span>
+                {changed && (
+                  <button className="icon-btn tiny" title={t('Back to {keys}', { keys: label2(defaultAccelerator(cmd, isMac) ?? '') || '—' })} onClick={() => reset(cmd)}>
+                    <Refresh size={11} />
+                  </button>
+                )}
+                <button className={`keys ${changed ? 'changed' : ''}`} onClick={() => (setProblem(undefined), setRecording(recording === cmd ? undefined : cmd))}>
+                  {recording === cmd ? t('Press keys…') : key(cmd) || t('None')}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </Scrim>
+  )
+}
+
+/** A label for an accelerator that isn't (yet) a command's. */
+function label2(acc: string): string {
+  if (!isMac) return acc
+  const symbols: Record<string, string> = { Cmd: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃' }
+  const parts = acc.split('+')
+  const k = parts.pop()!
+  return parts.map((p) => symbols[p] ?? p).join('') + k
+}
