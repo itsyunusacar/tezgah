@@ -22,12 +22,16 @@ exports.default = async function sign(context) {
   const keychain = path.join(dir, 'sign.keychain-db')
   const pass = crypto.randomBytes(16).toString('hex')
   const run = (cmd, args) => execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'inherit'] }).toString()
+  let searched
   try {
     fs.writeFileSync(path.join(dir, 'cert.p12'), Buffer.from(p12, 'base64'), { mode: 0o600 })
     run('security', ['create-keychain', '-p', pass, keychain])
     run('security', ['unlock-keychain', '-p', pass, keychain])
     run('security', ['import', path.join(dir, 'cert.p12'), '-k', keychain, '-P', password, '-T', '/usr/bin/codesign'])
     run('security', ['set-key-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', pass, keychain])
+    // codesign only finds identities in keychains on the search list, even with --keychain (CI runners).
+    searched = run('security', ['list-keychains', '-d', 'user']).split('\n').map((l) => l.trim().replace(/^"|"$/g, '')).filter(Boolean)
+    run('security', ['list-keychains', '-d', 'user', '-s', keychain, ...searched])
     // Self-signed, so not "valid" to the system: pick it by its SHA-1.
     const id = run('security', ['find-identity', '-p', 'codesigning', keychain]).match(/\b([0-9A-F]{40})\b/)?.[1]
     if (!id) throw new Error('No signing identity in MAC_SIGN_P12')
@@ -35,6 +39,7 @@ exports.default = async function sign(context) {
     run('codesign', ['--verify', '--deep', '--strict', app])
     console.log(`  • signed ${path.basename(app)} with Tezgah's certificate (${id.slice(0, 8)}…)`)
   } finally {
+    if (searched) try { run('security', ['list-keychains', '-d', 'user', '-s', ...searched]) } catch { /* left as it was */ }
     try { run('security', ['delete-keychain', keychain]) } catch { /* already gone */ }
     fs.rmSync(dir, { recursive: true, force: true })
   }
