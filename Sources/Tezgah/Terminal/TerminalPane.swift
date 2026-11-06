@@ -118,7 +118,12 @@ final class TerminalPane: Identifiable {
                 guard let self, let command = self.pendingCommand else { return }
                 self.pendingCommand = nil
                 self.reader?.wantsOutputNotice = false
-                self.pty?.write(command + "\n")
+                // A trailing "\u{0}" marks a command to type but not run (install commands wait for Enter).
+                if command.hasSuffix("\u{0}") {
+                    self.pty?.write(String(command.dropLast()))
+                } else {
+                    self.pty?.write(command + "\n")
+                }
                 self.commandTimer = nil
             }
         }

@@ -23,11 +23,8 @@ enum AppActions {
     /// ⌘T: a session in the project you're in, else a terminal of its own.
     static func newSessionHere() {
         guard let store else { return }
-        if case .terminals = store.tabContext {
-            store.newSession(projectId: nil)
-        } else {
-            store.newSession(projectId: store.currentProjectId)
-        }
+        store.refreshAgents()
+        store.newSessionPicker = store.currentProjectId ?? ""
     }
 
     static func toast(_ text: String) {
@@ -71,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         } else {
             store.load()
             store.startPolling()
+            store.refreshAgents()
             if Onboarding.isDone {
                 window.makeKeyAndOrderFront(nil)
             } else {
@@ -212,7 +210,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     @objc func previousTab(_: Any?) { store.cycleTab(-1) }
     @objc func showHome(_: Any?) { store.selection = .welcome }
     @objc func showSettings(_: Any?) { store.selection = .settings }
-    @objc func search(_: Any?) { store.paletteOpen = true }
+    @objc func search(_: Any?) {
+        store.paletteScope = .all
+        store.paletteOpen = true
+    }
+    @objc func quickSwitch(_: Any?) {
+        store.paletteScope = .go
+        store.paletteOpen = true
+    }
     @objc func setNavPosition(_ sender: NSMenuItem) {
         appearance.navPosition = NavPosition.allCases[sender.tag]
     }
@@ -322,6 +327,8 @@ enum MainMenu {
         let window = submenu("Window", [
             item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m", target: nil),
             item("Zoom", #selector(NSWindow.performZoom(_:)), "", target: nil),
+            .separator(),
+            item("Quick Switch…", #selector(AppDelegate.quickSwitch(_:)), "p"),
             .separator(),
             item("Previous Session", #selector(AppDelegate.previousTab(_:)), "[", [.command, .shift]),
             item("Next Session", #selector(AppDelegate.nextTab(_:)), "]", [.command, .shift]),

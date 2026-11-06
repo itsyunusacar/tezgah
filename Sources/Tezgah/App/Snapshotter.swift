@@ -71,6 +71,19 @@ struct Snapshotter {
             capture("board-\(mode)")
         }
         look.navPosition = savedPosition
+        NSApp.appearance = NSAppearance(named: .aqua)
+        window.appearance = NSAppearance(named: .aqua)
+        store.refreshAgents()
+        store.open(session: main.id)
+        await wait(3)
+        store.newSessionPicker = mac.id
+        await wait(1)
+        capture("picker-light")
+        store.newSessionPicker = nil
+        store.paletteOpen = true
+        await wait(1)
+        capture("palette-light")
+        store.paletteOpen = false
 
         // The five first-run pages, light then dark.
         app.showOnboarding()

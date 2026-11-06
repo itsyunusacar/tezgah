@@ -94,6 +94,18 @@ final class AppStore {
     var paletteOpen = false
     /// The new-session picker is open for this project ("" for a terminal of its own).
     var newSessionPicker: String?
+    enum PaletteScope { case all, go }
+    var paletteScope = PaletteScope.all
+    /// Agents found on this Mac (refreshed at launch and when the picker opens).
+    var installedAgents: [AgentDetector.Found] = []
+    var lastAgent: AgentKind? {
+        get { UserDefaults.standard.string(forKey: "agents.last").flatMap(AgentKind.init(rawValue:)) }
+        set { UserDefaults.standard.set(newValue?.rawValue, forKey: "agents.last") }
+    }
+
+    func refreshAgents() {
+        Task { installedAgents = await AgentDetector.detect() }
+    }
     /// The last session you looked at in each project (project id → session id).
     var lastSession: [String: String] = [:]
 
@@ -347,11 +359,11 @@ final class AppStore {
         scheduleSave()
     }
 
-    func split(_ axis: SplitAxis, paneId: String? = nil) {
+    func split(_ axis: SplitAxis, paneId: String? = nil, command: String? = nil) {
         guard let s = currentSession, let target = paneId ?? s.focusedPaneId ?? s.layout.paneIds.last,
               let source = panes[target] else { return }
         let newId = UUID().uuidString
-        panes[newId] = TerminalPane(id: newId, sessionId: s.id, cwd: source.cwd, command: nil, store: self)
+        panes[newId] = TerminalPane(id: newId, sessionId: s.id, cwd: source.cwd, command: command, store: self)
         s.layout = s.layout.splitting(target, axis: axis, newId: newId)
         s.focusedPaneId = newId
         scheduleSave()

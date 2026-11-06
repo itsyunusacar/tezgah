@@ -28,6 +28,15 @@ struct RootView: View {
         }
         .background(look.base)
         .overlay(alignment: .bottom) { ToastView() }
+        .overlay {
+            if let pid = store.newSessionPicker {
+                NewSessionSheet(projectId: pid.isEmpty ? nil : pid)
+            } else if store.paletteOpen {
+                CommandPalette()
+            }
+        }
+        .animation(.easeOut(duration: Motion.quick), value: store.paletteOpen)
+        .animation(.easeOut(duration: Motion.quick), value: store.newSessionPicker)
         .ignoresSafeArea()
     }
 
