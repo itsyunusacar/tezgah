@@ -53,6 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     func applicationDidFinishLaunching(_: Notification) {
         let args = ProcessInfo.processInfo.arguments
+        // `--export-finder <dir>`: writes the Finder service's files there (for checking) and quits.
+        if let i = args.firstIndex(of: "--export-finder"), args.indices.contains(i + 1) {
+            let dir = URL(fileURLWithPath: args[i + 1])
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try? FinderService.info(title: FinderService.title).write(to: dir.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+            try? FinderService.document(command: FinderService.command(appPath: "/Applications/Tezgah.app", bundleId: "dev.tezgah.app"))
+                .write(to: dir.appendingPathComponent("document.wflow"), atomically: true, encoding: .utf8)
+            exit(0)
+        }
         if let i = args.firstIndex(of: "--snapshot"), args.indices.contains(i + 1) {
             snapshotDir = URL(fileURLWithPath: args[i + 1], isDirectory: true)
         }
@@ -90,6 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         term.resume()
         termSource = term
         NSApp.activate()
+    }
+
+    func application(_: NSApplication, open urls: [URL]) {
+        for url in urls { store.handleOpen(url) }
+        window.makeKeyAndOrderFront(nil)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool { true }

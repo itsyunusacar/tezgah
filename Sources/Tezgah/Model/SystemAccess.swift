@@ -90,29 +90,6 @@ enum Relauncher {
     }
 }
 
-/// "Open in Tezgah" on folders in Finder: a service in ~/Library/Services. Development builds only
-/// pretend, so they never touch the user's real Services.
-enum FinderService {
-    static var isRealBuild: Bool { Bundle.main.bundleIdentifier?.hasSuffix(".dev") == false }
-    private static let devFlag = "finder.devInstalled"
-
-    static var serviceURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Services/Open in Tezgah.workflow")
-    }
-
-    static var isInstalled: Bool {
-        isRealBuild ? FileManager.default.fileExists(atPath: serviceURL.path) : UserDefaults.standard.bool(forKey: devFlag)
-    }
-
-    static func install() {
-        guard isRealBuild else {
-            UserDefaults.standard.set(true, forKey: devFlag)
-            return
-        }
-        // The real service is written in 0.1's Finder step (ported from the Electron app's finder.ts).
-    }
-}
-
 /// Finds the agents on this Mac through the user's login shell, the way a terminal would.
 enum AgentDetector {
     struct Found: Identifiable, Equatable {

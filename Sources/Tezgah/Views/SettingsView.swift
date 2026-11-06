@@ -311,8 +311,11 @@ private struct GeneralSettings: View {
             SettingsRow(title: "Restore the last workspace", detail: "Projects, sessions and panes as you left them", last: true) { Switch("general.restore") }
         }
         SettingsGroup(title: "With macOS") {
+            SettingsRow(title: "Default terminal", detail: ".command and .sh files and ssh:// links open in Tezgah") { DefaultTerminalControl() }
             SettingsRow(title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder", last: true) {
-                Switch("finder.enabled") { if UserDefaults.standard.bool(forKey: "finder.enabled") { FinderService.install() } }
+                Switch("finder.enabled") {
+                    if UserDefaults.standard.object(forKey: "finder.enabled") as? Bool ?? true { FinderService.install() } else { FinderService.remove() }
+                }
             }
         }
     }
@@ -521,6 +524,29 @@ private struct LanguagePicker: View {
                 UserDefaults.standard.set([choice], forKey: "AppleLanguages")
             }
             AppActions.toast(String(localized: "Takes effect when Tezgah reopens"))
+        }
+    }
+}
+
+
+private struct DefaultTerminalControl: View {
+    @State private var isDefault = DefaultTerminal.isDefault
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if isDefault {
+            HStack(spacing: 6) { DoneCheck(size: 16); Text("Default").type(.caption, .medium).foregroundStyle(look.done) }
+        } else if DefaultTerminal.canChange {
+            Button("Make Default") {
+                Task {
+                    await DefaultTerminal.makeDefault()
+                    isDefault = DefaultTerminal.isDefault
+                    if isDefault { AppActions.toast(String(localized: "Tezgah is now your default terminal.")) }
+                }
+            }
+            .buttonStyle(TZButtonStyle(small: true))
+        } else {
+            Text("Not in development builds").type(.caption).foregroundStyle(look.muted)
         }
     }
 }
