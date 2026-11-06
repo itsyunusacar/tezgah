@@ -29,6 +29,8 @@ final class TerminalPane: Identifiable {
     /// The agent that reports here ("claude", "codex"), if any.
     var agentApp: String? { records.primary?.app ?? records.last(where: { $0.app != nil })?.app }
     var statusMessage: String? { records.primary?.message ?? records.primary?.title }
+    /// 0…100 when the agent reports progress.
+    var progress: Int? { records.primary?.progress }
 
     @ObservationIgnored let session: InMemoryTerminalSession
     @ObservationIgnored private(set) var pty: PTYProcess?

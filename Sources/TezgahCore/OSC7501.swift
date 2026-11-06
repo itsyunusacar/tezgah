@@ -22,8 +22,12 @@ public struct StatusRecord: Equatable, Sendable, Codable {
     public var app: String?
     public var title: String?
     public var message: String?
+    /// 0…100 when the program reports how far along it is.
+    public var progress: Int?
 
-    public init(id: String = "", state: AgentState, kind: BlockKind? = nil, app: String? = nil, title: String? = nil, message: String? = nil) {
+    public init(id: String = "", state: AgentState, kind: BlockKind? = nil, app: String? = nil, title: String? = nil, message: String? = nil,
+                progress: Int? = nil) {
+        self.progress = progress
         self.id = id
         self.state = state
         self.kind = kind
@@ -67,7 +71,8 @@ public enum OSC7501 {
             kind: kind,
             app: app,
             title: fields["title"].flatMap { $0.isEmpty ? nil : decode($0, limit: 192) },
-            message: fields["msg"].flatMap { $0.isEmpty ? nil : decode($0, limit: 2048) }
+            message: fields["msg"].flatMap { $0.isEmpty ? nil : decode($0, limit: 2048) },
+            progress: fields["progress"].flatMap { Int($0) }.flatMap { (0...100).contains($0) ? $0 : nil }
         ))
     }
 

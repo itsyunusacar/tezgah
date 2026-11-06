@@ -121,4 +121,11 @@ private func b64(_ s: String) -> String { Data(s.utf8).base64EncodedString() }
         #expect(s.scan(Array("\u{1b}]7501;state=done\u{18}\u{07}".utf8)).isEmpty)
         #expect(s.scan(Array("\u{1b}]7501;?\u{07}".utf8)).count == 1)
     }
+
+    @Test func readsProgressInRange() {
+        guard case let .record(r)? = OSC7501.parse("state=working:progress=42") else { Issue.record("no record"); return }
+        #expect(r.progress == 42)
+        guard case let .record(bad)? = OSC7501.parse("state=working:progress=140") else { Issue.record("no record"); return }
+        #expect(bad.progress == nil)
+    }
 }
