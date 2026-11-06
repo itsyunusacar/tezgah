@@ -90,6 +90,10 @@ final class AppStore {
     @ObservationIgnored var logsStatus = ProcessInfo.processInfo.arguments.contains("--verbose")
     /// Bumped to put the cursor in the sidebar's search field.
     var searchFocusRequest = 0
+    /// ⌘K is open.
+    var paletteOpen = false
+    /// The new-session picker is open for this project ("" for a terminal of its own).
+    var newSessionPicker: String?
     /// The last session you looked at in each project (project id → session id).
     var lastSession: [String: String] = [:]
 
@@ -227,8 +231,8 @@ final class AppStore {
 
     func sessionTitle(_ session: Session) -> String {
         let lead = leadPane(of: session)
-        if let app = lead?.agentApp { return Programs.displayName(app) }
-        if let program = lead?.program { return Programs.displayName(program) }
+        if let app = lead?.agentApp { return AgentKind(program: app)?.name ?? app }
+        if let program = lead?.program { return AgentKind(program: program)?.name ?? program }
         if let title = lead?.title, !title.isEmpty, title.count < 40 { return title }
         return Shell.programName(Shell.current)
     }
@@ -377,6 +381,17 @@ final class AppStore {
     func resize(session: Session, path: [Int], sizes: [Double]) {
         session.layout = session.layout.resizing(at: path, sizes: sizes)
         scheduleSave()
+    }
+
+    /// ⌘] / ⌘[: the next or previous pane of the session.
+    func cyclePane(_ delta: Int) {
+        guard let s = currentSession else { return }
+        let ids = s.layout.paneIds
+        guard ids.count > 1 else { return }
+        let i = s.focusedPaneId.flatMap { ids.firstIndex(of: $0) } ?? 0
+        let next = ids[(i + delta + ids.count) % ids.count]
+        s.focusedPaneId = next
+        focusSoon(next)
     }
 
     func selectTab(_ index: Int) {

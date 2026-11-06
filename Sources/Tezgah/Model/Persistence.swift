@@ -16,7 +16,7 @@ final class Persistence {
 
     static var defaultDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Tezgah Prototype", isDirectory: true)
+            .appendingPathComponent("Tezgah Dev", isDirectory: true)
     }
 
     func load() -> WorkspaceFile? {

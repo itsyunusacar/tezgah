@@ -9,6 +9,7 @@ import TezgahCore
 struct Snapshotter {
     let store: AppStore
     let window: NSWindow
+    let look: Appearance
     let directory: URL
 
     static let fakeAgent = "/Users/yunusacar/Project/tezgah/docs/demo/fake-agent.mjs"
@@ -49,33 +50,26 @@ struct Snapshotter {
         if let first = main.layout.paneIds.first { store.focusSoon(first) }
         await wait(8)
 
-        for (mode, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
-            NSApp.appearance = NSAppearance(named: appearance)
-            window.appearance = NSAppearance(named: appearance)
+        let savedPosition = look.navPosition
+        for (mode, scheme) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            NSApp.appearance = NSAppearance(named: scheme)
+            window.appearance = NSAppearance(named: scheme)
             await wait(0.6)
+            for position in mode == "light" ? NavPosition.allCases : [.left] {
+                look.navPosition = position
+                store.open(session: main.id)
+                await wait(4)
+                capture("session-\(position.rawValue)-\(mode)")
+            }
+            look.navPosition = .left
             store.selection = .welcome
-            await wait(1.2)
-            capture("welcome-\(mode)")
-            store.selection = .project(tezgah.id)
-            await wait(2.5)
-            capture("board-\(mode)")
-            store.selection = .project(mac.id)
-            await wait(2.0)
-            capture("board-mac-\(mode)")
-            store.open(session: main.id)
-            await wait(1.5)
-            capture("session-\(mode)")
-            store.selection = .agents
             await wait(1.0)
-            capture("agents-\(mode)")
+            capture("home-\(mode)")
+            store.selection = .project(mac.id)
+            await wait(1.0)
+            capture("board-\(mode)")
         }
-        // An empty board, as a new project shows it.
-        NSApp.appearance = NSAppearance(named: .aqua)
-        window.appearance = NSAppearance(named: .aqua)
-        let fresh = store.addProject(path: "\(home)/Project/ai_studio")
-        store.selection = .project(fresh.id)
-        await wait(1.5)
-        capture("board-empty-light")
+        look.navPosition = savedPosition
 
         store.terminateAll()
         await wait(0.4)
@@ -120,10 +114,10 @@ struct Snapshotter {
                   let pane = store.panes.values.first(where: { $0.view === t }),
                   let text = pane.viewportText() else { continue }
             drawn += 1
-            NSColor(hex: dark ? 0x0E0D0C : 0xFDFCFC).setFill()
+            NSColor(Appearance().theme(dark: dark).raised).setFill()
             r.fill()
             let font = NSFont(name: "GeistMono-Regular", size: 12.5) ?? .monospacedSystemFont(ofSize: 12.5, weight: .regular)
-            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(hex: dark ? 0xEDEAE6 : 0x1A1918)]
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(Appearance().theme(dark: dark).foreground)]
             let lineHeight = font.ascender - font.descender + font.leading + 2.5
             var y = r.maxY - 8 - lineHeight
             for line in text.split(separator: "\n", omittingEmptySubsequences: false) {

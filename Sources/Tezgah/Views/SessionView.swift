@@ -10,9 +10,7 @@ struct SessionView: View {
 
     var body: some View {
         LayoutView(session: session, node: session.layout, path: [])
-            .padding(.horizontal, 10)
-            .padding(.bottom, 10)
-            .padding(.top, 2)
+            .padding(Grid.Space.s2)
     }
 }
 
@@ -95,78 +93,63 @@ extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-/// One terminal with its thin header: program, folder, status, split and close.
+/// One terminal in a raised card with a quiet header: program, folder, state. Split and close show on hover.
 struct PaneView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
     let session: Session
     let pane: TerminalPane
+    @State private var hover = false
 
     private var isFocused: Bool { session.focusedPaneId == pane.id }
     private var single: Bool { session.layout.paneIds.count == 1 }
+    private var waiting: Bool { pane.status == .blocked || pane.status == .error }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Rectangle().fill(Palette.border).frame(height: 1).opacity(0.7)
             TerminalHost(pane: pane)
-                .background(Palette.canvas)
         }
-        .background(Palette.canvas)
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .background(look.raised)
+        .clipShape(RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(isFocused && !single ? Palette.secondary.opacity(0.45) : Palette.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous)
+                .strokeBorder(waiting ? look.waiting : isFocused && !single ? look.muted.opacity(0.5) : look.line,
+                              lineWidth: waiting ? 1.5 : 1)
         )
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 1)
+        .shadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
+        .onHover { hover = $0 }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("\(name) pane"))
     }
 
     private var header: some View {
         HStack(spacing: 8) {
-            ProgramIcon(program: pane.agentApp ?? pane.program, size: 18)
-            Text(name)
-                .font(.system(size: 12.5, weight: .semibold))
-                .foregroundStyle(isFocused ? Palette.ink : Palette.secondary)
-                .lineLimit(1)
-            Text(Paths.tilde(pane.cwd))
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.tertiary)
-                .lineLimit(1)
-                .truncationMode(.head)
-            if let status = pane.status {
-                HStack(spacing: 6) {
-                    StatusDot(state: status, size: 7)
-                    Text(pane.statusMessage.map { "\(status.label) · \($0)" } ?? status.label)
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.status(status))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2.5)
-                .background(Palette.status(status).opacity(0.1), in: Capsule())
-                .layoutPriority(-1)
-            }
+            ProgramMark(program: pane.agentApp ?? pane.program, size: 12)
+            Text(name).type(.caption).foregroundStyle(isFocused ? look.ink : look.soft).lineLimit(1)
+            Text(Paths.tilde(pane.cwd)).type(.caption).foregroundStyle(look.faint).lineLimit(1).truncationMode(.head)
             Spacer(minLength: 8)
-            IconButton(symbol: "rectangle.split.2x1", help: "Split Right  ⌘D") {
-                store.split(.row, paneId: pane.id)
+            if hover {
+                IconButton(symbol: "rectangle.split.2x1", label: "Split Right  ⌘D", size: 12) { store.split(.row, paneId: pane.id) }
+                IconButton(symbol: "rectangle.split.1x2", label: "Split Down  ⇧⌘D", size: 12) { store.split(.column, paneId: pane.id) }
+                IconButton(symbol: "xmark", label: "Close Pane  ⌘W", size: 11) { store.closePane(pane.id) }
             }
-            IconButton(symbol: "rectangle.split.1x2", help: "Split Down  ⌥⌘D") {
-                store.split(.column, paneId: pane.id)
-            }
-            IconButton(symbol: "xmark", help: "Close Pane  ⌘W", size: 11) {
-                store.closePane(pane.id)
+            if let status = pane.status, status != .idle {
+                if waiting {
+                    Text("waiting for you").type(.caption, .medium).foregroundStyle(look.waiting)
+                }
+                StateMark(state: status, size: 12)
             }
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 6)
-        .frame(height: 34)
-        .background(Palette.canvas)
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .frame(height: 32)
         .contentShape(Rectangle())
         .onTapGesture { pane.focus() }
     }
 
     private var name: String {
-        if let app = pane.agentApp { return Programs.displayName(app) }
+        if let kind = AgentKind(program: pane.agentApp ?? pane.program) { return kind.command }
         if let program = pane.program { return program }
         if !pane.title.isEmpty, pane.title.count < 48, !pane.title.contains("@") { return pane.title }
         return Shell.programName(Shell.current)
@@ -186,7 +169,9 @@ struct TerminalHost: NSViewRepresentable {
     }
 
     func updateNSView(_ v: TerminalContainer, context _: Context) {
-        v.attach(pane.view)
+        // Only take the terminal if nobody holds it: during a layout change the old container may still
+        // be updated for a moment, and taking it back there would leave the new place empty.
+        if pane.view.superview == nil { v.attach(pane.view) }
     }
 
     static func dismantleNSView(_ v: TerminalContainer, coordinator _: ()) {

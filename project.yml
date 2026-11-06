@@ -26,7 +26,7 @@ targets:
     sources: [Sources/TezgahCore]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.prototype.core
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.dev.core
         GENERATE_INFOPLIST_FILE: YES
         SKIP_INSTALL: YES
   Tezgah:
@@ -44,9 +44,9 @@ targets:
         product: GhosttyTerminal
     settings:
       base:
-        PRODUCT_NAME: "Tezgah Prototype"
+        PRODUCT_NAME: "Tezgah Dev"
         PRODUCT_MODULE_NAME: Tezgah
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.prototype
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.dev
         INFOPLIST_FILE: Sources/Tezgah/Support/Info.plist
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Tezgah/Support/Bridging.h
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
@@ -63,7 +63,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.prototype.tests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.dev.tests
 schemes:
   Tezgah:
     build:
