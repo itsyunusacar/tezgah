@@ -28,6 +28,8 @@ enum AppActions {
         store.newSessionPicker = store.currentProjectId ?? ""
     }
 
+    static func openSettings() { (NSApp.delegate as? AppDelegate)?.openSettings() }
+
     static func toast(_ text: String) {
         guard let store else { return }
         store.toast = text
@@ -228,7 +230,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     @objc func nextTab(_: Any?) { store.cycleTab(1) }
     @objc func previousTab(_: Any?) { store.cycleTab(-1) }
     @objc func showHome(_: Any?) { store.selection = .welcome }
-    @objc func showSettings(_: Any?) { store.selection = .settings }
+    @objc func showSettings(_: Any?) { openSettings() }
+
+    private var settingsWindow: NSWindow?
+
+    func openSettings() {
+        if let w = settingsWindow {
+            w.makeKeyAndOrderFront(nil)
+            return
+        }
+        let root = LookProvider { SettingsView() }
+            .environment(store)
+            .environment(appearance)
+            .environment(permissions)
+        let host = NSHostingController(rootView: root)
+        host.sizingOptions = []
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 720),
+                         styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        w.contentViewController = host
+        w.title = NSLocalizedString("Settings", comment: "window")
+        w.titleVisibility = .hidden
+        w.titlebarAppearsTransparent = true
+        w.minSize = NSSize(width: 820, height: 520)
+        w.setContentSize(NSSize(width: 960, height: 720))
+        w.setFrameAutosaveName("TezgahSettings")
+        w.isReleasedWhenClosed = false
+        if w.frame.origin == .zero { w.center() }
+        settingsWindow = w
+        w.makeKeyAndOrderFront(nil)
+    }
     @objc func search(_: Any?) {
         store.paletteScope = .all
         store.paletteOpen = true

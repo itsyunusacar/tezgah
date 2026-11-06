@@ -66,6 +66,7 @@ final class Appearance {
         defaults.set(accent, forKey: "appearance.accent")
         defaults.set(navPosition.rawValue, forKey: "appearance.nav")
         NSApp.appearance = nsAppearance
+        TerminalLook.apply(self)
     }
 
     var nsAppearance: NSAppearance? {

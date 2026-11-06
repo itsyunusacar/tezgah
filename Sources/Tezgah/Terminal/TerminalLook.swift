@@ -49,3 +49,28 @@ enum TerminalLook {
         }
     }
 }
+
+/// Terminal options from Settings, stored in the app's defaults.
+enum TerminalSettings {
+    static var fontSize: Double { d.object(forKey: "terminal.fontSize") as? Double ?? 13 }
+    static var cursor: TerminalCursorStyle { TerminalCursorStyle(rawValue: d.string(forKey: "terminal.cursor") ?? "") ?? .block }
+    static var blink: Bool { d.object(forKey: "terminal.blink") as? Bool ?? true }
+    static var copyOnSelect: Bool { d.bool(forKey: "terminal.copyOnSelect") }
+    static var ligatures: Bool { d.object(forKey: "terminal.ligatures") as? Bool ?? true }
+    private static var d: UserDefaults { .standard }
+}
+
+extension TerminalLook {
+    /// Applies the themes and terminal options to every pane at once, live.
+    static func apply(_ appearance: Appearance) {
+        controller.setTheme(TerminalTheme(light: palette(appearance.theme(dark: false)), dark: palette(appearance.theme(dark: true))))
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        controller.setTerminalConfiguration(TerminalConfiguration { b in
+            b.withFontSize(Float(TerminalSettings.fontSize))
+            b.withCursorStyle(TerminalSettings.cursor)
+            b.withCursorStyleBlink(TerminalSettings.blink && !reduceMotion)
+            b.withCustom("copy-on-select", TerminalSettings.copyOnSelect ? "true" : "false")
+            if !TerminalSettings.ligatures { b.withCustom("font-feature", "-calt") }
+        })
+    }
+}

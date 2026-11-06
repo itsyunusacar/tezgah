@@ -459,7 +459,8 @@ final class AppStore {
                                              message: pane.statusMessage, date: Date(), read: looking), at: 0)
         if notifications.count > 200 { notifications.removeLast(notifications.count - 200) }
         if !NSApp.isActive, new == .blocked { NSApp.requestUserAttention(.informationalRequest) }
-        if !looking, persistence != nil {
+        let wants = UserDefaults.standard.object(forKey: new == .blocked ? "notify.waiting" : "notify.done") as? Bool ?? true
+        if !looking, persistence != nil, wants {
             let who = pane.agentApp.flatMap { AgentKind(program: $0)?.name } ?? sessionTitle(session(pane.sessionId) ?? sessions[0])
             let place = project(session(pane.sessionId)?.projectId)?.name ?? String(localized: "Terminal")
             let title = new == .blocked ? String(localized: "\(who) is waiting for you") : String(localized: "\(who) is done")

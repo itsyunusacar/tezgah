@@ -435,7 +435,7 @@ struct CommandPalette: View {
             cmd("splitdown", String(localized: "Split Down"), "⇧⌘D", "rectangle.split.1x2") { store.split(.column) },
             cmd("open", String(localized: "Open Folder…"), "⌘O", "folder") { AppActions.openFolder() },
             cmd("home", String(localized: "Home"), "⇧⌘H", "house") { store.selection = .welcome },
-            cmd("settings", String(localized: "Settings…"), "⌘,", "gearshape") { store.selection = .settings },
+            cmd("settings", String(localized: "Settings…"), "⌘,", "gearshape") { AppActions.openSettings() },
         ]
     }
 

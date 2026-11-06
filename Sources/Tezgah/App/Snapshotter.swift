@@ -92,6 +92,12 @@ struct Snapshotter {
         await wait(1)
         capture("notifications-light")
         store.notificationsOpen = false
+        app.openSettings()
+        if let sw = NSApp.windows.first(where: { $0.title == NSLocalizedString("Settings", comment: "window") }) {
+            await wait(1.2)
+            capture("settings-appearance-light", in: sw)
+            sw.orderOut(nil)
+        }
 
         // The five first-run pages, light then dark.
         app.showOnboarding()

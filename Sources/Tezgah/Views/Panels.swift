@@ -217,7 +217,8 @@ final class MenuBarController: NSObject {
         blinkOn = working && !reduce ? !blinkOn : true
         item.button?.image = Self.icon(cursor: blinkOn, dot: waiting)
         item.button?.setAccessibilityValue(waiting ? "an agent is waiting for you" : working ? "agents working" : "")
-        NSApp.dockTile.badgeLabel = waiting ? "\(store.waitingSessions.count)" : nil
+        let badge = UserDefaults.standard.object(forKey: "notify.badge") as? Bool ?? true
+        NSApp.dockTile.badgeLabel = waiting && badge ? "\(store.waitingSessions.count)" : nil
     }
 
     /// The mark as a template image (follows the menu bar's colour); the waiting dot is drawn in orange.
@@ -305,7 +306,7 @@ struct MenuBarPopover: View {
 
             Rectangle().fill(look.line).frame(height: 1).padding(.horizontal, -8)
             menuRow("Open Tezgah", "") { NSApp.activate(); NSApp.windows.first { $0.isVisible || $0.isMiniaturized }?.makeKeyAndOrderFront(nil); close() }
-            menuRow("Settings…", "⌘,") { NSApp.activate(); store.selection = .settings; close() }
+            menuRow("Settings…", "⌘,") { NSApp.activate(); AppActions.openSettings(); close() }
             menuRow("Quit Tezgah", "⌘Q") { NSApp.terminate(nil) }
         }
         .padding(8)
