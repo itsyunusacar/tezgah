@@ -5,6 +5,7 @@ options:
     macOS: "15.0"
   createIntermediateGroups: true
   developmentLanguage: en
+  knownRegions: [en, tr, Base]
 settings:
   base:
     SWIFT_VERSION: "6.0"

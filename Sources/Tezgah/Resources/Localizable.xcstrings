@@ -1,0 +1,3196 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "  Hi! What shall we work on?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "  Merhaba! Ne üzerinde çalışalım?"
+          }
+        }
+      }
+    },
+    "02 · APPEARANCE": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "02 · GÖRÜNÜM"
+          }
+        }
+      }
+    },
+    "03 · PERMISSIONS": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "03 · İZİNLER"
+          }
+        }
+      }
+    },
+    "04 · AGENTS": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "04 · AJANLAR"
+          }
+        }
+      }
+    },
+    "05 · READY": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "05 · HAZIR"
+          }
+        }
+      }
+    },
+    "1 unit = 6 pt · square = 4 units": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 birim = 6 pt · kare = 4 birim"
+          }
+        }
+      }
+    },
+    "=> and != join into one sign": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "=> ve != gibi işaretler birleşir"
+          }
+        }
+      }
+    },
+    "> commands only": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "> yalnızca komutlar"
+          }
+        }
+      }
+    },
+    "A terminal for your agents, a hub for your projects. Five steps and you're ready.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanların için terminal, projelerin için merkez. Beş adımda hazırız."
+          }
+        }
+      }
+    },
+    "About %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Hakkında"
+          }
+        }
+      }
+    },
+    "Accent colour": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vurgu rengi"
+          }
+        }
+      }
+    },
+    "Accessibility": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erişilebilirlik"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekle"
+          }
+        }
+      }
+    },
+    "Add Project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje ekle"
+          }
+        }
+      }
+    },
+    "Add Project…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje ekle…"
+          }
+        }
+      }
+    },
+    "Add a folder you work in. Its sessions, changes and agents gather here.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalıştığın bir klasörü ekle. Oturumları, değişiklikleri ve ajanları burada toplanır."
+          }
+        }
+      }
+    },
+    "Advanced": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelişmiş"
+          }
+        }
+      }
+    },
+    "Agents": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanlar"
+          }
+        }
+      }
+    },
+    "Agents on this Mac": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu Mac'teki ajanlar"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümü"
+          }
+        }
+      }
+    },
+    "An agent is waiting for you.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir ajan seni bekliyor."
+          }
+        }
+      }
+    },
+    "Announce state changes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durum değişikliklerini duyur"
+          }
+        }
+      }
+    },
+    "Another tool": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başka bir araç"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görünüm"
+          }
+        }
+      }
+    },
+    "Appearance: %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görünüm: %@"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri"
+          }
+        }
+      }
+    },
+    "Bar": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çubuk"
+          }
+        }
+      }
+    },
+    "Behaviour": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Davranış"
+          }
+        }
+      }
+    },
+    "Bigger text": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazıyı büyüt"
+          }
+        }
+      }
+    },
+    "Blink": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yanıp sönsün"
+          }
+        }
+      }
+    },
+    "Block": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blok"
+          }
+        }
+      }
+    },
+    "Border on the focused pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etkin bölmenin kenarlığı"
+          }
+        }
+      }
+    },
+    "Bottom": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alt"
+          }
+        }
+      }
+    },
+    "Bring All to Front": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümünü Öne Getir"
+          }
+        }
+      }
+    },
+    "Buttons, selection and focus rings. System follows macOS.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düğmeler, seçimler ve odak halkası. Sistem, macOS'taki rengi izler."
+          }
+        }
+      }
+    },
+    "By kind": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Türe göre"
+          }
+        }
+      }
+    },
+    "Changes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Değişiklikler"
+          }
+        }
+      }
+    },
+    "Check for Updates…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güncellemeleri Denetle…"
+          }
+        }
+      }
+    },
+    "Choose Folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör seç"
+          }
+        }
+      }
+    },
+    "Choose a folder to work in.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalışacağın klasörü seç."
+          }
+        }
+      }
+    },
+    "Clear All": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümünü temizle"
+          }
+        }
+      }
+    },
+    "Clear Notifications": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirimleri Temizle"
+          }
+        }
+      }
+    },
+    "Clear Terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminali Temizle"
+          }
+        }
+      }
+    },
+    "Click one and System Settings opens on its page. Each card ticks itself when the permission arrives.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir izne tıkla, Sistem Ayarları o sayfayla açılsın. İzin gelince kart kendiliğinden ✓ olur."
+          }
+        }
+      }
+    },
+    "Click one to open its page in System Settings.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir izne tıklayınca Sistem Ayarları o sayfada açılır."
+          }
+        }
+      }
+    },
+    "Close Pane  ⌘W": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölmeyi kapat  ⌘W"
+          }
+        }
+      }
+    },
+    "Close Panel": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paneli kapat"
+          }
+        }
+      }
+    },
+    "Close Project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeyi Kapat"
+          }
+        }
+      }
+    },
+    "Close Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumu Kapat"
+          }
+        }
+      }
+    },
+    "Close session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumu kapat"
+          }
+        }
+      }
+    },
+    "Command to run when it opens (optional)": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açılınca çalışacak komut (isteğe bağlı)"
+          }
+        }
+      }
+    },
+    "Commands": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komutlar"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devam"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopyalandı"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopyala"
+          }
+        }
+      }
+    },
+    "Copy Debug Info": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hata ayıklama bilgisini kopyala"
+          }
+        }
+      }
+    },
+    "Copy on select": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seçince kopyala"
+          }
+        }
+      }
+    },
+    "Cursor": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İmleç"
+          }
+        }
+      }
+    },
+    "Cut": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kes"
+          }
+        }
+      }
+    },
+    "DONE": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BİTTİ"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karanlık"
+          }
+        }
+      }
+    },
+    "Dark themes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koyu temalar"
+          }
+        }
+      }
+    },
+    "Data": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veri"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sil"
+          }
+        }
+      }
+    },
+    "Delete Conversation History…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konuşma Geçmişini Sil…"
+          }
+        }
+      }
+    },
+    "Dock badge": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock rozeti"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitti"
+          }
+        }
+      }
+    },
+    "Download automatically": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendiliğinden indir"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düzen"
+          }
+        }
+      }
+    },
+    "Editing shortcuts comes in 0.3.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kısayol düzenleme 0.3'te geliyor."
+          }
+        }
+      }
+    },
+    "Empty Terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boş terminal"
+          }
+        }
+      }
+    },
+    "Enter Full Screen": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tam Ekran"
+          }
+        }
+      }
+    },
+    "Error": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hata"
+          }
+        }
+      }
+    },
+    "Errors": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hatalar"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosya"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosyalar"
+          }
+        }
+      }
+    },
+    "Find…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bul…"
+          }
+        }
+      }
+    },
+    "Finished": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitti"
+          }
+        }
+      }
+    },
+    "Finished its work": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İşini bitirdi"
+          }
+        }
+      }
+    },
+    "First message (optional)": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk mesaj (isteğe bağlı)"
+          }
+        }
+      }
+    },
+    "Focus Mode": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odak Modu"
+          }
+        }
+      }
+    },
+    "Focus mode": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odak modu"
+          }
+        }
+      }
+    },
+    "Follows the system; change it per app in System Settings › General › Language & Region": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem dilini izler; uygulama başına Sistem Ayarları › Genel › Dil ve Bölge'den değişir"
+          }
+        }
+      }
+    },
+    "Font": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazı tipi"
+          }
+        }
+      }
+    },
+    "Geist Mono · %lld pt": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geist Mono · %lld pt"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genel"
+          }
+        }
+      }
+    },
+    "Give…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver…"
+          }
+        }
+      }
+    },
+    "Go": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Git"
+          }
+        }
+      }
+    },
+    "Good afternoon.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İyi günler."
+          }
+        }
+      }
+    },
+    "Good evening.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İyi akşamlar."
+          }
+        }
+      }
+    },
+    "Good morning.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Günaydın."
+          }
+        }
+      }
+    },
+    "Granted": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verildi"
+          }
+        }
+      }
+    },
+    "Hello": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merhaba"
+          }
+        }
+      }
+    },
+    "Help": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yardım"
+          }
+        }
+      }
+    },
+    "Hide Others": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diğerlerini Gizle"
+          }
+        }
+      }
+    },
+    "Hide %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'ı Gizle"
+          }
+        }
+      }
+    },
+    "Hold the icon, drop it in the list": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simgeyi tut, listeye bırak"
+          }
+        }
+      }
+    },
+    "Home": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ana sayfa"
+          }
+        }
+      }
+    },
+    "Home  ⇧⌘H": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ana sayfa  ⇧⌘H"
+          }
+        }
+      }
+    },
+    "Home, an agent is waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ana sayfa, bir ajan seni bekliyor"
+          }
+        }
+      }
+    },
+    "How many agents wait for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seni bekleyen ajan sayısı"
+          }
+        }
+      }
+    },
+    "I found %lld agents.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bilgisayarında %lld ajan buldum."
+          }
+        }
+      }
+    },
+    "I found one agent.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bilgisayarında bir ajan buldum."
+          }
+        }
+      }
+    },
+    "In the strip it looks like this": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şeritte böyle görünür"
+          }
+        }
+      }
+    },
+    "Install": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kur"
+          }
+        }
+      }
+    },
+    "Install one from the new session picker (⌘T)": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni oturum seçicisinden kurabilirsin (⌘T)"
+          }
+        }
+      }
+    },
+    "Keyboard": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klavye"
+          }
+        }
+      }
+    },
+    "Keyboard Shortcuts": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klavye Kısayolları"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dil"
+          }
+        }
+      }
+    },
+    "Language and startup": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dil ve açılış"
+          }
+        }
+      }
+    },
+    "Later": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonra yaparım"
+          }
+        }
+      }
+    },
+    "Layout": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düzen"
+          }
+        }
+      }
+    },
+    "Left": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sol"
+          }
+        }
+      }
+    },
+    "Ligatures": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligatürler"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aydınlık"
+          }
+        }
+      }
+    },
+    "Light themes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık temalar"
+          }
+        }
+      }
+    },
+    "Looking for agents.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanlar aranıyor."
+          }
+        }
+      }
+    },
+    "Looking for agents…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanlar aranıyor…"
+          }
+        }
+      }
+    },
+    "Make Text Bigger": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazıyı Büyüt"
+          }
+        }
+      }
+    },
+    "Make Text Smaller": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazıyı Küçült"
+          }
+        }
+      }
+    },
+    "Make it yours.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sana göre ayarla."
+          }
+        }
+      }
+    },
+    "Mark All Read": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümünü okundu say"
+          }
+        }
+      }
+    },
+    "Minimize": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Küçült"
+          }
+        }
+      }
+    },
+    "Navigation Position": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gezinme Konumu"
+          }
+        }
+      }
+    },
+    "Navigation position": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gezinme konumu"
+          }
+        }
+      }
+    },
+    "Navigation: %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gezinme: %@"
+          }
+        }
+      }
+    },
+    "New Project…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Proje…"
+          }
+        }
+      }
+    },
+    "New Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Oturum"
+          }
+        }
+      }
+    },
+    "New Session  ⌘T": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni oturum  ⌘T"
+          }
+        }
+      }
+    },
+    "New Tab": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni sekme"
+          }
+        }
+      }
+    },
+    "New Terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Terminal"
+          }
+        }
+      }
+    },
+    "New session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni oturum"
+          }
+        }
+      }
+    },
+    "New terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni terminal"
+          }
+        }
+      }
+    },
+    "Next Pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki Bölme"
+          }
+        }
+      }
+    },
+    "Next Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki Oturum"
+          }
+        }
+      }
+    },
+    "Next pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki bölme"
+          }
+        }
+      }
+    },
+    "Next time Tezgah opens": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah bir sonraki açılışında"
+          }
+        }
+      }
+    },
+    "No agent is working right now.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şu an çalışan ajan yok."
+          }
+        }
+      }
+    },
+    "No agents found": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajan bulunamadı"
+          }
+        }
+      }
+    },
+    "No agents yet.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz ajan yok."
+          }
+        }
+      }
+    },
+    "No analytics, no ads, no account": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kullanım ölçümü, reklam ya da hesap yok"
+          }
+        }
+      }
+    },
+    "No notifications": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirim yok"
+          }
+        }
+      }
+    },
+    "No open sessions in %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'de açık oturum yok"
+          }
+        }
+      }
+    },
+    "No sessions yet.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz oturum yok."
+          }
+        }
+      }
+    },
+    "Not a git repository.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Git deposu değil."
+          }
+        }
+      }
+    },
+    "Not found: %@. Tezgah notices when you install one.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulunamayanlar: %@. Kurduğunda Tezgah kendisi fark eder."
+          }
+        }
+      }
+    },
+    "Not installed": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurulu değil"
+          }
+        }
+      }
+    },
+    "Nothing changed.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Değişiklik yok."
+          }
+        }
+      }
+    },
+    "Nothing matches “%@”.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” ile eşleşen bir şey yok."
+          }
+        }
+      }
+    },
+    "Notification and sound": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirim ve ses"
+          }
+        }
+      }
+    },
+    "Notification, no sound": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirim, ses yok"
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirimler"
+          }
+        }
+      }
+    },
+    "Older than 30 days are removed automatically": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 günden eskiler kendiliğinden silinir"
+          }
+        }
+      }
+    },
+    "Open": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aç"
+          }
+        }
+      }
+    },
+    "Open Folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör aç"
+          }
+        }
+      }
+    },
+    "Open Folder…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör Aç…"
+          }
+        }
+      }
+    },
+    "Open Terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminali aç"
+          }
+        }
+      }
+    },
+    "Open Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'ı aç"
+          }
+        }
+      }
+    },
+    "Open folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör aç"
+          }
+        }
+      }
+    },
+    "Open terminals don't close": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık terminaller kapanmaz"
+          }
+        }
+      }
+    },
+    "Open your first project.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk projeni aç."
+          }
+        }
+      }
+    },
+    "Open your first project. These are the folders you worked in last:": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk projeni aç. Son çalıştığın klasörleri buldum:"
+          }
+        }
+      }
+    },
+    "Open…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aç…"
+          }
+        }
+      }
+    },
+    "Panes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölmeler"
+          }
+        }
+      }
+    },
+    "Paste": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yapıştır"
+          }
+        }
+      }
+    },
+    "Permissions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İzinler"
+          }
+        }
+      }
+    },
+    "Preview · changes as you choose": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önizleme · seçtikçe değişir"
+          }
+        }
+      }
+    },
+    "Previous Pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki Bölme"
+          }
+        }
+      }
+    },
+    "Previous Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki Oturum"
+          }
+        }
+      }
+    },
+    "Privacy & Permissions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gizlilik ve izinler"
+          }
+        }
+      }
+    },
+    "Progress": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlerleme"
+          }
+        }
+      }
+    },
+    "Projects": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler"
+          }
+        }
+      }
+    },
+    "Projects and sessions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler ve oturumlar"
+          }
+        }
+      }
+    },
+    "Projects, sessions and panes as you left them": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler, oturumlar ve bölmeler bıraktığın gibi"
+          }
+        }
+      }
+    },
+    "Quick Switch…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hızlı Geçiş…"
+          }
+        }
+      }
+    },
+    "Quick switch": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hızlı geçiş"
+          }
+        }
+      }
+    },
+    "Quit Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'tan çık"
+          }
+        }
+      }
+    },
+    "Quit %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'tan Çık"
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hazır"
+          }
+        }
+      }
+    },
+    "Recent": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son kullanılanlar"
+          }
+        }
+      }
+    },
+    "Recent projects": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son projeler"
+          }
+        }
+      }
+    },
+    "Redo": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yinele"
+          }
+        }
+      }
+    },
+    "Reduce Motion": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hareketi azalt"
+          }
+        }
+      }
+    },
+    "Remove from Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'tan kaldır"
+          }
+        }
+      }
+    },
+    "Rename…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden Adlandır…"
+          }
+        }
+      }
+    },
+    "Reopen Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'ı yeniden aç"
+          }
+        }
+      }
+    },
+    "Report a Problem…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sorun Bildir…"
+          }
+        }
+      }
+    },
+    "Report status": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durum bildir"
+          }
+        }
+      }
+    },
+    "Reporting a problem": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sorun bildirmek için"
+          }
+        }
+      }
+    },
+    "Restore the last workspace": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son çalışma alanını geri yükle"
+          }
+        }
+      }
+    },
+    "Right": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sağ"
+          }
+        }
+      }
+    },
+    "Rules that open panels by agent state, and floating panels, come in 0.2.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duruma göre açılan paneller ve yüzer paneller 0.2'de geliyor."
+          }
+        }
+      }
+    },
+    "Run the first-run setup again": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kurulumu yeniden çalıştır"
+          }
+        }
+      }
+    },
+    "Screen & System Audio Recording · open Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekran ve Sistem Ses Kaydı · Tezgah'ı aç"
+          }
+        }
+      }
+    },
+    "Screen Recording": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekran Kaydı"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ara"
+          }
+        }
+      }
+    },
+    "Search Everything": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her Şeyi Ara"
+          }
+        }
+      }
+    },
+    "Search everything": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her şeyi ara"
+          }
+        }
+      }
+    },
+    "Search projects, sessions, commands and settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje, oturum, komut ve ayarlarda ara"
+          }
+        }
+      }
+    },
+    "Search projects, sessions, commands or settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje, oturum, komut ya da ayar ara"
+          }
+        }
+      }
+    },
+    "Search settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayarlarda ara"
+          }
+        }
+      }
+    },
+    "Seeing": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görme"
+          }
+        }
+      }
+    },
+    "Select All": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümünü Seç"
+          }
+        }
+      }
+    },
+    "Separate theme for dark mode": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık ve koyu için ayrı tema"
+          }
+        }
+      }
+    },
+    "Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum"
+          }
+        }
+      }
+    },
+    "Session %lld": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum %lld"
+          }
+        }
+      }
+    },
+    "Sessions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumlar"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayarlar"
+          }
+        }
+      }
+    },
+    "Settings and data folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayar ve veri klasörü"
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayarlar…"
+          }
+        }
+      }
+    },
+    "Shape": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biçim"
+          }
+        }
+      }
+    },
+    "Shortcuts": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kısayollar"
+          }
+        }
+      }
+    },
+    "Show": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Göster"
+          }
+        }
+      }
+    },
+    "Show All": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümünü Göster"
+          }
+        }
+      }
+    },
+    "Show Side Panel": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yan Paneli Göster"
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder'da göster"
+          }
+        }
+      }
+    },
+    "Show pane headers": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölme başlıklarını göster"
+          }
+        }
+      }
+    },
+    "Size": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boyut"
+          }
+        }
+      }
+    },
+    "Skip Setup": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurulumu atla"
+          }
+        }
+      }
+    },
+    "Smaller text": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazıyı küçült"
+          }
+        }
+      }
+    },
+    "Split": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Böl"
+          }
+        }
+      }
+    },
+    "Split Down": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aşağı Böl"
+          }
+        }
+      }
+    },
+    "Split Down  ⇧⌘D": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aşağı böl  ⇧⌘D"
+          }
+        }
+      }
+    },
+    "Split Right": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sağa Böl"
+          }
+        }
+      }
+    },
+    "Split Right  ⌘D": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sağa böl  ⌘D"
+          }
+        }
+      }
+    },
+    "Split down": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aşağı böl"
+          }
+        }
+      }
+    },
+    "Split right": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sağa böl"
+          }
+        }
+      }
+    },
+    "Start": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başla"
+          }
+        }
+      }
+    },
+    "Start %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ başlat"
+          }
+        }
+      }
+    },
+    "Start with an agent, or open a terminal.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir ajanla başla ya da terminal aç."
+          }
+        }
+      }
+    },
+    "Step %lld of %lld": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adım %lld / %lld"
+          }
+        }
+      }
+    },
+    "Stops when Reduce Motion is on": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hareketi Azalt açıkken durur"
+          }
+        }
+      }
+    },
+    "System": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem"
+          }
+        }
+      }
+    },
+    "System Settings › Accessibility › Display": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem Ayarları › Erişilebilirlik › Ekran"
+          }
+        }
+      }
+    },
+    "TEZGAH · 0.1 BETA": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TEZGAH · 0.1 BETA"
+          }
+        }
+      }
+    },
+    "Tells you when an agent waits for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajan seni beklerken haber verir"
+          }
+        }
+      }
+    },
+    "Terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal"
+          }
+        }
+      }
+    },
+    "Terminal  ⌘N": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal  ⌘N"
+          }
+        }
+      }
+    },
+    "Terminal text": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal yazısı"
+          }
+        }
+      }
+    },
+    "Terminals": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminaller"
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazı"
+          }
+        }
+      }
+    },
+    "Tezgah Documentation": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah Belgeleri"
+          }
+        }
+      }
+    },
+    "Tezgah %@ beta": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah %@ beta"
+          }
+        }
+      }
+    },
+    "Tezgah app icon, drag it into the list": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah simgesi, listeye sürükle"
+          }
+        }
+      }
+    },
+    "Tezgah follows your system settings: Reduce Motion stops blinking and sliding; Increase Contrast darkens lines. States are never shown by colour alone.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah sistem ayarlarını izler: Hareketi Azalt yanıp sönmeleri ve kaymaları durdurur; Kontrastı Artır çizgileri koyulaştırır. Durumlar hiçbir yerde yalnızca renkle anlatılmaz."
+          }
+        }
+      }
+    },
+    "Tezgah sends nothing anywhere": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah hiçbir yere veri göndermez"
+          }
+        }
+      }
+    },
+    "Tezgah\nis ready.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah\nhazır."
+          }
+        }
+      }
+    },
+    "The projects and sessions strip": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler ve oturumlar şeridi"
+          }
+        }
+      }
+    },
+    "Theme": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tema"
+          }
+        }
+      }
+    },
+    "Themes": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temalar"
+          }
+        }
+      }
+    },
+    "Three permissions, one drag.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Üç izin, tek sürükleme."
+          }
+        }
+      }
+    },
+    "To know when an agent is working or waiting for you, Tezgah adds a small hook to it. Nothing else in the agent's settings changes; you can remove it any time.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah, bir ajanın çalıştığını ya da seni beklediğini bilmek için ona küçük bir bağlantı ekler. Ajanın ayarlarına başka hiçbir şey dokunmaz; istediğin an kaldırırsın."
+          }
+        }
+      }
+    },
+    "To show simulators and windows in a pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simülatörü ve pencereleri gösterebilmek için"
+          }
+        }
+      }
+    },
+    "Top": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Üst"
+          }
+        }
+      }
+    },
+    "Turned off": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapalı"
+          }
+        }
+      }
+    },
+    "Type its command; Tezgah treats it as an agent too": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komutunu yaz; Tezgah onu da ajan olarak tanır"
+          }
+        }
+      }
+    },
+    "Underline": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alt çizgi"
+          }
+        }
+      }
+    },
+    "Undo": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri Al"
+          }
+        }
+      }
+    },
+    "Updates": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güncellemeler"
+          }
+        }
+      }
+    },
+    "Updates arrive with the first public build.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güncellemeler ilk herkese açık sürümle gelecek."
+          }
+        }
+      }
+    },
+    "Version, macOS and recent errors; nothing personal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sürüm, macOS ve son hatalar; kişisel veri yok"
+          }
+        }
+      }
+    },
+    "View": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görünüm"
+          }
+        }
+      }
+    },
+    "VoiceOver reads “codex is waiting for you”": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VoiceOver “codex seni bekliyor” diye okur"
+          }
+        }
+      }
+    },
+    "WAITING FOR YOU": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SENİ BEKLİYOR"
+          }
+        }
+      }
+    },
+    "WORKING": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÇALIŞIYOR"
+          }
+        }
+      }
+    },
+    "Waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seni bekliyor"
+          }
+        }
+      }
+    },
+    "Waiting for your answer": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cevabını bekliyor"
+          }
+        }
+      }
+    },
+    "Website": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sitesi"
+          }
+        }
+      }
+    },
+    "Welcome to Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'a hoş geldin"
+          }
+        }
+      }
+    },
+    "Welcome to\nTezgah.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'a\nhoş geldin."
+          }
+        }
+      }
+    },
+    "When an agent waits for you or finishes its work, it shows up here.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir ajan seni beklediğinde ya da işini bitirdiğinde burada görünür."
+          }
+        }
+      }
+    },
+    "When the system turns dark, the dark theme below is used": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem karanlığa geçince aşağıdaki koyu tema kullanılır"
+          }
+        }
+      }
+    },
+    "When you quit": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıkarken"
+          }
+        }
+      }
+    },
+    "When you right-click a folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasöre sağ tıklayınca"
+          }
+        }
+      }
+    },
+    "Where should the projects strip sit?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje şeridi nerede dursun?"
+          }
+        }
+      }
+    },
+    "Window": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pencere"
+          }
+        }
+      }
+    },
+    "With Report status on, Tezgah starts the agent with a small hook for that run only; your agent's own settings are never changed.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durum bildir açıkken Tezgah ajanı yalnızca o çalışma için küçük bir bağlantıyla başlatır; ajanın kendi ayarlarına hiç dokunulmaz."
+          }
+        }
+      }
+    },
+    "With macOS": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ile"
+          }
+        }
+      }
+    },
+    "Working": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalışıyor"
+          }
+        }
+      }
+    },
+    "You can change all of this later in Settings.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hepsini sonra Ayarlar'dan değiştirebilirsin."
+          }
+        }
+      }
+    },
+    "Zoom": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Büyüt"
+          }
+        }
+      }
+    },
+    "%lld sessions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld oturum"
+          }
+        }
+      }
+    },
+    "%lld files": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld dosya"
+          }
+        }
+      }
+    },
+    "%lld new": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld yeni"
+          }
+        }
+      }
+    },
+    "%lld working · %lld waiting": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld çalışıyor · %lld bekliyor"
+          }
+        }
+      }
+    },
+    "%lld agents are waiting for you.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ajan seni bekliyor."
+          }
+        }
+      }
+    },
+    "%@ is done": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ işini bitirdi"
+          }
+        }
+      }
+    },
+    "%@ is waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ seni bekliyor"
+          }
+        }
+      }
+    },
+    "%lld at work.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ajan çalışıyor."
+          }
+        }
+      }
+    },
+    "%@ pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bölmesi"
+          }
+        }
+      }
+    },
+    "agents working": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ajanlar çalışıyor"
+          }
+        }
+      }
+    },
+    "an agent is waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bir ajan seni bekliyor"
+          }
+        }
+      }
+    },
+    "dark theme": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "koyu tema"
+          }
+        }
+      }
+    },
+    "light theme": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "açık tema"
+          }
+        }
+      }
+    },
+    "granted": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "verildi"
+          }
+        }
+      }
+    },
+    "granted, reopen Tezgah to apply": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "verildi, geçerli olması için Tezgah'ı yeniden aç"
+          }
+        }
+      }
+    },
+    "last used": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "son kullanılan"
+          }
+        }
+      }
+    },
+    "not yet": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "henüz değil"
+          }
+        }
+      }
+    },
+    "turned off": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kapalı"
+          }
+        }
+      }
+    },
+    "waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seni bekliyor"
+          }
+        }
+      }
+    },
+    "working": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "çalışıyor"
+          }
+        }
+      }
+    },
+    "done": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bitti"
+          }
+        }
+      }
+    },
+    "error": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hata"
+          }
+        }
+      }
+    },
+    "idle": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "boşta"
+          }
+        }
+      }
+    },
+    "official install command. Press Enter to run it, or close the tab.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "resmi kurulum komutu. Çalıştırmak için Enter'a bas, vazgeçmek için sekmeyi kapat."
+          }
+        }
+      }
+    },
+    "setup complete · 5 / 5": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurulum tamam · 5 / 5"
+          }
+        }
+      }
+    },
+    "“Open in Tezgah” in Finder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder'da “Tezgah'ta aç”"
+          }
+        }
+      }
+    },
+    "↑↓ select": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↑↓ seç"
+          }
+        }
+      }
+    },
+    "↩ open": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↩ aç"
+          }
+        }
+      }
+    },
+    "Setup will run next time": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurulum bir sonraki açılışta çalışacak"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sıfırla"
+          }
+        }
+      }
+    },
+    "Website ": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sitesi"
+          }
+        }
+      }
+    },
+    "Open in Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah'ta aç"
+          }
+        }
+      }
+    },
+    "claude · working": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "claude · çalışıyor"
+          }
+        }
+      }
+    },
+    "codex · waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "codex · seni bekliyor"
+          }
+        }
+      }
+    },
+    "antigravity · done": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "antigravity · bitti"
+          }
+        }
+      }
+    },
+    "Pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölme"
+          }
+        }
+      }
+    },
+    "Terminal ": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal"
+          }
+        }
+      }
+    },
+    "Takes effect when Tezgah reopens": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah yeniden açılınca geçerli olur"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

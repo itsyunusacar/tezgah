@@ -303,12 +303,7 @@ private struct GeneralSettings: View {
     @Environment(\.look) private var look
     var body: some View {
         SettingsGroup(title: "Language and startup") {
-            SettingsRow(title: "Language", detail: "Follows the system; change it per app in System Settings › General › Language & Region") {
-                Button("Open…") {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension")!)
-                }
-                .buttonStyle(TZButtonStyle(small: true))
-            }
+            SettingsRow(title: "Language", detail: "Takes effect when Tezgah reopens") { LanguagePicker() }
             SettingsRow(title: "Restore the last workspace", detail: "Projects, sessions and panes as you left them", last: true) { Switch("general.restore") }
         }
         SettingsGroup(title: "With macOS") {
@@ -498,6 +493,30 @@ private struct AdvancedSettings: View {
                 Button("Reset") { UserDefaults.standard.set(false, forKey: "onboarding.done"); AppActions.toast(String(localized: "Setup will run next time")) }
                     .buttonStyle(TZButtonStyle(small: true))
             }
+        }
+    }
+}
+
+/// The app's own language, independent of the system's: Sistem, Türkçe or English.
+private struct LanguagePicker: View {
+    @State private var choice: String = {
+        (UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?["AppleLanguages"] as? [String])?.first ?? "system"
+    }()
+
+    var body: some View {
+        Picker("", selection: $choice) {
+            Text("System").tag("system")
+            Text("Türkçe").tag("tr")
+            Text("English").tag("en")
+        }
+        .pickerStyle(.segmented).labelsHidden().fixedSize()
+        .onChange(of: choice) {
+            if choice == "system" {
+                UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+            } else {
+                UserDefaults.standard.set([choice], forKey: "AppleLanguages")
+            }
+            AppActions.toast(String(localized: "Takes effect when Tezgah reopens"))
         }
     }
 }

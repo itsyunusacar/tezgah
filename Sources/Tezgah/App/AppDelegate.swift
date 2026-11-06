@@ -312,16 +312,16 @@ enum MainMenu {
         }
         let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Tezgah"
         submenu(name, [
-            item("About \(name)", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: nil),
+            item(String(localized: "About \(name)"), #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: nil),
             .separator(),
             item("Settings…", #selector(AppDelegate.showSettings(_:)), ","),
             item("Check for Updates…", nil),
             .separator(),
-            item("Hide \(name)", #selector(NSApplication.hide(_:)), "h", target: nil),
+            item(String(localized: "Hide \(name)"), #selector(NSApplication.hide(_:)), "h", target: nil),
             item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option], target: nil),
             item("Show All", #selector(NSApplication.unhideAllApplications(_:)), "", target: nil),
             .separator(),
-            item("Quit \(name)", #selector(NSApplication.terminate(_:)), "q", target: nil),
+            item(String(localized: "Quit \(name)"), #selector(NSApplication.terminate(_:)), "q", target: nil),
         ])
         submenu("File", [
             item("New Session", #selector(AppDelegate.newSession(_:)), "t"),
@@ -382,7 +382,7 @@ enum MainMenu {
             item("Previous Session", #selector(AppDelegate.previousTab(_:)), "[", [.command, .shift]),
             item("Next Session", #selector(AppDelegate.nextTab(_:)), "]", [.command, .shift]),
             .separator(),
-        ] + (1...9).map { n in item("Session \(n)", #selector(AppDelegate.selectTab(_:)), "\(n)", tag: n - 1) } + [
+        ] + (1...9).map { n in item(String(localized: "Session \(n)"), #selector(AppDelegate.selectTab(_:)), "\(n)", tag: n - 1) } + [
             .separator(),
             item("Bring All to Front", #selector(NSApplication.arrangeInFront(_:)), "", target: nil),
         ])
