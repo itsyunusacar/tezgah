@@ -3190,6 +3190,316 @@
           }
         }
       }
+    },
+    "Development builds don't update": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geliştirme sürümleri güncellenmez"
+          }
+        }
+      }
+    },
+    "Checks once a day": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Günde bir kez denetler"
+          }
+        }
+      }
+    },
+    "Check Now": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şimdi denetle"
+          }
+        }
+      }
+    },
+    "Default terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varsayılan terminal"
+          }
+        }
+      }
+    },
+    ".command and .sh files and ssh:// links open in Tezgah": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".command, .sh dosyaları ve ssh:// bağlantıları Tezgah'ta açılır"
+          }
+        }
+      }
+    },
+    "Make Default": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varsayılan yap"
+          }
+        }
+      }
+    },
+    "Not in development builds": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geliştirme sürümünde yok"
+          }
+        }
+      }
+    },
+    "Tezgah is now your default terminal.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah artık varsayılan terminalin."
+          }
+        }
+      }
+    },
+    "Find": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bul"
+          }
+        }
+      }
+    },
+    "Previous match": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki eşleşme"
+          }
+        }
+      }
+    },
+    "Next match": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki eşleşme"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapat"
+          }
+        }
+      }
+    },
+    "none": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yok"
+          }
+        }
+      }
+    },
+    "Full Focus": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tam Odak"
+          }
+        }
+      }
+    },
+    "Leave focus": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odaktan çık"
+          }
+        }
+      }
+    },
+    "Focus · %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odak · %@"
+          }
+        }
+      }
+    },
+    "Full focus · %@ · ⌃⇧⌘F to leave": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tam odak · %@ · çıkmak için ⌃⇧⌘F"
+          }
+        }
+      }
+    },
+    "Rename Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumu yeniden adlandır"
+          }
+        }
+      }
+    },
+    "Rename": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden adlandır"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vazgeç"
+          }
+        }
+      }
+    },
+    "Leave it empty to show the program's name.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boş bırakırsan programın adı görünür."
+          }
+        }
+      }
+    },
+    "Leave focus and switch to that project?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odaktan çıkıp o projeye geçelim mi?"
+          }
+        }
+      }
+    },
+    "You're focused on %@.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şu an %@ projesine odaklısın."
+          }
+        }
+      }
+    },
+    "Switch": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geç"
+          }
+        }
+      }
+    },
+    "Stay Focused": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odakta kal"
+          }
+        }
+      }
+    },
+    "No conversations in %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ için konuşma yok"
+          }
+        }
+      }
+    },
+    "Claude Code hasn't saved any conversation for this folder.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code bu klasör için bir konuşma kaydetmemiş."
+          }
+        }
+      }
+    },
+    "Move %lld conversations to the Trash?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld konuşma Çöp Sepeti'ne taşınsın mı?"
+          }
+        }
+      }
+    },
+    "Claude Code's conversations for %@. You can put them back from the Trash.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ için Claude Code konuşmaları. Çöp Sepeti'nden geri alabilirsin."
+          }
+        }
+      }
+    },
+    "Move to Trash": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çöpe taşı"
+          }
+        }
+      }
+    },
+    "%lld conversations moved to the Trash": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld konuşma Çöp Sepeti'ne taşındı"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

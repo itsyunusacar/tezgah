@@ -17,6 +17,9 @@ settings:
     DEAD_CODE_STRIPPING: YES
     SWIFT_STRICT_CONCURRENCY: complete
 packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.6.4
   GhosttyKit:
     url: https://github.com/Lakr233/libghostty-spm
     exactVersion: 2.2.2026103001
@@ -43,11 +46,10 @@ targets:
       - target: TezgahCore
       - package: GhosttyKit
         product: GhosttyTerminal
+      - package: Sparkle
     settings:
       base:
-        PRODUCT_NAME: "Tezgah Dev"
         PRODUCT_MODULE_NAME: Tezgah
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.dev
         INFOPLIST_FILE: Sources/Tezgah/Support/Info.plist
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Tezgah/Support/Bridging.h
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
@@ -55,6 +57,13 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+      configs:
+        Debug:
+          PRODUCT_NAME: "Tezgah Dev"
+          PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.mac.dev
+        Release:
+          PRODUCT_NAME: "Tezgah"
+          PRODUCT_BUNDLE_IDENTIFIER: dev.tezgah.app
   TezgahCoreTests:
     type: bundle.unit-test
     platform: macOS

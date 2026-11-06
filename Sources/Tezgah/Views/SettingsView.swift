@@ -473,14 +473,15 @@ private struct UpdateSettings: View {
             TezgahMark(width: 40)
             VStack(alignment: .leading, spacing: 0) {
                 Text("Tezgah \(Bundle.main.shortVersion) beta").type(.lead, .semibold).foregroundStyle(look.ink)
-                Text("Updates arrive with the first public build.").type(.caption).foregroundStyle(look.muted)
+                Text(Updates.shared.enabled ? "Checks once a day" : "Development builds don't update").type(.caption).foregroundStyle(look.muted)
             }
             Spacer()
+            Button("Check Now") { Updates.shared.checkNow() }.buttonStyle(TZButtonStyle(small: true)).disabled(!Updates.shared.enabled)
         }
         .padding(16)
         .card(look)
         SettingsGroup(title: "Updates") {
-            SettingsRow(title: "Download automatically") { Switch("updates.auto") }
+            SettingsRow(title: "Download automatically") { Switch("updates.auto") { Updates.shared.applySettings() } }
             SettingsRow(title: "Install", detail: "Open terminals don't close", last: true) {
                 Text("When you quit").type(.body).foregroundStyle(look.soft)
             }

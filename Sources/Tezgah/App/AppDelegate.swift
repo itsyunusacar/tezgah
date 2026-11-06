@@ -83,6 +83,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             store.startPolling()
             store.refreshAgents()
             AgentHooks.install()
+            Updates.shared.start()
+            if FinderService.isRealBuild, UserDefaults.standard.object(forKey: "finder.enabled") as? Bool ?? true, FinderService.isInstalled {
+                FinderService.install() // rewrites the service if the app moved
+            }
             UNUserNotificationCenter.current().delegate = self
             menuBar = MenuBarController(store: store, appearance: appearance)
             if Onboarding.isDone {
@@ -318,6 +322,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         settingsWindow = nil
         openSettings()
     }
+    @objc func checkForUpdates(_: Any?) { Updates.shared.checkNow() }
     @objc func openDocs(_: Any?) { NSWorkspace.shared.open(URL(string: "https://tezgah.itsyunusacar.com")!) }
     @objc func reportProblem(_: Any?) { NSWorkspace.shared.open(URL(string: "https://github.com/itsyunusacar/tezgah/issues")!) }
 
@@ -398,7 +403,7 @@ enum MainMenu {
             item(String(localized: "About \(name)"), #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: nil),
             .separator(),
             item("Settings…", #selector(AppDelegate.showSettings(_:)), ","),
-            item("Check for Updates…", nil),
+            item("Check for Updates…", #selector(AppDelegate.checkForUpdates(_:))),
             .separator(),
             item(String(localized: "Hide \(name)"), #selector(NSApplication.hide(_:)), "h", target: nil),
             item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option], target: nil),

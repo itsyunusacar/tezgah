@@ -39,6 +39,10 @@
 			<key>CFBundleURLSchemes</key><array><string>ssh</string></array>
 		</dict>
 	</array>
+	<key>SUFeedURL</key><string>https://github.com/itsyunusacar/tezgah/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key><string>nChbk7NEP60B51l9rNcPbq7bcQr3JIPsODhvag/fuX4=</string>
+	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUScheduledCheckInterval</key><integer>86400</integer>
 	<key>NSSupportsAutomaticTermination</key><false/>
 	<key>NSSupportsSuddenTermination</key><false/>
 </dict>
