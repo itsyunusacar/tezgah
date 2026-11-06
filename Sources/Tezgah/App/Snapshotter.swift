@@ -10,6 +10,7 @@ struct Snapshotter {
     let store: AppStore
     let window: NSWindow
     let look: Appearance
+    let app: AppDelegate
     let directory: URL
 
     static let fakeAgent = "/Users/yunusacar/Project/tezgah/docs/demo/fake-agent.mjs"
@@ -71,6 +72,22 @@ struct Snapshotter {
         }
         look.navPosition = savedPosition
 
+        // The five first-run pages, light then dark.
+        app.showOnboarding()
+        if let ob = app.onboardingWindow {
+            for (mode, scheme) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+                NSApp.appearance = NSAppearance(named: scheme)
+                ob.appearance = NSAppearance(named: scheme)
+                for step in 0 ..< Onboarding.pages {
+                    app.onboarding.step = step
+                    await wait(step == 3 ? 3 : 1.6)
+                    capture("onboarding-\(step + 1)-\(mode)", in: ob)
+                }
+            }
+            ob.orderOut(nil)
+            UserDefaults.standard.removeObject(forKey: "onboarding.step")
+        }
+
         store.terminateAll()
         await wait(0.4)
         exit(0)
@@ -80,7 +97,8 @@ struct Snapshotter {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
-    private func capture(_ name: String) {
+    private func capture(_ name: String, in target: NSWindow? = nil) {
+        let window = target ?? self.window
         window.displayIfNeeded()
         guard let view = window.contentView?.superview ?? window.contentView,
               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }

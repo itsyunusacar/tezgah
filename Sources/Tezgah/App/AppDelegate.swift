@@ -42,6 +42,9 @@ enum AppActions {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation {
     private(set) var store: AppStore!
     let appearance = Appearance()
+    let permissions = Permissions()
+    let onboarding = Onboarding()
+    private(set) var onboardingWindow: NSWindow?
     private(set) var window: NSWindow!
     private var keyMonitor: Any?
     private var snapshotDir: URL?
@@ -64,11 +67,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         window = makeWindow()
         watchAppearance()
         if let snapshotDir {
-            Task { await Snapshotter(store: store, window: window, look: appearance, directory: snapshotDir).run() }
+            Task { await Snapshotter(store: store, window: window, look: appearance, app: self, directory: snapshotDir).run() }
         } else {
             store.load()
             store.startPolling()
-            window.makeKeyAndOrderFront(nil)
+            if Onboarding.isDone {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                showOnboarding()
+            }
         }
         installKeyMonitor()
         // `kill` (logout, a script) quits like ⌘Q: the workspace is saved and the shells end.
@@ -117,6 +124,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         w.tabbingMode = .disallowed
         w.backgroundColor = NSColor(appearance.theme(dark: false).base)
         return w
+    }
+
+    /// The first run: its own window with five pages; the main window appears when it ends.
+    func showOnboarding() {
+        let root = LookProvider { OnboardingView() }
+            .environment(store)
+            .environment(appearance)
+            .environment(permissions)
+            .environment(onboarding)
+        let host = NSHostingController(rootView: root)
+        host.sizingOptions = []
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 760),
+                         styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
+        w.contentViewController = host
+        w.title = NSLocalizedString("Welcome to Tezgah", comment: "window")
+        w.titleVisibility = .hidden
+        w.titlebarAppearsTransparent = true
+        w.isMovableByWindowBackground = true
+        w.setContentSize(NSSize(width: 1200, height: 760))
+        w.center()
+        onboarding.onFinish = { [weak self, weak w] in
+            w?.orderOut(nil)
+            self?.window.makeKeyAndOrderFront(nil)
+            self?.onboardingWindow = nil
+        }
+        onboardingWindow = w
+        w.makeKeyAndOrderFront(nil)
     }
 
     /// The band's height follows the strip: tall when the strip shares it (left, top), compact otherwise.
