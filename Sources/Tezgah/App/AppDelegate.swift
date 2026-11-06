@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private(set) var window: NSWindow!
     private var keyMonitor: Any?
     private var snapshotDir: URL?
+    private var termSource: (any DispatchSourceSignal)?
 
     func applicationDidFinishLaunching(_: Notification) {
         let args = ProcessInfo.processInfo.arguments
@@ -53,7 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         // Snapshots use a throwaway workspace and never touch the saved one.
         store = AppStore(persistence: snapshotDir == nil ? Persistence(directory: Persistence.defaultDirectory) : nil)
         AppActions.store = store
-        _ = TerminalLook.controller
+        if let issue = TerminalLook.controller.lastConfigurationIssue {
+            FileHandle.standardError.write(Data("tezgah: ghostty config: \(issue)\n".utf8))
+        }
 
         NSApp.mainMenu = MainMenu.make(target: self)
         window = makeWindow()
@@ -65,6 +68,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             window.makeKeyAndOrderFront(nil)
         }
         installKeyMonitor()
+        // `kill` (logout, a script) quits like ⌘Q: the workspace is saved and the shells end.
+        signal(SIGTERM, SIG_IGN)
+        let term = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        term.setEventHandler { NSApp.terminate(nil) }
+        term.resume()
+        termSource = term
         NSApp.activate()
     }
 
