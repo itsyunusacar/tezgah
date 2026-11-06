@@ -94,6 +94,7 @@ final class AppStore {
     var paletteOpen = false
     /// The new-session picker is open for this project ("" for a terminal of its own).
     var newSessionPicker: String?
+    var notificationsOpen = false
     enum PaletteScope { case all, go }
     var paletteScope = PaletteScope.all
     /// Agents found on this Mac (refreshed at launch and when the picker opens).
@@ -458,6 +459,13 @@ final class AppStore {
                                              message: pane.statusMessage, date: Date(), read: looking), at: 0)
         if notifications.count > 200 { notifications.removeLast(notifications.count - 200) }
         if !NSApp.isActive, new == .blocked { NSApp.requestUserAttention(.informationalRequest) }
+        if !looking, persistence != nil {
+            let who = pane.agentApp.flatMap { AgentKind(program: $0)?.name } ?? sessionTitle(session(pane.sessionId) ?? sessions[0])
+            let place = project(session(pane.sessionId)?.projectId)?.name ?? String(localized: "Terminal")
+            let title = new == .blocked ? String(localized: "\(who) is waiting for you") : String(localized: "\(who) is done")
+            SystemNotices.post(title: title, body: [pane.statusMessage, place].compactMap { $0 }.joined(separator: " · "),
+                               sessionId: pane.sessionId, sound: new == .blocked)
+        }
     }
 
     func paneExited(_ pane: TerminalPane, code _: Int32) {

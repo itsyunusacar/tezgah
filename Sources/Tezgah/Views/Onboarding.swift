@@ -620,6 +620,7 @@ private struct AgentRow: View {
             }
             Spacer()
             Toggle("Report status", isOn: $reports).toggleStyle(.switch).controlSize(.small).tint(look.ink)
+                .onChange(of: reports) { AgentHooks.install() }
         }
         .padding(.horizontal, 20)
         .frame(height: 80)

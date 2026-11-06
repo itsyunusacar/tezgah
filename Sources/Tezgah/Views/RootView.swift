@@ -57,6 +57,17 @@ struct RootView: View {
     }
 
     @ViewBuilder private var page: some View {
+        HStack(spacing: 0) {
+            pageContent
+            if store.notificationsOpen {
+                NotificationsPanel().padding(.vertical, Grid.Space.s2).padding(.trailing, Grid.Space.s2)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: Motion.standard), value: store.notificationsOpen)
+    }
+
+    @ViewBuilder private var pageContent: some View {
         switch store.selection {
         case .welcome, .agents, .notifications, .settings, .terminals:
             HomeView()

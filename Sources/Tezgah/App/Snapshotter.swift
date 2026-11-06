@@ -46,6 +46,9 @@ struct Snapshotter {
         store.newSession(projectId: web.id, command: "\(node) grok", kind: .agent)
         store.newSession(projectId: mac.id, command: "\(node) tests", kind: .agent)
         store.newSession(projectId: nil)
+        // Tezgah's own hook script, as Claude Code would run it on a permission prompt.
+        AgentHooks.install()
+        let hooked = store.newSession(projectId: mac.id, command: #"printf '{"message":"Claude needs your permission to use Bash"}' | "$TEZGAH_BIN/tezgah-report" blocked claude"#, kind: .agent)
         // Let the session's panes size themselves and the agents get going.
         store.selection = .session(main.id)
         if let first = main.layout.paneIds.first { store.focusSoon(first) }
@@ -84,6 +87,11 @@ struct Snapshotter {
         await wait(1)
         capture("palette-light")
         store.paletteOpen = false
+        FileHandle.standardError.write(Data("hook test: \(store.status(of: hooked).map(\.rawValue) ?? "none") · \(store.leadPane(of: hooked)?.statusMessage ?? "-")\n".utf8))
+        store.notificationsOpen = true
+        await wait(1)
+        capture("notifications-light")
+        store.notificationsOpen = false
 
         // The five first-run pages, light then dark.
         app.showOnboarding()

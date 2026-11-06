@@ -88,7 +88,7 @@ final class TerminalPane: Identifiable {
     private func startReading() {
         guard let pty else { return }
         let session = self.session
-        let reader = OutputReader(pty: pty)
+        let reader = OutputReader(pty: pty, token: Shell.token(for: id))
         reader.wantsOutputNotice = pendingCommand != nil
         self.reader = reader
         pty.start(
@@ -235,9 +235,12 @@ nonisolated final class OutputReader: @unchecked Sendable {
     }
     private var scanner = OSCScanner(codes: [7501])
     private var probed = false
+    /// Reports carrying this pane's secret come from Tezgah's own agent hooks and need no probe.
+    private let token: String
 
-    init(pty: PTYProcess) {
+    init(pty: PTYProcess, token: String) {
         self.pty = pty
+        self.token = token
     }
 
     /// Called on the reader's serial queue only.
@@ -248,7 +251,8 @@ nonisolated final class OutputReader: @unchecked Sendable {
                 probed = true
                 pty.write(OSC7501.probeReply)
                 events.append(.probed)
-            } else if probed, let report = OSC7501.parse(seq.payload) {
+            } else if probed || seq.payload.split(separator: ":").contains(Substring("token=\(token)")),
+                      let report = OSC7501.parse(seq.payload) {
                 events.append(.report(report))
             }
         }
@@ -279,6 +283,19 @@ enum Shell {
     ]
     static let foreignPrefixes = ["VSCODE_", "ITERM_", "KITTY_", "WEZTERM_", "GHOSTTY_", "ALACRITTY_", "KONSOLE_", "CLAUDE_CODE_", "TEZGAH_", "XPC_", "__CF", "OS_ACTIVITY"]
 
+    nonisolated(unsafe) private static var tokens: [String: String] = [:]
+    nonisolated private static let tokenLock = NSLock()
+
+    /// A per-pane secret that Tezgah's hooks put in their reports.
+    nonisolated static func token(for paneId: String) -> String {
+        tokenLock.withLock {
+            if let t = tokens[paneId] { return t }
+            let t = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased()
+            tokens[paneId] = String(t)
+            return String(t)
+        }
+    }
+
     /// The app's environment minus markers that would confuse programs started here, plus ours.
     static func environment(paneId: String, sessionId: String) -> [String: String] {
         var env: [String: String] = [:]
@@ -295,7 +312,13 @@ enum Shell {
         if env["LANG"] == nil { env["LANG"] = "en_US.UTF-8" }
         env["TEZGAH_PANE_ID"] = paneId
         env["TEZGAH_SESSION_ID"] = sessionId
-        env["TEZGAH_APP"] = "native-prototype"
+        env["TEZGAH_APP"] = "native"
+        env["TEZGAH_PANE_TOKEN"] = token(for: paneId)
+        // Tezgah's shims (claude, codex) come first, so agents started here report their state.
+        if let bin = AgentHooks.binDirectory?.path {
+            env["TEZGAH_BIN"] = bin
+            env["PATH"] = [bin, env["PATH"]].compactMap { $0 }.joined(separator: ":")
+        }
         // Launched from Finder, an app's PATH is minimal; the login shell rebuilds it.
         if env["PATH"] == nil { env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin" }
         if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }

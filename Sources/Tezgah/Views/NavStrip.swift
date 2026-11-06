@@ -109,7 +109,7 @@ struct VerticalNav: View {
                 }
                 .buttonStyle(.plain)
                 IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) {
-                    store.selection = .notifications
+                    store.notificationsOpen.toggle()
                 }
             }
         }
@@ -266,7 +266,7 @@ struct HorizontalNav: View {
             }
             Spacer(minLength: 8)
             IconButton(symbol: "magnifyingglass", label: "Search") { store.paletteOpen = true }
-            IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.selection = .notifications }
+            IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.notificationsOpen.toggle() }
         }
         .padding(.horizontal, 12)
         .frame(height: withWindowButtons ? WindowChrome.band : 48)

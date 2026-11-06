@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TezgahCore
+import UserNotifications
 
 /// Things menus and buttons in different places ask for.
 enum AppActions {
@@ -36,7 +37,8 @@ enum AppActions {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation, UNUserNotificationCenterDelegate {
+    private var menuBar: MenuBarController?
     private(set) var store: AppStore!
     let appearance = Appearance()
     let permissions = Permissions()
@@ -69,6 +71,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             store.load()
             store.startPolling()
             store.refreshAgents()
+            AgentHooks.install()
+            UNUserNotificationCenter.current().delegate = self
+            menuBar = MenuBarController(store: store, appearance: appearance)
             if Onboarding.isDone {
                 window.makeKeyAndOrderFront(nil)
             } else {
@@ -185,6 +190,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             }
             return event
         }
+    }
+
+    // A click on a system notification opens its session.
+    nonisolated func userNotificationCenter(_: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let id = response.notification.request.content.userInfo["session"] as? String
+        await MainActor.run {
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+            if let id { store.open(session: id) }
+        }
+    }
+
+    nonisolated func userNotificationCenter(_: UNUserNotificationCenter, willPresent _: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
     }
 
     // MARK: - Menu actions
