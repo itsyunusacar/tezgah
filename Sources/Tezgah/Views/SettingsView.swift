@@ -5,7 +5,11 @@ import TezgahCore
 /// Settings: a searchable window with eleven sections, in the app's own look.
 struct SettingsView: View {
     @Environment(\.look) private var look
-    @State private var section: Section = .appearance
+    @State private var section: Section = {
+        let s = Section(rawValue: UserDefaults.standard.string(forKey: "settings.section") ?? "") ?? .appearance
+        UserDefaults.standard.removeObject(forKey: "settings.section")
+        return s
+    }()
     @State private var query = ""
 
     enum Section: String, CaseIterable, Identifiable {

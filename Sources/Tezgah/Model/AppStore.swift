@@ -48,8 +48,10 @@ final class Session: Identifiable {
     var layout: LayoutNode
     var focusedPaneId: String?
     let createdAt: Date
+    var title: String?
 
     init(record: SessionRecord) {
+        title = record.title
         id = record.id
         projectId = record.projectId
         kind = record.kind
@@ -95,6 +97,17 @@ final class AppStore {
     /// The new-session picker is open for this project ("" for a terminal of its own).
     var newSessionPicker: String?
     var notificationsOpen = false
+    /// Focus mode: one project fills the window until you leave; notifications still arrive.
+    enum Focus: Equatable { case none, project(String), full(String) }
+    var focus = Focus.none
+    var focusedProjectId: String? {
+        switch focus {
+        case .none: nil
+        case let .project(id), let .full(id): id
+        }
+    }
+    /// The rename sheet is open for this session.
+    var renaming: String?
     enum PaletteScope { case all, go }
     var paletteScope = PaletteScope.all
     /// Agents found on this Mac (refreshed at launch and when the picker opens).
@@ -243,6 +256,7 @@ final class AppStore {
     var unreadNotifications: Int { notifications.filter { !$0.read }.count }
 
     func sessionTitle(_ session: Session) -> String {
+        if let t = session.title, !t.isEmpty { return t }
         let lead = leadPane(of: session)
         if let app = lead?.agentApp { return AgentKind(program: app)?.name ?? app }
         if let program = lead?.program { return AgentKind(program: program)?.name ?? program }
@@ -280,6 +294,7 @@ final class AppStore {
 
     func openProject(_ id: String) {
         guard let i = projects.firstIndex(where: { $0.id == id }) else { return }
+        if let f = focusedProjectId, f != id { focus = .none }
         projects[i].lastOpened = Date()
         if let last = lastSession[id], session(last)?.projectId == id {
             selection = .session(last)
@@ -421,6 +436,16 @@ final class AppStore {
     }
 
     func open(session id: String, pane paneId: String? = nil) {
+        // In focus mode the layout stays on its project until you agree to leave.
+        if let f = focusedProjectId, let target = session(id), target.projectId != f {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Leave focus and switch to that project?")
+            alert.informativeText = String(localized: "You're focused on \(project(f)?.name ?? "")." )
+            alert.addButton(withTitle: String(localized: "Switch"))
+            alert.addButton(withTitle: String(localized: "Stay Focused"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            focus = .none
+        }
         selection = .session(id)
         if let paneId { session(id)?.focusedPaneId = paneId }
         if let p = paneId ?? session(id)?.focusedPaneId { focusSoon(p) }
@@ -495,7 +520,7 @@ final class AppStore {
                           panes: s.layout.paneIds.map { id in
                               PaneRecord(id: id, cwd: panes[id]?.cwd ?? s.cwd, command: panes[id]?.command)
                           },
-                          focusedPaneId: s.focusedPaneId, createdAt: s.createdAt)
+                          focusedPaneId: s.focusedPaneId, createdAt: s.createdAt, title: s.title)
         }
         persistence.save(file)
     }

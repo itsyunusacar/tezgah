@@ -50,3 +50,11 @@ import Testing
         #expect(RGB(0xFDFCFC).description == "#FDFCFC")
     }
 }
+
+@Suite struct ConversationsTests {
+    @Test func claudeFolderNamesMatchClaudeCode() {
+        #expect(Conversations.claudeFolderName(for: "/Users/yunusacar/Project/ai_studio") == "-Users-yunusacar-Project-ai-studio")
+        #expect(Conversations.claudeFolderName(for: "/private/tmp/a.b c") == "-private-tmp-a-b-c")
+        #expect(Conversations.claudeFolderName(for: "/Users/x/Projeler/çalışma") == "-Users-x-Projeler--al--ma")
+    }
+}

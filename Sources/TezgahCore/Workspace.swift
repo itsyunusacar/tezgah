@@ -46,9 +46,13 @@ public struct SessionRecord: Codable, Equatable, Sendable, Identifiable {
     public var panes: [PaneRecord]
     public var focusedPaneId: String?
     public var createdAt: Date
+    /// A name the user gave it; nil shows the program's.
+    public var title: String?
 
     public init(id: String = UUID().uuidString, projectId: String?, kind: SessionKind = .shell, command: String? = nil,
-                cwd: String, layout: LayoutNode, panes: [PaneRecord], focusedPaneId: String? = nil, createdAt: Date = Date()) {
+                cwd: String, layout: LayoutNode, panes: [PaneRecord], focusedPaneId: String? = nil, createdAt: Date = Date(),
+                title: String? = nil) {
+        self.title = title
         self.id = id
         self.projectId = projectId
         self.kind = kind
@@ -137,5 +141,13 @@ public enum Paths {
         if path == home { return "~" }
         if path.hasPrefix(home + "/") { return "~" + path.dropFirst(home.count) }
         return path
+    }
+}
+
+/// Where agents keep their conversations for a folder, so Tezgah can list and trash them.
+public enum Conversations {
+    /// Claude Code: ~/.claude/projects/<path with every non-alphanumeric character as "-">.
+    public static func claudeFolderName(for path: String) -> String {
+        String(path.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) && $0.isASCII ? Character($0) : "-" })
     }
 }

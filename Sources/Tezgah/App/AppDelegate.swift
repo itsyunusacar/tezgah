@@ -271,13 +271,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         appearance.navPosition = NavPosition.allCases[sender.tag]
     }
 
+    private var focusedPane: TerminalPane? {
+        store.currentSession.flatMap { s in s.focusedPaneId.flatMap { store.panes[$0] } }
+    }
+
+    @objc func find(_: Any?) { focusedPane?.startFind() ?? NSSound.beep() }
+    @objc func clearTerminal(_: Any?) { focusedPane?.clearScreen() ?? NSSound.beep() }
+    @objc func toggleFocus(_: Any?) {
+        if store.focus != .none { store.focus = .none; return }
+        guard let id = store.currentProjectId else { return NSSound.beep() }
+        store.focus = .project(id)
+    }
+    @objc func toggleFullFocus(_: Any?) {
+        if case .full = store.focus { store.focus = .none; if window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }; return }
+        guard let id = store.currentProjectId else { return NSSound.beep() }
+        store.focus = .full(id)
+        if !window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
+    }
+    @objc func toggleSidePanel(_: Any?) { store.notificationsOpen.toggle() }
+    @objc func biggerText(_: Any?) { changeFontSize(1) }
+    @objc func smallerText(_: Any?) { changeFontSize(-1) }
+    private func changeFontSize(_ delta: Double) {
+        let size = min(24, max(10, TerminalSettings.fontSize + delta))
+        UserDefaults.standard.set(size, forKey: "terminal.fontSize")
+        TerminalLook.apply(appearance)
+    }
+    @objc func renameSession(_: Any?) { store.renaming = store.currentSession?.id }
+    @objc func clearNotifications(_: Any?) { store.notifications.removeAll() }
+    @objc func showShortcuts(_: Any?) {
+        UserDefaults.standard.set("keyboard", forKey: "settings.section")
+        settingsWindow?.close()
+        settingsWindow = nil
+        openSettings()
+    }
+    @objc func openDocs(_: Any?) { NSWorkspace.shared.open(URL(string: "https://tezgah.itsyunusacar.com")!) }
+    @objc func reportProblem(_: Any?) { NSWorkspace.shared.open(URL(string: "https://github.com/itsyunusacar/tezgah/issues")!) }
+
+    /// Moves this project's Claude Code conversations to the Trash, after asking. Nothing is deleted for good.
+    @objc func deleteConversations(_: Any?) {
+        guard let pid = store.currentProjectId, let project = store.project(pid) else { return NSSound.beep() }
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/projects")
+            .appendingPathComponent(Conversations.claudeFolderName(for: project.path))
+        let files = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { $0.pathExtension == "jsonl" }
+        let alert = NSAlert()
+        if files.isEmpty {
+            alert.messageText = String(localized: "No conversations in \(project.name)")
+            alert.informativeText = String(localized: "Claude Code hasn't saved any conversation for this folder.")
+            alert.runModal()
+            return
+        }
+        alert.messageText = String(localized: "Move \(files.count) conversations to the Trash?")
+        alert.informativeText = String(localized: "Claude Code's conversations for \(project.name). You can put them back from the Trash.")
+        alert.addButton(withTitle: String(localized: "Move to Trash"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.buttons.first?.hasDestructiveAction = true
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        var moved = 0
+        for f in files where (try? FileManager.default.trashItem(at: f, resultingItemURL: nil)) != nil { moved += 1 }
+        AppActions.toast(String(localized: "\(moved) conversations moved to the Trash"))
+    }
+
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
         case #selector(splitRight(_:)), #selector(splitDown(_:)), #selector(closeSessionOrPane(_:)),
              #selector(nextPane(_:)), #selector(previousPane(_:)):
             return store.currentSession != nil
-        case #selector(closeProject(_:)):
+        case #selector(closeProject(_:)), #selector(deleteConversations(_:)):
             return store.currentProjectId != nil
+        case #selector(find(_:)), #selector(clearTerminal(_:)), #selector(renameSession(_:)):
+            return store.currentSession != nil
+        case #selector(toggleFocus(_:)):
+            item.state = { if case .project = store.focus { return .on } else { return .off } }()
+            return store.currentProjectId != nil || store.focus != .none
+        case #selector(toggleFullFocus(_:)):
+            item.state = { if case .full = store.focus { return .on } else { return .off } }()
+            return store.currentProjectId != nil || store.focus != .none
         case #selector(selectTab(_:)):
             return store.tabSessions.indices.contains(item.tag)
         case #selector(nextTab(_:)), #selector(previousTab(_:)):
@@ -341,17 +410,18 @@ enum MainMenu {
             item("Paste", #selector(NSText.paste(_:)), "v", target: nil),
             item("Select All", #selector(NSText.selectAll(_:)), "a", target: nil),
             .separator(),
-            item("Find…", nil, "f"),
-            item("Clear Terminal", nil, "l"),
+            item("Find…", #selector(AppDelegate.find(_:)), "f"),
+            item("Clear Terminal", #selector(AppDelegate.clearTerminal(_:)), "l"),
         ])
         let view = submenu("View", [
             item("Home", #selector(AppDelegate.showHome(_:)), "h", [.command, .shift]),
             .separator(),
-            item("Focus Mode", nil, "f", [.command, .shift]),
-            item("Show Side Panel", nil, "s", [.command, .option]),
+            item("Focus Mode", #selector(AppDelegate.toggleFocus(_:)), "f", [.command, .shift]),
+            item("Full Focus", #selector(AppDelegate.toggleFullFocus(_:)), "f", [.command, .shift, .control]),
+            item("Show Side Panel", #selector(AppDelegate.toggleSidePanel(_:)), "s", [.command, .option]),
             .separator(),
-            item("Make Text Bigger", nil, "+"),
-            item("Make Text Smaller", nil, "-"),
+            item("Make Text Bigger", #selector(AppDelegate.biggerText(_:)), "+"),
+            item("Make Text Smaller", #selector(AppDelegate.smallerText(_:)), "-"),
             .separator(),
             item("Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control], target: nil),
         ])
@@ -369,9 +439,9 @@ enum MainMenu {
             item("Next Pane", #selector(AppDelegate.nextPane(_:)), "]"),
             item("Previous Pane", #selector(AppDelegate.previousPane(_:)), "["),
             .separator(),
-            item("Rename…", nil),
-            item("Delete Conversation History…", nil),
-            item("Clear Notifications", nil),
+            item("Rename…", #selector(AppDelegate.renameSession(_:))),
+            item("Delete Conversation History…", #selector(AppDelegate.deleteConversations(_:))),
+            item("Clear Notifications", #selector(AppDelegate.clearNotifications(_:))),
         ])
         let window = submenu("Window", [
             item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m", target: nil),
@@ -389,10 +459,10 @@ enum MainMenu {
         NSApp.windowsMenu = window
         let help = submenu("Help", [
             item("Search Everything", #selector(AppDelegate.search(_:)), "k"),
-            item("Keyboard Shortcuts", nil, "/"),
+            item("Keyboard Shortcuts", #selector(AppDelegate.showShortcuts(_:)), "/"),
             .separator(),
-            item("Tezgah Documentation", nil),
-            item("Report a Problem…", nil),
+            item("Tezgah Documentation", #selector(AppDelegate.openDocs(_:))),
+            item("Report a Problem…", #selector(AppDelegate.reportProblem(_:))),
         ])
         NSApp.helpMenu = help
         return main

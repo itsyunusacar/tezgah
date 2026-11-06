@@ -109,6 +109,9 @@ struct PaneView: View {
         VStack(spacing: 0) {
             header
             TerminalHost(pane: pane)
+                .overlay(alignment: .topTrailing) {
+                    if pane.searching { FindBar(pane: pane).padding(8) }
+                }
         }
         .background(look.raised)
         .clipShape(RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous))
@@ -201,5 +204,41 @@ final class TerminalContainer: NSView {
         guard let terminal, terminal.superview === self else { return }
         terminal.frame = bounds
         terminal.fitToSize()
+    }
+}
+
+
+/// ⌘F inside a pane: type to find in the scrollback, ↩ / ⇧↩ to move, esc to close.
+struct FindBar: View {
+    let pane: TerminalPane
+    @Environment(\.look) private var look
+    @State private var needle = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(look.muted)
+            TextField("Find", text: $needle)
+                .textFieldStyle(.plain).font(Typeface.sans(13)).frame(width: 180)
+                .focused($focused)
+                .onChange(of: needle) { pane.find(needle) }
+                .onSubmit { pane.findNext(!NSEvent.modifierFlags.contains(.shift)) }
+            Text(count).type(.caption, mono: true).foregroundStyle(look.faint).frame(minWidth: 44, alignment: .trailing)
+            IconButton(symbol: "chevron.up", label: "Previous match", size: 11) { pane.findNext(false) }
+            IconButton(symbol: "chevron.down", label: "Next match", size: 11) { pane.findNext(true) }
+            IconButton(symbol: "xmark", label: "Close", size: 10) { pane.endFind() }
+        }
+        .padding(.leading, 10).padding(.trailing, 4).frame(height: 36)
+        .background(look.raised, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.line))
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        .onAppear { focused = true }
+        .onKeyPress(.escape) { pane.endFind(); return .handled }
+    }
+
+    private var count: String {
+        guard let t = pane.searchTotal, !needle.isEmpty else { return "" }
+        guard t > 0 else { return String(localized: "none") }
+        return "\((pane.searchSelected ?? 0) + 1)/\(t)"
     }
 }

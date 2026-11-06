@@ -29,10 +29,26 @@ struct RootView: View {
         .background(look.base)
         .overlay(alignment: .bottom) { ToastView() }
         .overlay {
-            if let pid = store.newSessionPicker {
+            if let sid = store.renaming, let session = store.session(sid) {
+                RenameSheet(session: session)
+            } else if let pid = store.newSessionPicker {
                 NewSessionSheet(projectId: pid.isEmpty ? nil : pid)
             } else if store.paletteOpen {
                 CommandPalette()
+            }
+        }
+        .overlay(alignment: .top) {
+            if case let .full(id) = store.focus, let p = store.project(id) {
+                Button { store.focus = .none } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "moon.fill").font(.system(size: 10))
+                        Text("Full focus · \(p.name) · ⌃⇧⌘F to leave").type(.caption)
+                    }
+                    .foregroundStyle(look.muted)
+                    .padding(.horizontal, 12).frame(height: 24)
+                    .background(look.ink.opacity(0.06), in: UnevenRoundedRectangle(bottomLeadingRadius: 10, bottomTrailingRadius: 10))
+                }
+                .buttonStyle(.plain)
             }
         }
         .animation(.easeOut(duration: Motion.quick), value: store.paletteOpen)
@@ -49,7 +65,9 @@ struct RootView: View {
     }
 
     @ViewBuilder private var nav: some View {
-        if position.isVertical {
+        if case .full = store.focus {
+            EmptyView()
+        } else if position.isVertical {
             VerticalNav()
         } else {
             HorizontalNav(withWindowButtons: position == .top)
@@ -137,4 +155,41 @@ extension AppStore {
 
     /// Something, anywhere, waits for the user.
     var anyoneWaiting: Bool { sessions.contains { status(of: $0) == .blocked || status(of: $0) == .error } }
+}
+
+
+/// Session › Rename…
+struct RenameSheet: View {
+    let session: Session
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+    @State private var name = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        SheetFrame(width: 420, onDismiss: { store.renaming = nil }) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Rename Session").type(.lead, .semibold).foregroundStyle(look.ink)
+                TextField(store.sessionTitle(session), text: $name)
+                    .textFieldStyle(.roundedBorder).font(Typeface.sans(13))
+                    .focused($focused)
+                    .onSubmit(save)
+                Text("Leave it empty to show the program's name.").type(.caption).foregroundStyle(look.muted)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { store.renaming = nil }.buttonStyle(TZButtonStyle()).keyboardShortcut(.cancelAction)
+                    Button("Rename", action: save).buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(20)
+        }
+        .onAppear { name = session.title ?? ""; focused = true }
+    }
+
+    private func save() {
+        let t = name.trimmingCharacters(in: .whitespaces)
+        session.title = t.isEmpty ? nil : t
+        store.renaming = nil
+        store.scheduleSave()
+    }
 }

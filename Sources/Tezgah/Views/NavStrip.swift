@@ -76,7 +76,11 @@ struct VerticalNav: View {
             }
             .frame(height: appearance.navPosition == .left ? WindowChrome.band - 12 : 36)
 
-            SearchField().padding(.bottom, 8)
+            if let f = store.focusedProjectId, let p = store.project(f) {
+                FocusPill(name: p.name)
+            } else {
+                SearchField().padding(.bottom, 8)
+            }
 
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -90,7 +94,7 @@ struct VerticalNav: View {
                             Spacer().frame(height: 8)
                         }
                     }
-                    let loose = store.sessions(in: nil)
+                    let loose = store.focusedProjectId == nil ? store.sessions(in: nil) : []
                     if !loose.isEmpty {
                         Text("Terminals").type(.caption).foregroundStyle(look.muted).padding(.horizontal, 8).padding(.top, 12)
                         ForEach(loose) { SessionRow(session: $0, indent: 0) }
@@ -341,10 +345,38 @@ struct SessionTab: View {
 }
 
 extension AppStore {
-    /// Projects in the strip: most recently opened first.
-    var navProjects: [ProjectRecord] { recentProjects }
+    /// Projects in the strip: most recently opened first; only the focused one in focus mode.
+    var navProjects: [ProjectRecord] {
+        if let f = focusedProjectId { return recentProjects.filter { $0.id == f } }
+        return recentProjects
+    }
 
     func othersBusy(than id: String) -> Bool {
         projects.contains { $0.id != id && status(ofProject: $0.id).map { $0 != .idle && $0 != .done } == true }
+    }
+}
+
+
+/// Shown at the top of the strip in focus mode; click to leave.
+struct FocusPill: View {
+    let name: String
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+
+    var body: some View {
+        Button { store.focus = .none } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "moon.fill").font(.system(size: 11))
+                Text("Focus · \(name)").type(.caption, .medium).lineLimit(1)
+                Spacer()
+                Text("⇧⌘F").type(.caption, mono: true).opacity(0.7)
+            }
+            .foregroundStyle(Color(look.theme.background))
+            .padding(.horizontal, 10).frame(height: 32)
+            .background(look.ink, in: RoundedRectangle(cornerRadius: Grid.Radius.control))
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, 8)
+        .help(Text("Leave focus"))
     }
 }

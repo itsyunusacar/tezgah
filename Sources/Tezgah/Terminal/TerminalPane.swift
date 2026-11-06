@@ -29,6 +29,10 @@ final class TerminalPane: Identifiable {
     /// The agent that reports here ("claude", "codex"), if any.
     var agentApp: String? { records.primary?.app ?? records.last(where: { $0.app != nil })?.app }
     var statusMessage: String? { records.primary?.message ?? records.primary?.title }
+    /// Find in the scrollback (⌘F): shown while searching, with Ghostty's match count.
+    private(set) var searching = false
+    private(set) var searchTotal: Int?
+    private(set) var searchSelected: Int?
     /// 0…100 when the agent reports progress.
     var progress: Int? { records.primary?.progress }
 
@@ -177,6 +181,31 @@ final class TerminalPane: Identifiable {
         pty?.write(text)
     }
 
+    func startFind() {
+        searching = true
+        _ = view.performBindingAction("start_search")
+    }
+
+    func find(_ needle: String) {
+        _ = view.performBindingAction(needle.isEmpty ? "search:" : "search:\(needle)")
+    }
+
+    func findNext(_ forward: Bool = true) {
+        _ = view.performBindingAction(forward ? "navigate_search:next" : "navigate_search:previous")
+    }
+
+    func endFind() {
+        _ = view.performBindingAction("end_search")
+        searching = false
+        searchTotal = nil
+        searchSelected = nil
+        focus()
+    }
+
+    func clearScreen() {
+        _ = view.performBindingAction("clear_screen")
+    }
+
     func viewportText() -> String? {
         session.readViewportText()
     }
@@ -199,7 +228,12 @@ final class TerminalPane: Identifiable {
     }
 }
 
-extension TerminalPane: TerminalSurfaceTitleDelegate, TerminalSurfaceCloseDelegate, TerminalSurfaceFocusDelegate {
+extension TerminalPane: TerminalSurfaceTitleDelegate, TerminalSurfaceCloseDelegate, TerminalSurfaceFocusDelegate, TerminalSurfaceSearchDelegate {
+    func terminalDidStartSearch(needle _: String?) { searching = true }
+    func terminalDidEndSearch() { searching = false }
+    func terminalDidUpdateSearchTotal(_ total: Int?) { searchTotal = total }
+    func terminalDidUpdateSearchSelected(_ selected: Int?) { searchSelected = selected }
+
     func terminalDidChangeTitle(_ title: String) {
         self.title = title
     }
