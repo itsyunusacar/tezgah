@@ -1,62 +1,59 @@
 import SwiftUI
 import TezgahCore
 
-/// Tezgah's mark as text: a tabletop on two legs with a block (the cursor) on it.
+/// Tezgah's mark as text: a tabletop on two legs with a block (the cursor) on it, in plain
+/// ASCII so it draws the same in any monospaced font (Geist Mono has no block elements).
 enum BenchArt {
-    /// Drawn from the mark's geometry (Icons.tsx, viewBox 16 23 68 58) at 2 units per column
-    /// and 4 per row, with half blocks for the in-between edges.
     static let block: [String] = [
-        "      ██████",
-        "      ██████",
-        "      ██████",
-        "      ██████",
-        "      ▀▀▀▀▀▀",
+        "     .------.",
+        "     |######|",
+        "     |######|",
+        "     |######|",
+        "     '------'",
     ]
     static let table: [String] = [
-        "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
-        "██████████████████████████████████",
-        "██████████████████████████████████",
-        "▀▀▀▀▀█████▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█████▀▀▀▀",
-        "     █████               █████",
-        "     █████               █████",
-        "     █████               █████",
-        "     █████               █████",
-        "     █████               █████",
-        "     ▀▀▀▀▀               ▀▀▀▀▀",
+        ".--------------------------------.",
+        "|================================|",
+        "'---.-----.------------.-----.---'",
+        "    |:::::|            |:::::|",
+        "    |:::::|            |:::::|",
+        "    |:::::|            |:::::|",
+        "    |:::::|            |:::::|",
+        "    |:::::|            |:::::|",
+        "    '-----'            '-----'",
     ]
 }
 
 struct BenchView: View {
     /// Any agent is working: the block breathes.
     let breathing: Bool
-    var tint: Color = Palette.ink
-    var fontSize: CGFloat = 13
+    var fontSize: CGFloat = 14
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dim = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(BenchArt.block.enumerated()), id: \.offset) { _, line in row(line) }
-            }
-            .foregroundStyle(breathing ? Palette.working : tint)
-            .opacity(breathing && !reduceMotion ? (dim ? 0.28 : 1) : 1)
-            ForEach(Array(BenchArt.table.enumerated()), id: \.offset) { _, line in row(line) }
-                .foregroundStyle(tint.opacity(0.88))
+            lines(BenchArt.block)
+                .foregroundStyle(breathing ? Palette.working : Palette.ink)
+                .compositingGroup()
+                .opacity(breathing && !reduceMotion ? (dim ? 0.22 : 1) : 1)
+            lines(BenchArt.table)
+                .foregroundStyle(Palette.secondary)
         }
         .accessibilityElement()
-        .accessibilityLabel("Tezgah: a workbench")
+        .accessibilityLabel(breathing ? "Tezgah: agents are working" : "Tezgah")
         .onAppear(perform: animate)
         .onChange(of: breathing) { animate() }
         .onChange(of: reduceMotion) { animate() }
     }
 
-    private func row(_ line: String) -> some View {
-        Text(line)
-            .font(Fonts.mono(fontSize))
+    private func lines(_ rows: [String]) -> some View {
+        Text(rows.joined(separator: "\n"))
+            .font(Fonts.mono(fontSize, weight: .medium))
+            // Any tracking turns Geist Mono's ligatures off (### and |= would merge).
+            .tracking(0.2)
+            .lineSpacing(0)
             .fixedSize()
-            // Rows a little shorter than the glyphs, so the blocks join without seams.
-            .frame(height: fontSize * 1.02, alignment: .center)
     }
 
     private func animate() {

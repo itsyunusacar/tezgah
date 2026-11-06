@@ -50,7 +50,7 @@ struct SidebarView: View {
 
     private func search(text: Binding<String>) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.secondary)
             TextField("Search", text: text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
@@ -62,7 +62,7 @@ struct SidebarView: View {
                 }
             if !text.wrappedValue.isEmpty {
                 Button { text.wrappedValue = "" } label: {
-                    Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.tertiary)
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(Palette.tertiary)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -118,7 +118,7 @@ struct SidebarView: View {
         if filteredProjects.isEmpty {
             Text(query.isEmpty ? "Open a folder to start." : "No matches")
                 .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Palette.tertiary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
         }
@@ -148,7 +148,7 @@ struct SidebarView: View {
         if let s = store.status(ofProject: p.id) { return AnyView(StatusDot(state: s, size: 7)) }
         let count = store.sessions(in: p.id).count
         guard count > 0 else { return nil }
-        return AnyView(Text("\(count)").font(.system(size: 11.5)).foregroundStyle(.tertiary))
+        return AnyView(Text("\(count)").font(.system(size: 11.5)).foregroundStyle(Palette.tertiary))
     }
 
     private func sessionRow(_ s: Session) -> some View {
@@ -187,13 +187,13 @@ private struct SectionHeader: View {
         HStack {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Palette.secondary)
             Spacer()
             if let action {
                 Button(action: action.2) {
                     Image(systemName: action.0)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(hovering ? .primary : .secondary)
+                        .foregroundStyle(hovering ? Palette.ink : Palette.secondary)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
                 }
@@ -243,16 +243,16 @@ struct SidebarRow: View {
                 } else if let symbol {
                     Image(systemName: symbol)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Palette.secondary)
                         .frame(width: 20)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(.system(size: compact ? 12.5 : 13.5, weight: selected ? .medium : .regular))
-                        .foregroundStyle(dimmed ? .secondary : .primary)
+                        .foregroundStyle(dimmed ? Palette.secondary : Palette.ink)
                         .lineLimit(1)
                     if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Palette.secondary).lineLimit(1)
                     }
                 }
                 Spacer(minLength: 4)
@@ -260,6 +260,7 @@ struct SidebarRow: View {
             }
             .padding(.leading, 10 + indent)
             .padding(.trailing, 10)
+            .padding(.vertical, subtitle?.isEmpty == false ? 4 : 0)
             .frame(minHeight: compact ? 28 : 34)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)

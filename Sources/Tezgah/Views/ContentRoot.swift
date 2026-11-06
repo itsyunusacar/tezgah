@@ -105,16 +105,26 @@ struct SessionTab: View {
             Text(store.sessionTitle(session))
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
-            Text(store.sessionSubtitle(session))
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.tertiary)
-                .lineLimit(1)
-                .truncationMode(.head)
+            if let detail = detail {
+                Text(detail)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
             if let status {
                 StatusDot(state: status, size: 7)
             }
         }
-        .frame(maxWidth: 260)
+        .frame(maxWidth: 280)
+    }
+
+    /// What it's doing, or where it is when that isn't the project's own folder.
+    private var detail: String? {
+        if let msg = store.leadPane(of: session)?.statusMessage { return msg }
+        let cwd = store.leadPane(of: session)?.cwd ?? session.cwd
+        if let p = store.project(session.projectId), p.path == cwd { return nil }
+        return Paths.tilde(cwd)
     }
 }
 
