@@ -7,6 +7,8 @@ import UserNotifications
 enum AppActions {
     nonisolated(unsafe) static weak var store: AppStore?
 
+    static func showSettings() { NSApp.sendAction(#selector(AppDelegate.showSettings(_:)), to: nil, from: nil) }
+
     static func openFolder() {
         guard let store else { return }
         let panel = NSOpenPanel()
