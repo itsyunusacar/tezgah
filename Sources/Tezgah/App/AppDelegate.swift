@@ -163,14 +163,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             .environment(onboarding)
         let host = NSHostingController(rootView: root)
         host.sizingOptions = []
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 760),
+        let w = NSWindow(contentRect: NSRect(origin: .zero, size: OnboardingView.size),
                          styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
         w.contentViewController = host
         w.title = NSLocalizedString("Welcome to Tezgah", comment: "window")
         w.titleVisibility = .hidden
         w.titlebarAppearsTransparent = true
         w.isMovableByWindowBackground = true
-        w.setContentSize(NSSize(width: 1200, height: 760))
+        w.setContentSize(OnboardingView.size)
         w.center()
         onboarding.onFinish = { [weak self, weak w] in
             w?.orderOut(nil)

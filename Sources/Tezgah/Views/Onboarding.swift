@@ -31,16 +31,17 @@ final class Onboarding {
     }
 }
 
-/// The first-run window: five pages on squared paper.
+/// The first-run window: five pages under the sky. The horizon drops after the first page and rises
+/// again on the last; the bench always stands on it.
 struct OnboardingView: View {
+    static let size = CGSize(width: 880, height: 600)
     @Environment(Onboarding.self) private var flow
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            look.raised
-            PaperGrid()
+            look.base
             Group {
                 switch flow.step {
                 case 0: WelcomePage()
@@ -54,10 +55,6 @@ struct OnboardingView: View {
             .transition(reduceMotion ? .opacity : .asymmetric(
                 insertion: .offset(x: flow.forward ? Motion.pageOffset : -Motion.pageOffset).combined(with: .opacity),
                 removal: .opacity))
-            if flow.step > 0 {
-                StepBars(step: flow.step).padding(.top, 20).padding(.trailing, 24)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(.timingCurve(0.2, 0, 0, 1, duration: Motion.page), value: flow.step)
@@ -65,13 +62,36 @@ struct OnboardingView: View {
     }
 }
 
-private struct StepBars: View {
+/// A page: sky down to `horizon`, squared paper below, the bench on the horizon (centred or at the left).
+private struct Page<Content: View>: View {
+    var horizon: Double
+    var bench: Double
+    var centred = false
+    @ViewBuilder var content: Content
+    @Environment(\.look) private var look
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                SkyView().frame(height: horizon)
+                PaperGrid().background(look.base)
+            }
+            TezgahMark(width: bench, color: .white, blinking: true)
+                .frame(maxWidth: .infinity, alignment: centred ? .center : .leading)
+                .padding(.leading, centred ? 0 : Grid.Space.s12)
+                .frame(height: horizon, alignment: .bottom)
+            content
+        }
+    }
+}
+
+private struct StepDots: View {
     let step: Int
     @Environment(\.look) private var look
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(0 ..< Onboarding.pages, id: \.self) { i in
-                Capsule().fill(i <= step ? look.ink : look.line).frame(width: i == step ? 32 : 16, height: 4)
+                Capsule().fill(i <= step ? look.accent : look.line).frame(width: i == step ? 18 : 6, height: 6)
             }
         }
         .accessibilityElement()
@@ -79,143 +99,65 @@ private struct StepBars: View {
     }
 }
 
-private struct PageLabel: View {
-    let text: String
-    @Environment(\.look) private var look
-    var body: some View {
-        Text(text).type(.body, .medium, mono: true).tracking(0.5).foregroundStyle(look.muted)
-    }
-}
-
-private struct PageHeading: View {
-    let label: String
+private struct Heading: View {
     let title: LocalizedStringKey
     let text: LocalizedStringKey
+    var centred = false
     @Environment(\.look) private var look
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Grid.Space.s4) {
-            PageLabel(text: label)
-            Text(title).type(.display, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
-            Text(text).type(.lead).foregroundStyle(look.muted).fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: centred ? .center : .leading, spacing: 6) {
+            Text(title).type(.title2, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
+            Text(text).type(.body).foregroundStyle(look.muted).fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(centred ? .center : .leading)
         }
     }
 }
 
-private struct PageButtons: View {
+/// Dots on the left, Back and Continue on the right.
+private struct Footer: View {
     var primary: LocalizedStringKey = "Continue"
-    var secondary: LocalizedStringKey? = nil
     var showBack = true
-    var onSecondary: (() -> Void)?
     @Environment(Onboarding.self) private var flow
 
     var body: some View {
         HStack {
+            StepDots(step: flow.step)
+            Spacer()
             if showBack {
                 Button("Back") { flow.back() }.buttonStyle(TZButtonStyle(kind: .plain)).keyboardShortcut(.cancelAction)
             }
-            Spacer()
-            if let secondary {
-                Button(secondary) { onSecondary?() ?? flow.next() }.buttonStyle(TZButtonStyle())
-            }
             Button(primary) { flow.next() }.buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
         }
+        .padding(.horizontal, Grid.Space.s12)
+        .padding(.bottom, 28)
+        .frame(maxHeight: .infinity, alignment: .bottom)
     }
 }
 
 // MARK: - 01 Welcome
-
-/// The mark on the grid with its measures drawn in: 1 unit = 6 pt, so the squares are 4 and 16 units.
-struct MeasuredMark: View {
-    var showMeasures = true
-    @Environment(\.look) private var look
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drawn = false
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            // viewBox 8 13 84 76 at 6 pt per unit.
-            TezgahMark(width: 68 * 6, blinking: true)
-                .offset(x: (16 - 8) * 6, y: (23 - 13) * 6)
-            if showMeasures {
-                Canvas { ctx, _ in
-                    func u(_ v: Double) -> Double { v * 6 }
-                    let ink = look.muted.opacity(0.9)
-                    var p = Path()
-                    // 68 across the bottom, 12 at the top's edge, 18 beside the cursor.
-                    p.move(to: CGPoint(x: u(8), y: u(71))); p.addLine(to: CGPoint(x: u(76), y: u(71)))
-                    p.move(to: CGPoint(x: u(8), y: u(70))); p.addLine(to: CGPoint(x: u(8), y: u(72)))
-                    p.move(to: CGPoint(x: u(76), y: u(70))); p.addLine(to: CGPoint(x: u(76), y: u(72)))
-                    p.move(to: CGPoint(x: u(80), y: u(32))); p.addLine(to: CGPoint(x: u(80), y: u(44)))
-                    p.move(to: CGPoint(x: u(79), y: u(32))); p.addLine(to: CGPoint(x: u(81), y: u(32)))
-                    p.move(to: CGPoint(x: u(79), y: u(44))); p.addLine(to: CGPoint(x: u(81), y: u(44)))
-                    p.move(to: CGPoint(x: u(35), y: u(10))); p.addLine(to: CGPoint(x: u(35), y: u(28)))
-                    p.move(to: CGPoint(x: u(34), y: u(10))); p.addLine(to: CGPoint(x: u(36), y: u(10)))
-                    p.move(to: CGPoint(x: u(34), y: u(28))); p.addLine(to: CGPoint(x: u(36), y: u(28)))
-                    ctx.stroke(p, with: .color(ink), lineWidth: 1)
-                    var dash = Path()
-                    dash.move(to: CGPoint(x: u(8), y: u(4))); dash.addLine(to: CGPoint(x: u(8), y: u(30)))
-                    dash.move(to: CGPoint(x: u(76), y: u(4))); dash.addLine(to: CGPoint(x: u(76), y: u(30)))
-                    ctx.stroke(dash, with: .color(ink.opacity(0.6)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                    let font = Typeface.mono(11)
-                    ctx.draw(Text("68").font(font).foregroundStyle(ink), at: CGPoint(x: u(42), y: u(73.3)))
-                    ctx.draw(Text("12").font(font).foregroundStyle(ink), at: CGPoint(x: u(82.5), y: u(38)))
-                    ctx.draw(Text("18").font(font).foregroundStyle(ink), at: CGPoint(x: u(37.5), y: u(19)))
-                }
-                .frame(width: 84 * 6, height: 76 * 6)
-                .mask(alignment: .leading) {
-                    Rectangle().frame(width: drawn || reduceMotion ? 84 * 6 : 0)
-                }
-                .accessibilityHidden(true)
-            }
-        }
-        .frame(width: 84 * 6, height: 76 * 6, alignment: .topLeading)
-        .onAppear { withAnimation(.timingCurve(0.2, 0, 0, 1, duration: 1.2).delay(0.2)) { drawn = true } }
-    }
-}
 
 private struct WelcomePage: View {
     @Environment(Onboarding.self) private var flow
     @Environment(\.look) private var look
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            MeasuredMark().offset(x: 48, y: 120)
-            Text("1 unit = 6 pt · square = 4 units").type(.caption, mono: true).foregroundStyle(look.muted).offset(x: 96, y: 648)
-
-            VStack(alignment: .leading, spacing: Grid.Space.s6) {
-                PageLabel(text: "TEZGAH · 0.1 BETA")
-                Text("Welcome to\nTezgah.").type(.display, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
-                Text("A terminal for your agents, a hub for your projects. Five steps and you're ready.")
-                    .type(.title3).foregroundStyle(look.muted).fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: Grid.Space.s3) {
-                    Button { flow.next() } label: {
-                        HStack(spacing: 12) { Text("Start"); Text("↩").type(.caption, mono: true).opacity(0.6) }
-                    }
-                    .buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
+        Page(horizon: 300, bench: 132, centred: true) {
+            VStack(spacing: 0) {
+                Spacer().frame(height: 300 + 40)
+                Text("Welcome to Tezgah").type(.title1, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
+                Text("Run your coding agents from one window and see at once which one is waiting for you.")
+                    .type(.lead).foregroundStyle(look.muted).multilineTextAlignment(.center)
+                    .frame(maxWidth: 440).padding(.top, 8)
+                HStack(spacing: 10) {
+                    Button("Start") { flow.next() }.buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
                     Button("Skip Setup") { flow.finish() }.buttonStyle(TZButtonStyle())
                 }
-                .padding(.top, Grid.Space.s6)
+                .padding(.top, 24)
+                Spacer()
+                StepDots(step: 0).padding(.bottom, 30)
             }
-            .frame(width: 504, alignment: .leading)
-            .offset(x: 624, y: 168)
-
-            HStack(alignment: .top, spacing: 8) {
-                ForEach(Array(["Hello", "Appearance", "Permissions", "Agents", "Ready"].enumerated()), id: \.offset) { i, t in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Capsule().fill(i == 0 ? look.ink : look.line).frame(height: 4)
-                        HStack(spacing: 4) {
-                            Text(String(format: "%02d", i + 1)).type(.caption, .medium, mono: true)
-                            Text(LocalizedStringKey(t)).type(.caption, i == 0 ? .medium : .regular)
-                        }
-                        .foregroundStyle(i == 0 ? look.ink : look.muted)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .frame(width: 504)
-            .offset(x: 624, y: 648)
-            .accessibilityElement(children: .combine)
+            .frame(maxWidth: .infinity)
         }
     }
 }
@@ -227,140 +169,127 @@ private struct AppearancePage: View {
     @Environment(\.look) private var look
     @AppStorage("terminal.fontSize") private var fontSize = 13.0
 
+    private let lightThemes = ["kagit", "talas", "cini", "sis"]
+    private let darkThemes = ["gece", "lacivert", "ceviz", "gurup"]
+
     var body: some View {
         @Bindable var appearance = appearance
-        ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: Grid.Space.s8) {
-                PageHeading(label: "02 · APPEARANCE", title: "Make it yours.", text: "You can change all of this later in Settings.")
-
-                VStack(alignment: .leading, spacing: Grid.Space.s2) {
-                    Text("Theme").type(.body, .medium).foregroundStyle(look.ink)
-                    Picker("Theme", selection: $appearance.mode) {
-                        Text("Light").tag(Appearance.Mode.light)
-                        Text("Dark").tag(Appearance.Mode.dark)
-                        Text("System").tag(Appearance.Mode.system)
-                    }
-                    .pickerStyle(.segmented).labelsHidden()
+        Page(horizon: 120, bench: 64) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 120 + 28)
+                Heading(title: "How should it look?", text: "The app's mode and the terminal's theme. All of it can change later in Settings.")
+                Text("App").type(.body, .medium).foregroundStyle(look.ink).padding(.top, 22)
+                HStack(spacing: 16) {
+                    ModeCard(mode: .light, selected: appearance.mode == .light) { appearance.mode = .light }
+                    ModeCard(mode: .dark, selected: appearance.mode == .dark) { appearance.mode = .dark }
+                    ModeCard(mode: .system, selected: appearance.mode == .system) { appearance.mode = .system }
                 }
-
-                VStack(alignment: .leading, spacing: Grid.Space.s2) {
-                    Text("Where should the projects strip sit?").type(.body, .medium).foregroundStyle(look.ink)
-                    HStack(spacing: Grid.Space.s2) {
-                        ForEach(NavPosition.allCases) { p in
-                            PositionTile(position: p, selected: appearance.navPosition == p) { appearance.navPosition = p }
+                .padding(.top, 8)
+                Text("Terminal").type(.body, .medium).foregroundStyle(look.ink).padding(.top, 20)
+                HStack(spacing: 10) {
+                    ForEach(lightThemes + darkThemes, id: \.self) { id in
+                        if let t = Themes.theme(id) {
+                            ThemeChip(theme: t, selected: (t.isDark ? appearance.darkTheme : appearance.lightTheme) == id && t.isDark == look.dark) {
+                                if t.isDark { appearance.darkTheme = id } else { appearance.lightTheme = id }
+                            }
                         }
                     }
                 }
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Terminal text").type(.body, .medium).foregroundStyle(look.ink)
-                        Text("Geist Mono · \(Int(fontSize)) pt").type(.caption, mono: true).foregroundStyle(look.muted)
+                .padding(.top, 8)
+                HStack(spacing: 14) {
+                    Text("Text size").type(.body, .medium).foregroundStyle(look.ink)
+                    Picker("Text size", selection: $fontSize) {
+                        ForEach([12.0, 13, 14, 16], id: \.self) { Text("\(Int($0))").tag($0) }
                     }
-                    Spacer()
-                    Button("A−") { fontSize = max(11, fontSize - 1) }.buttonStyle(TZButtonStyle()).accessibilityLabel(Text("Smaller text"))
-                    Button("A+") { fontSize = min(18, fontSize + 1) }.buttonStyle(TZButtonStyle()).accessibilityLabel(Text("Bigger text"))
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    Text("Projects strip").type(.body, .medium).foregroundStyle(look.ink).padding(.leading, 12)
+                    Picker("Projects strip", selection: $appearance.navPosition) {
+                        ForEach(NavPosition.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
+                .padding(.top, 22)
             }
-            .frame(width: 456, alignment: .leading)
-            .offset(x: 48, y: 72)
-
-            NavPreview(position: appearance.navPosition, fontSize: fontSize)
-                .frame(width: 576, height: 480)
-                .offset(x: 576, y: 96)
-            Text("Preview · changes as you choose").type(.caption, mono: true).foregroundStyle(look.muted).offset(x: 576, y: 592)
-
-            PageButtons().frame(width: 1104).offset(x: 48, y: 680)
+            .padding(.horizontal, Grid.Space.s12)
+            Footer()
         }
     }
 }
 
-private struct PositionTile: View {
-    let position: NavPosition
+/// A tiny window in light, dark or both.
+private struct ModeCard: View {
+    let mode: Appearance.Mode
     let selected: Bool
     let action: () -> Void
     @Environment(\.look) private var look
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: Grid.Space.s2) {
-                ZStack(alignment: alignment) {
-                    RoundedRectangle(cornerRadius: 6).strokeBorder(look.muted, lineWidth: 1.5).frame(width: 64, height: 48)
-                    RoundedRectangle(cornerRadius: 2).fill(look.ink)
-                        .frame(width: position.isVertical ? 12 : 56, height: position.isVertical ? 40 : 7)
-                        .padding(4)
-                }
-                .frame(width: 64, height: 48)
-                Text(position.title).type(.body, .medium).foregroundStyle(look.ink)
+            VStack(spacing: 6) {
+                preview
+                    .frame(width: 112, height: 70)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(selected ? look.accent : look.line, lineWidth: selected ? 2 : 1))
+                    .background(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(selected ? look.focusRing : .clear, lineWidth: 3).padding(-2))
+                Text(name).type(.small, selected ? .medium : .regular).foregroundStyle(selected ? look.accent : look.muted)
             }
-            .frame(maxWidth: .infinity, minHeight: 96)
-            .background(look.raised, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-            .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(selected ? look.ink : look.line, lineWidth: selected ? 2 : 1))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private var alignment: Alignment {
-        switch position {
-        case .left: .leading
-        case .right: .trailing
-        case .top: .top
-        case .bottom: .bottom
+    private var name: LocalizedStringKey {
+        switch mode { case .light: "Light"; case .dark: "Dark"; case .system: "System" }
+    }
+
+    @ViewBuilder private var preview: some View {
+        switch mode {
+        case .light: mini(.day)
+        case .dark: mini(.night)
+        case .system:
+            HStack(spacing: 0) { mini(.day); mini(.night) }
+        }
+    }
+
+    private func mini(_ c: ChromePalette) -> some View {
+        HStack(spacing: 0) {
+            Color(c.bar).frame(width: mode == .system ? 14 : 28)
+            VStack(alignment: .leading, spacing: 5) {
+                Capsule().fill(Color(c.line)).frame(width: 40, height: 5)
+                Capsule().fill(Color(c.blue)).frame(width: 26, height: 5)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Color(c.paper))
         }
     }
 }
 
-private struct NavPreview: View {
-    let position: NavPosition
-    let fontSize: Double
+private struct ThemeChip: View {
+    let theme: ThemeSpec
+    let selected: Bool
+    let action: () -> Void
     @Environment(\.look) private var look
+    private var themeName: String { Locale.current.language.languageCode?.identifier == "tr" ? theme.nameTR : theme.nameEN }
 
     var body: some View {
-        let layout = position.isVertical ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
-        layout {
-            if position == .left || position == .top { bar }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("~/Project/tezgah-mac").foregroundStyle(look.muted)
-                Text("❯ claude").foregroundStyle(look.ink)
-                Text("  Hi! What shall we work on?").foregroundStyle(look.muted)
-                HStack(spacing: 0) {
-                    Text("❯ ").foregroundStyle(look.ink)
-                    Rectangle().fill(look.ink).frame(width: fontSize * 0.6, height: fontSize * 1.2)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("~ ❯ claude").foregroundStyle(Color(theme.foreground))
+                    Text("…").foregroundStyle(Color(theme.muted))
                 }
-            }
-            .font(Typeface.mono(fontSize))
-            .padding(24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            if position == .right || position == .bottom { bar }
-        }
-        .background(look.raised)
-        .clipShape(RoundedRectangle(cornerRadius: Grid.Radius.window, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Grid.Radius.window, style: .continuous).strokeBorder(look.line))
-        .shadow(color: .black.opacity(0.12), radius: 20, y: 8)
-        .accessibilityHidden(true)
-    }
-
-    private var bar: some View {
-        let tabs = Group {
-            tab(.claude, "claude", active: true)
-            tab(.codex, "codex", active: false)
-        }
-        return Group {
-            if position.isVertical {
-                VStack(alignment: .leading, spacing: 4) { tabs; Spacer() }.padding(8).frame(width: 160)
-            } else {
-                HStack(spacing: 4) { tabs; Spacer() }.padding(8).frame(height: 44)
+                .font(Typeface.mono(10))
+                .padding(.horizontal, 7)
+                .frame(width: 80, height: 42, alignment: .leading)
+                .background(Color(theme.background), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(selected ? look.accent : look.line, lineWidth: selected ? 2 : 1))
+                Text(themeName).type(.small, selected ? .medium : .regular).foregroundStyle(selected ? look.accent : look.muted)
             }
         }
-        .background(look.base)
-    }
-
-    private func tab(_ kind: AgentKind, _ name: String, active: Bool) -> some View {
-        HStack(spacing: 8) { AgentLogo(kind: kind, size: 12); Text(name).type(.body, active ? .medium : .regular) }
-            .foregroundStyle(active ? look.ink : look.muted)
-            .padding(.horizontal, 10).frame(height: 28)
-            .background(active ? look.raised : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(themeName))
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -373,36 +302,23 @@ private struct PermissionsPage: View {
 
     var body: some View {
         let allGranted = permissions.notifications == .granted && permissions.screenRecording == .granted && permissions.finderAction == .granted
-        ZStack(alignment: .topLeading) {
-            PageHeading(label: "03 · PERMISSIONS", title: "Three permissions, one drag.",
-                        text: "Click one and System Settings opens on its page. Each card ticks itself when the permission arrives.")
-                .frame(width: 480, alignment: .leading)
-                .offset(x: 48, y: 72)
-
-            VStack(spacing: Grid.Space.s2) {
-                PermissionCard(symbol: "bell", title: "Notifications", detail: "Tells you when an agent waits for you",
-                               state: permissions.notifications) { permissions.requestNotifications() }
-                PermissionCard(symbol: "rectangle.on.rectangle", title: "Screen Recording", detail: "To show simulators and windows in a pane",
-                               state: permissions.screenRecording) { permissions.openScreenRecordingSettings(); WindowPlacement.makeRoomForSettings() }
-                PermissionCard(symbol: "folder", title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder",
-                               state: permissions.finderAction) { permissions.installFinderAction() }
-            }
-            .frame(width: 480)
-            .offset(x: 48, y: 280)
-
-            DragAppIcon().frame(width: 480, height: 104).offset(x: 48, y: 504)
-
-            HStack {
-                Button("Back") { flow.back() }.buttonStyle(TZButtonStyle(kind: .plain))
-                Spacer()
-                if allGranted {
-                    Button("Continue") { flow.next() }.buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
-                } else {
-                    Button("Later") { flow.next() }.buttonStyle(TZButtonStyle()).keyboardShortcut(.defaultAction)
+        Page(horizon: 112, bench: 52) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 112 + 22)
+                Heading(title: "A few permissions", text: "Click one and System Settings opens on its page, on the left.")
+                VStack(spacing: 8) {
+                    PermissionCard(title: "Notifications", detail: "Tells you when an agent waits for you",
+                                   state: permissions.notifications) { permissions.requestNotifications() }
+                    PermissionCard(title: "Screen Recording", detail: "To show simulators and windows in a pane",
+                                   state: permissions.screenRecording) { permissions.openScreenRecordingSettings(); WindowPlacement.makeRoomForSettings() }
+                    PermissionCard(title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder",
+                                   state: permissions.finderAction) { permissions.installFinderAction() }
                 }
+                .padding(.top, 16)
+                if permissions.screenRecording != .granted { DragAppIcon().padding(.top, 10) }
             }
-            .frame(width: 480)
-            .offset(x: 48, y: 680)
+            .padding(.horizontal, 32)
+            Footer(primary: allGranted ? "Continue" : "Later").padding(.horizontal, -16)
         }
         .onAppear {
             permissions.startWatching()
@@ -419,33 +335,30 @@ private struct PermissionsPage: View {
 }
 
 private struct PermissionCard: View {
-    let symbol: String
     let title: LocalizedStringKey
     let detail: LocalizedStringKey
     let state: Permissions.State
     let action: () -> Void
     @Environment(\.look) private var look
+    @State private var hover = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Grid.Space.s4) {
-                Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(active ? look.onPrimary : look.ink)
-                    .frame(width: 32, height: 32)
-                    .background(active ? look.ink : look.base, in: RoundedRectangle(cornerRadius: 8))
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(title).type(.body, .medium).foregroundStyle(look.ink)
-                    Text(detail).type(.caption).foregroundStyle(look.muted)
+                    Text(detail).type(.small).foregroundStyle(look.muted)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 trailing
-                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(look.faint)
             }
-            .padding(.horizontal, Grid.Space.s4)
-            .frame(height: 64)
-            .background(look.raised, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-            .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(active ? look.ink : look.line, lineWidth: active ? 2 : 1))
+            .padding(.horizontal, 14)
+            .frame(height: 54)
+            .background(active ? look.selected : look.raised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(active ? look.selectedEdge : hover ? look.muted.opacity(0.4) : look.line))
         }
         .buttonStyle(.plain)
+        .onHover { hover = $0 }
         .accessibilityValue(Text(stateText))
     }
 
@@ -454,13 +367,13 @@ private struct PermissionCard: View {
     @ViewBuilder private var trailing: some View {
         switch state {
         case .granted:
-            HStack(spacing: 8) { Text("Granted").type(.caption, .medium).foregroundStyle(look.done); DoneCheck(size: 22) }
+            HStack(spacing: 5) { DoneCheck(size: 13); Text("Granted").type(.small, .medium) }.foregroundStyle(look.done)
         case .needsRelaunch:
             Button("Reopen Tezgah") { Relauncher.relaunch() }.buttonStyle(TZButtonStyle(kind: .primary, small: true))
         case .denied:
-            Text("Turned off").type(.caption).foregroundStyle(look.failed)
+            Text("Turned off").type(.small).foregroundStyle(look.failed)
         case .unknown:
-            Text("Open").type(.caption).foregroundStyle(look.muted)
+            Text("Open").type(.small, .medium).foregroundStyle(look.ink)
         }
     }
 
@@ -477,31 +390,22 @@ private struct PermissionCard: View {
 /// The app's own icon, draggable into System Settings' list.
 private struct DragAppIcon: View {
     @Environment(\.look) private var look
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var lift = false
 
     var body: some View {
-        HStack(spacing: Grid.Space.s6) {
+        HStack(spacing: 12) {
             Image(nsImage: NSApp.applicationIconImage)
-                .resizable().frame(width: 64, height: 64)
-                .shadow(color: .black.opacity(0.25), radius: 8, y: 6)
-                .offset(y: lift ? -4 : 0)
+                .resizable().frame(width: 36, height: 36)
                 .onDrag { NSItemProvider(contentsOf: Bundle.main.bundleURL) ?? NSItemProvider() }
                 .accessibilityLabel(Text("Tezgah app icon, drag it into the list"))
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Hold the icon, drop it in the list").type(.lead, .semibold).foregroundStyle(look.ink)
-                Text("Screen & System Audio Recording · open Tezgah").type(.body).foregroundStyle(look.soft)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Hold the icon, drop it in the list").type(.body, .medium).foregroundStyle(look.ink)
+                Text("Screen & System Audio Recording · open Tezgah").type(.small).foregroundStyle(look.muted)
             }
             Spacer()
         }
-        .padding(.horizontal, Grid.Space.s6)
-        .frame(maxHeight: .infinity)
-        .background(look.base, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-        .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(look.ink, style: StrokeStyle(lineWidth: 1.5, dash: [6, 6])))
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { lift = true }
-        }
+        .padding(.horizontal, 14)
+        .frame(height: 56)
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(look.line, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
     }
 }
 
@@ -512,7 +416,7 @@ enum WindowPlacement {
     static func narrowToRight() {
         guard let w = onboardingWindow, let screen = w.screen ?? NSScreen.main else { return }
         let area = screen.visibleFrame
-        let width = 576.0, height = w.frame.height
+        let width = 460.0, height = w.frame.height
         let x = area.midX + max(Grid.Space.s6, (area.width / 2 - width) / 2)
         w.setFrame(NSRect(x: min(x, area.maxX - width - Grid.Space.s6), y: area.midY - height / 2, width: width, height: height),
                    display: true, animate: true)
@@ -521,7 +425,7 @@ enum WindowPlacement {
     static func restoreOnboarding() {
         guard let w = onboardingWindow, let screen = w.screen ?? NSScreen.main else { return }
         let area = screen.visibleFrame
-        let size = NSSize(width: 1200, height: w.frame.height)
+        let size = NSSize(width: OnboardingView.size.width, height: w.frame.height)
         w.setFrame(NSRect(x: area.midX - size.width / 2, y: area.midY - size.height / 2, width: size.width, height: size.height),
                    display: true, animate: true)
     }
@@ -537,62 +441,33 @@ private struct AgentsPage: View {
     @State private var found: [AgentDetector.Found]?
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: Grid.Space.s6) {
-                PageHeading(label: "04 · AGENTS", title: title,
-                            text: "To know when an agent is working or waiting for you, Tezgah adds a small hook to it. Nothing else in the agent's settings changes; you can remove it any time.")
-                VStack(alignment: .leading, spacing: Grid.Space.s3) {
-                    Text("In the strip it looks like this").type(.body, .medium).foregroundStyle(look.ink)
-                    sample(.claude, "claude · working", .working)
-                    sample(.codex, "codex · waiting for you", .blocked)
-                    sample(.antigravity, "antigravity · done", .done)
-                }
-                .padding(Grid.Space.s4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(look.base, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-                .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(look.line))
-            }
-            .frame(width: 432, alignment: .leading)
-            .offset(x: 48, y: 72)
-
-            VStack(spacing: Grid.Space.s2) {
-                if let found {
-                    ForEach(found) { AgentRow(found: $0) }
-                    OtherToolRow()
-                    let missing = AgentKind.allCases.filter { k in !found.contains { $0.kind == k } }
-                    if !missing.isEmpty {
-                        Text("Not found: \(missing.map(\.name).formatted(.list(type: .and))). Tezgah notices when you install one.")
-                            .type(.caption).foregroundStyle(look.muted).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+        Page(horizon: 120, bench: 64) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 120 + 28)
+                Heading(title: title, text: "Turn on notifications and Tezgah tells you when an agent waits for you or finishes. It adds a small hook; nothing else in the agent changes.")
+                VStack(spacing: 8) {
+                    if let found {
+                        ForEach(found) { AgentRow(found: $0) }
+                        ForEach(AgentKind.allCases.filter { k in !found.contains { $0.kind == k } }) { MissingAgentRow(kind: $0) }
+                    } else {
+                        ProgressView().controlSize(.small).frame(maxWidth: .infinity, minHeight: 80)
                     }
-                } else {
-                    ProgressView().controlSize(.small).frame(maxWidth: .infinity, minHeight: 80)
-                    Text("Looking for agents…").type(.caption).foregroundStyle(look.muted)
                 }
+                .padding(.top, 18)
+                Text("Install types the official command into a new tab; you press Enter.")
+                    .type(.small).foregroundStyle(look.muted).padding(.top, 8)
             }
-            .frame(width: 576)
-            .offset(x: 576, y: 96)
-
-            PageButtons().frame(width: 1104).offset(x: 48, y: 680)
+            .padding(.horizontal, Grid.Space.s12)
+            Footer()
         }
         .task { found = await AgentDetector.detect() }
     }
 
     private var title: LocalizedStringKey {
         switch found?.count {
-        case nil: "Looking for agents."
-        case 0?: "No agents yet."
-        case 1?: "I found one agent."
-        case let n?: "I found \(n) agents."
-        }
-    }
-
-    private func sample(_ kind: AgentKind, _ text: LocalizedStringKey, _ state: AgentState) -> some View {
-        HStack(spacing: 8) {
-            Circle().fill(Color(RGB(kind == .claude ? 0xD97757 : kind == .antigravity ? 0x3186FF : 0x0C0B0A))).frame(width: 8, height: 8)
-            AgentLogo(kind: kind, size: 14)
-            Text(text).type(.body).foregroundStyle(state == .blocked ? look.waiting : look.soft)
-            Spacer()
-            StateMark(state: state)
+        case nil: "Looking for agents"
+        case 0?: "No agents yet"
+        default: "We found your agents"
         }
     }
 }
@@ -608,43 +483,49 @@ private struct AgentRow: View {
     }
 
     var body: some View {
-        HStack(spacing: Grid.Space.s4) {
-            AgentLogo(kind: found.kind, size: 24)
-                .frame(width: 40, height: 40)
-                .background(look.raised, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.line))
+        HStack(spacing: 12) {
+            AgentLogo(kind: found.kind, size: 20)
             VStack(alignment: .leading, spacing: 0) {
-                Text(found.kind.name).type(.lead, .medium).foregroundStyle(look.ink)
-                Text([Paths.tilde(found.path), found.version].compactMap { $0 }.joined(separator: " · "))
-                    .type(.caption, mono: true).foregroundStyle(look.muted)
+                Text(found.kind.name).type(.body, .medium).foregroundStyle(look.ink)
+                HStack(spacing: 8) {
+                    Text(found.kind.command).type(.small, mono: true).foregroundStyle(look.muted)
+                    if let v = found.version { Text(v).type(.small).foregroundStyle(look.faint) }
+                }
             }
             Spacer()
-            Toggle("Report status", isOn: $reports).toggleStyle(.switch).controlSize(.small).tint(look.ink)
+            Text("Notifications").type(.small).foregroundStyle(look.muted)
+            Toggle("Notifications", isOn: $reports).toggleStyle(.switch).controlSize(.small).labelsHidden().tint(look.accent)
                 .onChange(of: reports) { AgentHooks.install() }
         }
-        .padding(.horizontal, 20)
-        .frame(height: 80)
-        .background(look.raised, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-        .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(look.line))
+        .padding(.horizontal, 14)
+        .frame(height: 52)
+        .background(look.raised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(look.line))
     }
 }
 
-private struct OtherToolRow: View {
+private struct MissingAgentRow: View {
+    let kind: AgentKind
+    @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
+
     var body: some View {
-        HStack(spacing: Grid.Space.s4) {
-            Image(systemName: "plus").frame(width: 40, height: 40)
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.muted, lineWidth: 1.5))
+        HStack(spacing: 12) {
+            AgentLogo(kind: kind, size: 20).opacity(0.55)
             VStack(alignment: .leading, spacing: 0) {
-                Text("Another tool").type(.lead, .medium).foregroundStyle(look.ink)
-                Text("Type its command; Tezgah treats it as an agent too").type(.caption).foregroundStyle(look.muted)
+                Text(kind.name).type(.body, .medium).foregroundStyle(look.soft)
+                HStack(spacing: 8) {
+                    Text(kind.command).type(.small, mono: true).foregroundStyle(look.muted)
+                    Text("not installed").type(.small).foregroundStyle(look.faint)
+                }
             }
             Spacer()
-            Button("Add") {}.buttonStyle(TZButtonStyle())
+            Button("Website") { NSWorkspace.shared.open(AgentCatalog.site(kind)) }.buttonStyle(TZButtonStyle(kind: .plain, small: true))
+            Button("Install") { store.typeInstallCommand(for: kind) }.buttonStyle(TZButtonStyle(small: true))
         }
-        .padding(.horizontal, 20)
-        .frame(height: 80)
-        .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(look.muted, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
+        .padding(.horizontal, 14)
+        .frame(height: 52)
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(look.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
     }
 }
 
@@ -657,69 +538,64 @@ private struct ReadyPage: View {
     @State private var folders: [URL] = []
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            TezgahMark(width: 68 * 6, blinking: true).offset(x: 48 + 8 * 6, y: 120 + 10 * 6)
-            Text("setup complete · 5 / 5").type(.caption, mono: true).foregroundStyle(look.muted).offset(x: 96, y: 648)
-
-            VStack(alignment: .leading, spacing: Grid.Space.s6) {
-                PageLabel(text: "05 · READY")
-                Text("Tezgah\nis ready.").type(.display, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
-                if !folders.isEmpty {
-                    Text("Open your first project. These are the folders you worked in last:").type(.lead).foregroundStyle(look.muted)
-                    VStack(spacing: 0) {
-                        ForEach(Array(folders.prefix(3).enumerated()), id: \.offset) { i, url in
-                            Button { open(url) } label: {
-                                HStack {
-                                    Text(url.lastPathComponent).type(.body, .medium).foregroundStyle(look.ink)
-                                    Spacer()
-                                    Text(Paths.tilde(url.deletingLastPathComponent().path)).type(.caption, mono: true).foregroundStyle(look.muted)
-                                }
-                                .padding(.horizontal, Grid.Space.s4).frame(height: 48).contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            if i < min(folders.count, 3) - 1 { Rectangle().fill(look.line).frame(height: 1) }
-                        }
-                    }
-                    .background(look.raised, in: RoundedRectangle(cornerRadius: Grid.Radius.card))
-                    .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card).strokeBorder(look.line))
-                } else {
-                    Text("Open your first project.").type(.lead).foregroundStyle(look.muted)
-                }
-                HStack(spacing: Grid.Space.s3) {
+        Page(horizon: 200, bench: 88, centred: true) {
+            VStack(spacing: 0) {
+                Spacer().frame(height: 200 + 30)
+                Heading(title: "You're ready", text: "Open a project folder and start your first agent.", centred: true)
+                HStack(spacing: 8) {
                     Button { flow.finish(); AppActions.openFolder() } label: {
-                        HStack(spacing: 12) { Text("Choose Folder"); Text("⌘O").type(.caption, mono: true).opacity(0.6) }
+                        HStack(spacing: 8) { Text("Open Project"); Text("⌘O").type(.caption).opacity(0.6) }
                     }
                     .buttonStyle(TZButtonStyle(kind: .primary)).keyboardShortcut(.defaultAction)
                     Button("Empty Terminal") { flow.finish(); _ = store.newSession(projectId: nil) }.buttonStyle(TZButtonStyle())
                 }
+                .padding(.top, 18)
+                if !folders.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Recent folders").type(.small, .medium).foregroundStyle(look.muted).padding(.leading, 10).padding(.bottom, 4)
+                        ForEach(Array(folders.prefix(3).enumerated()), id: \.offset) { _, url in
+                            FolderRow(url: url) { open(url) }
+                        }
+                    }
+                    .frame(width: 420)
+                    .padding(.top, 22)
+                }
+                Spacer()
             }
-            .frame(width: 504, alignment: .leading)
-            .offset(x: 624, y: 96)
-
-            HStack(spacing: 8) {
-                shortcut("⌘T", "New session")
-                shortcut("⌘D", "Split")
-                shortcut("⌘K", "Search everything")
-                shortcut("⇧⌘F", "Focus mode")
-            }
-            .frame(width: 504)
-            .offset(x: 624, y: 640)
+            .frame(maxWidth: .infinity)
         }
         .task { folders = RecentFolders.find() }
-    }
-
-    private func shortcut(_ keys: String, _ title: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(keys).type(.body, .medium, mono: true).foregroundStyle(look.ink)
-            Text(title).type(.caption).foregroundStyle(look.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func open(_ url: URL) {
         let p = store.addProject(path: url.path)
         flow.finish()
         store.openProject(p.id)
+    }
+}
+
+private struct FolderRow: View {
+    let url: URL
+    let action: () -> Void
+    @Environment(\.look) private var look
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "folder").font(.system(size: 13)).foregroundStyle(hover ? look.accent : look.muted)
+                Text(url.lastPathComponent).type(.body, .medium).foregroundStyle(look.ink)
+                Text(Paths.tilde(url.deletingLastPathComponent().path)).type(.small).foregroundStyle(look.faint)
+                Spacer()
+                if hover { Text("↩").type(.small).foregroundStyle(look.faint) }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .background(hover ? look.selected : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
     }
 }
 

@@ -3500,6 +3500,256 @@
           }
         }
       }
+    },
+    "%lld waiting for you": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld seni bekliyor"
+          }
+        }
+      }
+    },
+    "Show Projects": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeleri Göster"
+          }
+        }
+      }
+    },
+    "Good morning": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Günaydın"
+          }
+        }
+      }
+    },
+    "Good afternoon": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İyi günler"
+          }
+        }
+      }
+    },
+    "Good evening": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İyi akşamlar"
+          }
+        }
+      }
+    },
+    "Nothing is running right now.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şu an çalışan bir şey yok."
+          }
+        }
+      }
+    },
+    "Run your coding agents from one window and see at once which one is waiting for you.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kodlama ajanlarını tek pencereden çalıştır, hangisinin seni beklediğini hemen gör."
+          }
+        }
+      }
+    },
+    "How should it look?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nasıl görünsün?"
+          }
+        }
+      }
+    },
+    "The app's mode and the terminal's theme. All of it can change later in Settings.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uygulamanın modu ve terminalin teması. Hepsi sonra Ayarlar'dan değişir."
+          }
+        }
+      }
+    },
+    "App": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uygulama"
+          }
+        }
+      }
+    },
+    "Text size": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazı boyutu"
+          }
+        }
+      }
+    },
+    "Projects strip": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler şeridi"
+          }
+        }
+      }
+    },
+    "A few permissions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Birkaç izin"
+          }
+        }
+      }
+    },
+    "Click one and System Settings opens on its page, on the left.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Birine tıkla, Sistem Ayarları solda doğru sayfada açılır."
+          }
+        }
+      }
+    },
+    "Looking for agents": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanlar aranıyor"
+          }
+        }
+      }
+    },
+    "No agents yet": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz ajan yok"
+          }
+        }
+      }
+    },
+    "We found your agents": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanlarını bulduk"
+          }
+        }
+      }
+    },
+    "Turn on notifications and Tezgah tells you when an agent waits for you or finishes. It adds a small hook; nothing else in the agent changes.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildirimleri açarsan, ajan seni beklediğinde ya da işi bitirdiğinde Tezgah haber verir. Küçük bir kanca ekler; ajanda başka hiçbir şey değişmez."
+          }
+        }
+      }
+    },
+    "Install types the official command into a new tab; you press Enter.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kur, resmi kurulum komutunu yeni bir sekmeye yazar; Enter'a sen basarsın."
+          }
+        }
+      }
+    },
+    "not installed": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurulu değil"
+          }
+        }
+      }
+    },
+    "You're ready": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hazırsın"
+          }
+        }
+      }
+    },
+    "Open a project folder and start your first agent.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir proje klasörü aç, ilk ajanını başlat."
+          }
+        }
+      }
+    },
+    "Open Project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje Aç"
+          }
+        }
+      }
+    },
+    "Recent folders": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son klasörler"
+          }
+        }
+      }
+    },
+    "Projects  ⌘\\": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler  ⌘\\"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
