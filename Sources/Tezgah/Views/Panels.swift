@@ -33,7 +33,7 @@ struct NotificationsPanel: View {
                     ForEach(Filter.allCases, id: \.self) { f in
                         Button { filter = f } label: {
                             Text(title(f)).type(.caption, .medium)
-                                .foregroundStyle(filter == f ? Color(look.theme.background) : look.soft)
+                                .foregroundStyle(filter == f ? look.onPrimary : look.soft)
                                 .padding(.horizontal, 10).frame(height: 26)
                                 .background(filter == f ? look.ink : look.selected, in: Capsule())
                         }

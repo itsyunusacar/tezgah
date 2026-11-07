@@ -32,44 +32,41 @@ public enum Grid {
     }
 }
 
-/// The type scale: 13 × 1.25ⁿ, rounded, with line heights snapped to the 4 pt grid.
+/// The type scale. The body is 13 pt like macOS; the biggest title is 28 pt (34 only on the first-run
+/// page). Line heights sit on the 4 pt grid.
 public enum TypeScale: CaseIterable, Sendable {
-    case caption, body, lead, title3, title2, title1, display, hero, poster
+    case caption, small, body, lead, title3, title2, title1, display
 
     public var size: Double {
         switch self {
         case .caption: 11
+        case .small: 12
         case .body: 13
-        case .lead: 16
-        case .title3: 20
-        case .title2: 25
-        case .title1: 31
-        case .display: 39
-        case .hero: 49
-        case .poster: 76
+        case .lead: 15
+        case .title3: 17
+        case .title2: 22
+        case .title1: 28
+        case .display: 34
         }
     }
 
     public var lineHeight: Double {
         switch self {
-        case .caption: 16
+        case .caption, .small: 16
         case .body: 20
-        case .lead: 24
-        case .title3: 28
-        case .title2: 32
-        case .title1: 40
-        case .display: 48
-        case .hero: 56
-        case .poster: 80
+        case .lead, .title3: 24
+        case .title2: 28
+        case .title1: 36
+        case .display: 40
         }
     }
 
     /// Big type is set a little tighter.
     public var tracking: Double {
         switch self {
-        case .poster: -0.035
-        case .hero, .display: -0.025
-        case .title1, .title2: -0.015
+        case .display, .title1: -0.022
+        case .title2: -0.015
+        case .title3: -0.01
         default: 0
         }
     }

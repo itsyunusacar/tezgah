@@ -204,7 +204,7 @@ struct Spinner: View {
         TimelineView(.animation(paused: reduceMotion)) { ctx in
             let angle = reduceMotion ? 0 : ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360
             ZStack {
-                Circle().stroke(look.working.opacity(0.18), lineWidth: size / 7)
+                Circle().stroke(look.selected, lineWidth: size / 7)
                 Circle().trim(from: 0, to: 0.25).stroke(look.working, style: StrokeStyle(lineWidth: size / 7, lineCap: .round))
                     .rotationEffect(.degrees(angle))
             }
@@ -236,11 +236,8 @@ struct DoneCheck: View {
     var size: Double = 14
     @Environment(\.look) private var look
     var body: some View {
-        ZStack {
-            Circle().fill(look.done)
-            Image(systemName: "checkmark").font(.system(size: size * 0.55, weight: .bold)).foregroundStyle(.white)
-        }
-        .frame(width: size, height: size)
+        Image(systemName: "checkmark").font(.system(size: size * 0.72, weight: .semibold)).foregroundStyle(look.done)
+            .frame(width: size, height: size)
     }
 }
 
@@ -285,7 +282,7 @@ struct Monogram: View {
     var body: some View {
         Text(String(name.prefix(1)).uppercased())
             .font(Typeface.sans(max(10, size / 2), .semibold))
-            .foregroundStyle(active ? Color(look.theme.background) : look.soft)
+            .foregroundStyle(active ? look.onPrimary : look.soft)
             .frame(width: size, height: size)
             .background(active ? look.ink : look.ink.opacity(look.dark ? 0.14 : 0.09),
                         in: RoundedRectangle(cornerRadius: max(5, size / 4), style: .continuous))

@@ -68,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         // Snapshots use a throwaway workspace and never touch the saved one.
         store = AppStore(persistence: snapshotDir == nil ? Persistence(directory: Persistence.defaultDirectory) : nil)
         AppActions.store = store
+        store.sidebarOpen = appearance.sidebarPinned
         if let issue = TerminalLook.controller.lastConfigurationIssue {
             FileHandle.standardError.write(Data("tezgah: ghostty config: \(issue)\n".utf8))
         }
@@ -145,7 +146,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         if w.frame.origin == .zero { w.center() }
         w.delegate = self
         w.tabbingMode = .disallowed
-        w.backgroundColor = NSColor(appearance.theme(dark: false).base)
+        w.backgroundColor = NSColor(name: nil) { ap in
+            NSColor(ChromePalette.of(dark: ap.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua).paper)
+        }
         return w
     }
 
@@ -179,8 +182,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     /// The band's height follows the strip: tall when the strip shares it (left, top), compact otherwise.
     func applyChrome(to w: NSWindow) {
         switch appearance.navPosition {
-        case .left, .top: w.toolbarStyle = .unified
-        case .right, .bottom: w.toolbarStyle = .unifiedCompact
+        case .left, .right, .top: w.toolbarStyle = .unified
+        case .bottom: w.toolbarStyle = .unifiedCompact
         }
     }
 
@@ -307,6 +310,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         if !window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
     }
     @objc func toggleSidePanel(_: Any?) { store.notificationsOpen.toggle() }
+    @objc func toggleProjects(_: Any?) {
+        store.sidebarByHover = false
+        store.sidebarOpen.toggle()
+    }
     @objc func biggerText(_: Any?) { changeFontSize(1) }
     @objc func smallerText(_: Any?) { changeFontSize(-1) }
     private func changeFontSize(_ delta: Double) {
@@ -434,6 +441,7 @@ enum MainMenu {
         ])
         let view = submenu("View", [
             item("Home", #selector(AppDelegate.showHome(_:)), "h", [.command, .shift]),
+            item("Show Projects", #selector(AppDelegate.toggleProjects(_:)), "\\"),
             .separator(),
             item("Focus Mode", #selector(AppDelegate.toggleFocus(_:)), "f", [.command, .shift]),
             item("Full Focus", #selector(AppDelegate.toggleFullFocus(_:)), "f", [.command, .shift, .control]),
@@ -451,7 +459,7 @@ enum MainMenu {
         }
         let navItem = NSMenuItem(title: nav.title, action: nil, keyEquivalent: "")
         navItem.submenu = nav
-        view.insertItem(navItem, at: 2)
+        view.insertItem(navItem, at: 3)
         submenu("Session", [
             item("Split Right", #selector(AppDelegate.splitRight(_:)), "d"),
             item("Split Down", #selector(AppDelegate.splitDown(_:)), "d", [.command, .shift]),

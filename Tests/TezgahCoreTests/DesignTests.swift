@@ -31,10 +31,13 @@ import Testing
 
     @Test func stateColoursAreReadableOnPaperAndNight() {
         let paper = Themes.theme("kagit")!.background, night = Themes.theme("gece")!.background
-        for f in [StateColors.working, StateColors.waiting, StateColors.done, StateColors.failed] {
+        // Waiting, done and failed are also words; working is only a spinning ring (3:1 for graphics).
+        for f in [StateColors.waiting, StateColors.done, StateColors.failed] {
             #expect(f(false).contrast(with: paper) >= 4.5)
             #expect(f(true).contrast(with: night) >= 4.5)
         }
+        #expect(StateColors.working(dark: false).contrast(with: paper) >= 3)
+        #expect(StateColors.working(dark: true).contrast(with: night) >= 3)
     }
 
     @Test func measuresSitOnTheGrid() {
@@ -42,6 +45,18 @@ import Testing
         for t in TypeScale.allCases { #expect(t.lineHeight.truncatingRemainder(dividingBy: Grid.unit) == 0, "\(t)") }
         #expect(Grid.Radius.inner(outer: 16, padding: 8) == 8)
         #expect(Grid.Paper.small == 4 * 6 && Grid.Paper.big == 16 * 6)
+    }
+
+    @Test func chromeIsReadable() {
+        for c in [ChromePalette.day, ChromePalette.night] {
+            #expect(c.ink.contrast(with: c.paper) >= 12)
+            #expect(c.muted.contrast(with: c.paper) >= 4.5)
+            #expect(c.blue.contrast(with: c.paper) >= 4.5)
+            #expect(c.blue.contrast(with: c.tint) >= 4.5)
+            #expect(c.muted.contrast(with: c.raised) >= 4.5)
+        }
+        #expect(StateColors.waiting(dark: false).contrast(with: ChromePalette.day.paper) >= 4.5)
+        #expect(StateColors.waiting(dark: true).contrast(with: ChromePalette.night.paper) >= 4.5)
     }
 
     @Test func mixingAndContrastAreSane() {

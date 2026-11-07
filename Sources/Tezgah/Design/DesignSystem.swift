@@ -45,6 +45,8 @@ final class Appearance {
     var separateDarkTheme: Bool { didSet { save() } }
     var accent: String { didSet { save() } }
     var navPosition: NavPosition { didSet { save() } }
+    /// The projects strip stays open as a column; otherwise it floats over the page on demand (⌘\\).
+    var sidebarPinned: Bool { didSet { save() } }
 
     @ObservationIgnored private let defaults: UserDefaults
 
@@ -54,8 +56,9 @@ final class Appearance {
         lightTheme = defaults.string(forKey: "appearance.light") ?? Themes.defaultLight
         darkTheme = defaults.string(forKey: "appearance.dark") ?? Themes.defaultDark
         separateDarkTheme = defaults.object(forKey: "appearance.separate") as? Bool ?? true
-        accent = defaults.string(forKey: "appearance.accent") ?? "system"
+        accent = defaults.string(forKey: "appearance.accent") ?? "sky"
         navPosition = NavPosition(rawValue: defaults.string(forKey: "appearance.nav") ?? "") ?? .left
+        sidebarPinned = defaults.bool(forKey: "appearance.sidebarPinned")
     }
 
     private func save() {
@@ -65,6 +68,7 @@ final class Appearance {
         defaults.set(separateDarkTheme, forKey: "appearance.separate")
         defaults.set(accent, forKey: "appearance.accent")
         defaults.set(navPosition.rawValue, forKey: "appearance.nav")
+        defaults.set(sidebarPinned, forKey: "appearance.sidebarPinned")
         NSApp.appearance = nsAppearance
         TerminalLook.apply(self)
     }
@@ -82,46 +86,56 @@ final class Appearance {
         return Themes.theme(id) ?? Themes.theme(dark ? Themes.defaultDark : Themes.defaultLight)!
     }
 
-    func look(dark: Bool) -> Look { Look(theme: theme(dark: dark), accent: AccentSpec.all.first { $0.id == accent }) }
+    func look(dark: Bool) -> Look { Look(theme: theme(dark: dark), dark: dark, accent: AccentSpec.all.first { $0.id == accent }) }
 }
 
-/// Resolved colours for one theme. Views take it from the environment.
+/// Resolved colours. The app's surfaces come from the day or night palette; `theme` is the terminal's.
 struct Look {
     let theme: ThemeSpec
+    let dark: Bool
+    let chrome: ChromePalette
     let accentSpec: AccentSpec?
 
-    init(theme: ThemeSpec, accent: AccentSpec? = nil) {
+    init(theme: ThemeSpec, dark: Bool? = nil, accent: AccentSpec? = nil) {
         self.theme = theme
+        self.dark = dark ?? theme.isDark
+        chrome = ChromePalette.of(dark: self.dark)
         accentSpec = accent
     }
 
-    var dark: Bool { theme.isDark }
-    var base: Color { Color(theme.base) }
-    var raised: Color { Color(theme.raised) }
-    var line: Color { Color(theme.line) }
-    var selected: Color { Color(theme.selected) }
-    var ink: Color { Color(theme.foreground) }
-    var muted: Color { Color(theme.muted) }
+    /// The page: paper by day, blue-black by night.
+    var base: Color { Color(chrome.paper) }
+    /// Bars: the top bar, the strip, the settings sidebar.
+    var bar: Color { Color(chrome.bar) }
+    /// Cards, sheets, popovers.
+    var raised: Color { Color(chrome.raised) }
+    var sunken: Color { Color(chrome.sunken) }
+    var line: Color { Color(chrome.line) }
+    var hairline: Color { Color(chrome.hairline) }
+    /// Selected rows and tabs: a pale blue with a slightly darker edge.
+    var selected: Color { Color(chrome.tint) }
+    var selectedEdge: Color { Color(chrome.tintLine) }
+    var ink: Color { Color(chrome.ink) }
+    var muted: Color { Color(chrome.muted) }
     /// Between ink and muted: body text that isn't the focus.
-    var soft: Color { Color(theme.foreground.mixed(with: theme.muted, 0.55)) }
-    /// Placeholders, counters, hints that may be fainter than 4.5:1 only at 11 pt and with words nearby.
-    var faint: Color { Color(theme.muted.mixed(with: theme.background, 0.25)) }
+    var soft: Color { Color(chrome.ink.mixed(with: chrome.muted, 0.55)) }
+    /// Placeholders, counters, hints.
+    var faint: Color { Color(chrome.faint) }
+    /// The terminal's own background, for frames around it.
+    var terminal: Color { Color(theme.background) }
 
+    /// The blue pencil: links, focus, selection text. Follows the chosen accent.
     var accent: Color {
-        if let c = accentSpec?.color { return Color(dark && c.luminance < 0.05 ? theme.foreground : c) }
+        guard let spec = accentSpec else { return Color(chrome.blue) }
+        if spec.id == "sky" { return Color(chrome.blue) }
+        if let c = spec.color { return Color(dark && c.luminance < 0.05 ? chrome.ink : c) }
         return Color(nsColor: .controlAccentColor)
     }
+    var focusRing: Color { accent.opacity(dark ? 0.35 : 0.28) }
 
-    /// The text colour on a filled accent.
-    var onAccent: Color {
-        guard let c = accentSpec?.color else { return .white }
-        let fill = dark && c.luminance < 0.05 ? theme.foreground : c
-        return fill.contrast(with: RGB(0xFFFFFF)) >= fill.contrast(with: RGB(0x0C0B0A)) ? .white : Color(RGB(0x0C0B0A))
-    }
-
-    /// Primary buttons are ink on paper (the brand is black and white); the accent is for selection and focus.
+    /// Primary buttons are ink on paper; there is no blue button.
     var primary: Color { ink }
-    var onPrimary: Color { Color(theme.background) }
+    var onPrimary: Color { base }
 
     var working: Color { Color(StateColors.working(dark: dark)) }
     var waiting: Color { Color(StateColors.waiting(dark: dark)) }
@@ -137,7 +151,12 @@ struct Look {
         }
     }
 
-    static let paper = Look(theme: Themes.theme(Themes.defaultLight)!)
+    /// The sky, top to horizon.
+    var sky: LinearGradient {
+        LinearGradient(stops: chrome.sky.map { .init(color: Color($0.0), location: $0.1) }, startPoint: .top, endPoint: .bottom)
+    }
+
+    static let paper = Look(theme: Themes.theme(Themes.defaultLight)!, dark: false)
 }
 
 private struct LookKey: EnvironmentKey {
@@ -201,7 +220,7 @@ extension View {
     }
 }
 
-/// Squared paper: 24 pt squares with a stronger line every 96 pt, as on the onboarding pages.
+/// Squared paper in the blue pencil: 24 pt squares with a stronger line every 96 pt.
 struct PaperGrid: View {
     @Environment(\.look) private var look
     var small: Double = Grid.Paper.small
@@ -210,8 +229,8 @@ struct PaperGrid: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let minor = look.ink.opacity((look.dark ? 0.05 : 0.045) * strength)
-            let major = look.ink.opacity((look.dark ? 0.09 : 0.09) * strength)
+            let minor = Color(look.chrome.grid).opacity(0.05 * strength)
+            let major = Color(look.chrome.grid).opacity(0.10 * strength)
             var x = 0.0
             while x <= size.width {
                 let isMajor = x.truncatingRemainder(dividingBy: big) == 0
@@ -227,6 +246,45 @@ struct PaperGrid: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// The sky: the gradient with a soft light near the top right.
+struct SkyView: View {
+    @Environment(\.look) private var look
+    var body: some View {
+        look.sky
+            .overlay {
+                GeometryReader { geo in
+                    RadialGradient(colors: [.white.opacity(look.dark ? 0.12 : 0.26), .clear], center: UnitPoint(x: 0.82, y: 0),
+                                   startRadius: 0, endRadius: max(geo.size.width, geo.size.height) * 0.5)
+                }
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+/// Sky above a horizon line, squared paper below fading out; something can stand on the horizon.
+struct HorizonView<Standing: View>: View {
+    var horizon: Double
+    var fade: Double? = nil
+    @ViewBuilder var standing: Standing
+    @Environment(\.look) private var look
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            look.base
+            PaperGrid()
+                .mask {
+                    if let fade {
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: fade)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                    } else { Color.black }
+                }
+                .padding(.top, horizon)
+            SkyView().frame(height: horizon)
+            standing.frame(maxWidth: .infinity).frame(height: horizon, alignment: .bottom)
+        }
     }
 }
 

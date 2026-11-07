@@ -97,6 +97,10 @@ final class AppStore {
     /// The new-session picker is open for this project ("" for a terminal of its own).
     var newSessionPicker: String?
     var notificationsOpen = false
+    /// The projects strip: a column when pinned, otherwise floating over the page.
+    var sidebarOpen = false
+    /// Opened by moving to the window's edge: it closes again when the pointer leaves it.
+    var sidebarByHover = false
     /// Focus mode: one project fills the window until you leave; notifications still arrive.
     enum Focus: Equatable { case none, project(String), full(String) }
     var focus = Focus.none

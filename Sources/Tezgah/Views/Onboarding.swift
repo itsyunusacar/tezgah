@@ -185,7 +185,7 @@ private struct WelcomePage: View {
 
             VStack(alignment: .leading, spacing: Grid.Space.s6) {
                 PageLabel(text: "TEZGAH · 0.1 BETA")
-                Text("Welcome to\nTezgah.").type(.poster, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
+                Text("Welcome to\nTezgah.").type(.display, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
                 Text("A terminal for your agents, a hub for your projects. Five steps and you're ready.")
                     .type(.title3).foregroundStyle(look.muted).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: Grid.Space.s3) {
@@ -429,7 +429,7 @@ private struct PermissionCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Grid.Space.s4) {
-                Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(active ? Color(look.theme.background) : look.ink)
+                Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(active ? look.onPrimary : look.ink)
                     .frame(width: 32, height: 32)
                     .background(active ? look.ink : look.base, in: RoundedRectangle(cornerRadius: 8))
                 VStack(alignment: .leading, spacing: 0) {
@@ -663,7 +663,7 @@ private struct ReadyPage: View {
 
             VStack(alignment: .leading, spacing: Grid.Space.s6) {
                 PageLabel(text: "05 · READY")
-                Text("Tezgah\nis ready.").type(.poster, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
+                Text("Tezgah\nis ready.").type(.display, .semibold).foregroundStyle(look.ink).accessibilityAddTraits(.isHeader)
                 if !folders.isEmpty {
                     Text("Open your first project. These are the folders you worked in last:").type(.lead).foregroundStyle(look.muted)
                     VStack(spacing: 0) {

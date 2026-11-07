@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import TezgahCore
 
-/// The Tezgah mark that takes you home (⇧⌘H). A dot appears on it when an agent waits for you.
+/// The Tezgah mark that takes you home (⇧⌘H). Its cursor blinks while an agent waits for you.
 struct HomeButton: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
@@ -12,28 +12,64 @@ struct HomeButton: View {
 
     var body: some View {
         Button { store.selection = .welcome } label: {
-            TezgahMark(width: 16, color: active ? look.ink : look.soft)
-                .frame(width: 30, height: 28)
-                .background {
-                    if active {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
-                            .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
-                    } else if hover {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.selected)
-                    }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if store.anyoneWaiting {
-                        Circle().fill(look.waiting).frame(width: 7, height: 7)
-                            .overlay(Circle().strokeBorder(look.base, lineWidth: 1.5))
-                            .offset(x: -2, y: 2)
-                    }
-                }
+            TezgahMark(width: 17, color: active ? look.accent : look.ink, blinking: store.anyoneWaiting)
+                .frame(width: 28, height: 28)
+                .background(active ? look.selected : hover ? look.ink.opacity(0.06) : .clear,
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .help(Text("Home  ⇧⌘H"))
         .accessibilityLabel(Text(store.anyoneWaiting ? "Home, an agent is waiting for you" : "Home"))
+    }
+}
+
+/// Opens and closes the projects strip (⌘\\).
+struct SidebarToggle: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+    @State private var hover = false
+
+    var body: some View {
+        Button {
+            store.sidebarByHover = false
+            store.sidebarOpen.toggle()
+        } label: {
+            Image(systemName: "sidebar.left").font(.system(size: 14))
+                .foregroundStyle(store.sidebarOpen ? look.accent : look.muted)
+                .frame(width: 28, height: 28)
+                .background(store.sidebarOpen ? look.selected : hover ? look.ink.opacity(0.06) : .clear,
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help(Text("Projects  ⌘\\"))
+        .accessibilityLabel(Text("Projects"))
+    }
+}
+
+/// "1 waiting for you": always in sight, so the strip can stay closed. Click to go there.
+struct WaitingPill: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+
+    var body: some View {
+        let waiting = store.sessions.filter { let s = store.status(of: $0); return s == .blocked || s == .error }
+        if let first = waiting.first {
+            Button { store.open(session: first.id) } label: {
+                HStack(spacing: 6) {
+                    WaitingBlock(size: 11)
+                    Text("\(waiting.count) waiting for you").type(.small, .medium)
+                }
+                .foregroundStyle(look.waiting)
+                .padding(.horizontal, 10)
+                .frame(height: 26)
+                .background(look.selected, in: Capsule())
+                .overlay(Capsule().strokeBorder(look.selectedEdge))
+            }
+            .buttonStyle(.plain)
+            .help(Text(store.sessionTitle(first)))
+        }
     }
 }
 
@@ -62,20 +98,13 @@ struct SearchField: View {
 // MARK: - Vertical
 
 struct VerticalNav: View {
+    var floating = false
     @Environment(AppStore.self) private var store
     @Environment(Appearance.self) private var appearance
     @Environment(\.look) private var look
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                // The window buttons live here when the strip is on the left.
-                if appearance.navPosition == .left { Color.clear.frame(width: WindowChrome.buttonsWidth - 12) }
-                Spacer()
-                HomeButton()
-            }
-            .frame(height: appearance.navPosition == .left ? WindowChrome.band - 12 : 36)
-
             if let f = store.focusedProjectId, let p = store.project(f) {
                 FocusPill(name: p.name)
             } else {
@@ -118,8 +147,14 @@ struct VerticalNav: View {
             }
         }
         .padding(12)
-        .frame(width: 248)
+        .frame(width: floating ? 252 : 240)
         .frame(maxHeight: .infinity, alignment: .top)
+        .background(floating ? look.raised : look.bar)
+        .clipShape(RoundedRectangle(cornerRadius: floating ? 12 : 0, style: .continuous))
+        .overlay {
+            if floating { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(look.line) }
+        }
+        .shadow(color: .black.opacity(floating ? (look.dark ? 0.5 : 0.16) : 0), radius: 22, y: 10)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Projects and sessions"))
     }
@@ -174,7 +209,7 @@ struct SessionRow: View {
                 ProgramMark(program: store.icon(of: session), size: 14)
                 Text(store.sessionTitle(session))
                     .type(.body, active || waiting ? .medium : .regular)
-                    .foregroundStyle(waiting ? look.waiting : active ? look.ink : look.soft)
+                    .foregroundStyle(waiting ? look.ink : active ? look.ink : look.soft)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 StateMark(state: state, size: 14)
@@ -183,9 +218,7 @@ struct SessionRow: View {
             .frame(height: 30)
             .background {
                 if active {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
-                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
-                        .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.selected)
                 } else if hover {
                     RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.selected)
                 }
@@ -225,57 +258,51 @@ struct NewSessionRow: View {
     }
 }
 
-// MARK: - Horizontal
+// MARK: - The bar
 
-struct HorizontalNav: View {
+/// One thin bar: window buttons, the strip's toggle, home, the project, its sessions, and what waits.
+struct TopBar: View {
+    let atBottom: Bool
     @Environment(AppStore.self) private var store
+    @Environment(Appearance.self) private var appearance
     @Environment(\.look) private var look
-    let withWindowButtons: Bool
 
     var body: some View {
         HStack(spacing: 4) {
-            if withWindowButtons { Color.clear.frame(width: WindowChrome.buttonsWidth - 12) }
+            if !atBottom { Color.clear.frame(width: WindowChrome.buttonsWidth - 12) }
+            if appearance.navPosition.isVertical { SidebarToggle() }
             HomeButton()
+            Rectangle().fill(look.line).frame(width: 1, height: 18).padding(.horizontal, 8)
             if let pid = store.currentProjectId, let project = store.project(pid) {
-                Spacer().frame(width: 4)
                 ProjectPicker(current: project)
-                Rectangle().fill(look.line).frame(width: 1, height: 20).padding(.horizontal, 8)
-                ScrollView(.horizontal) {
-                    HStack(spacing: 4) {
-                        ForEach(store.sessions(in: pid)) { SessionTab(session: $0) }
-                        IconButton(symbol: "plus", label: "New Session") { store.newSessionPicker = pid }
-                    }
-                }
-                .scrollIndicators(.never)
+                Spacer().frame(width: 8)
+                tabs(store.sessions(in: pid), newIn: pid)
             } else {
-                Rectangle().fill(look.line).frame(width: 1, height: 20).padding(.horizontal, 8)
-                ScrollView(.horizontal) {
-                    HStack(spacing: 4) {
-                        ForEach(store.navProjects) { p in
-                            Button { store.openProject(p.id) } label: {
-                                HStack(spacing: 8) {
-                                    Monogram(name: p.name, size: 20)
-                                    Text(p.name).type(.body).foregroundStyle(look.soft)
-                                    StateMark(state: store.status(ofProject: p.id), size: 14)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 30)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        IconButton(symbol: "plus", label: "Add Project") { AppActions.openFolder() }
-                    }
-                }
-                .scrollIndicators(.never)
+                Text("Terminals").type(.body, .semibold).foregroundStyle(look.ink)
+                Spacer().frame(width: 8)
+                tabs(store.sessions(in: nil), newIn: "")
             }
             Spacer(minLength: 8)
+            WaitingPill()
             IconButton(symbol: "magnifyingglass", label: "Search") { store.paletteOpen = true }
             IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.notificationsOpen.toggle() }
         }
         .padding(.horizontal, 12)
-        .frame(height: withWindowButtons ? WindowChrome.band : 48)
+        .frame(height: atBottom ? 44 : WindowChrome.band)
+        .background(look.bar)
+        .overlay(alignment: atBottom ? .top : .bottom) { Rectangle().fill(look.line).frame(height: 1) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Projects and sessions"))
+    }
+
+    private func tabs(_ sessions: [Session], newIn: String) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 4) {
+                ForEach(sessions) { SessionTab(session: $0) }
+                IconButton(symbol: "plus", label: "New Session") { store.newSessionPicker = newIn }
+            }
+        }
+        .scrollIndicators(.never)
     }
 }
 
@@ -292,18 +319,16 @@ struct ProjectPicker: View {
             Divider()
             Button("Add Project…") { AppActions.openFolder() }
         } label: {
-            HStack(spacing: 8) {
-                Monogram(name: current.name, size: 20, active: true)
+            HStack(spacing: 6) {
                 Text(current.name).type(.body, .semibold).foregroundStyle(look.ink)
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(look.muted)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(look.faint)
             }
-            .padding(.horizontal, 8)
-            .frame(height: 32)
-            .background(look.ink.opacity(look.dark ? 0.08 : 0.04), in: RoundedRectangle(cornerRadius: Grid.Radius.control, style: .continuous))
+            .padding(.horizontal, 6)
+            .frame(height: 28)
             .overlay(alignment: .topTrailing) {
                 // Another project has an agent at work or waiting.
                 if store.othersBusy(than: current.id) {
-                    Circle().fill(look.working).frame(width: 8, height: 8).overlay(Circle().strokeBorder(look.base, lineWidth: 2)).offset(x: 2, y: -2)
+                    Circle().fill(look.working).frame(width: 6, height: 6).offset(x: 4, y: 2)
                 }
             }
         }
@@ -336,6 +361,7 @@ struct SessionTab: View {
                 if active {
                     RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
                         .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
+                        .shadow(color: .black.opacity(look.dark ? 0.3 : 0.05), radius: 2, y: 1)
                 }
             }
         }
@@ -371,7 +397,7 @@ struct FocusPill: View {
                 Spacer()
                 Text("⇧⌘F").type(.caption, mono: true).opacity(0.7)
             }
-            .foregroundStyle(Color(look.theme.background))
+            .foregroundStyle(look.onPrimary)
             .padding(.horizontal, 10).frame(height: 32)
             .background(look.ink, in: RoundedRectangle(cornerRadius: Grid.Radius.control))
         }

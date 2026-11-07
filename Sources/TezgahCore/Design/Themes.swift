@@ -144,6 +144,7 @@ public struct AccentSpec: Identifiable, Hashable, Sendable {
     public let color: RGB?
 
     public static let all: [AccentSpec] = [
+        AccentSpec(id: "sky", nameTR: "Gök", nameEN: "Sky", color: RGB(0x2C5A9C)),
         AccentSpec(id: "system", nameTR: "Sistem", nameEN: "System", color: nil),
         AccentSpec(id: "ink", nameTR: "Mürekkep", nameEN: "Ink", color: RGB(0x0C0B0A)),
         AccentSpec(id: "navy", nameTR: "Lacivert", nameEN: "Navy", color: RGB(0x2F5FD0)),
@@ -157,9 +158,37 @@ public struct AccentSpec: Identifiable, Hashable, Sendable {
 }
 
 /// Agent state colours. Colour never carries meaning alone: each state also has a mark and a name.
+/// Waiting is the deep sky blue of the logo's cursor ("the cursor waits for you"); working is a lighter,
+/// calmer blue. Done and failed keep the colours everyone reads the same way.
 public enum StateColors {
-    public static func working(dark: Bool) -> RGB { RGB(dark ? 0x7A9CF0 : 0x2F5FD0) }
-    public static func waiting(dark: Bool) -> RGB { RGB(dark ? 0xF0A04B : 0xA65508) }
+    public static func working(dark: Bool) -> RGB { RGB(dark ? 0x6F93C9 : 0x5B85C0) }
+    public static func waiting(dark: Bool) -> RGB { RGB(dark ? 0xA9C8F0 : 0x2C5A9C) }
     public static func done(dark: Bool) -> RGB { RGB(dark ? 0x5CC48A : 0x2A7A4D) }
     public static func failed(dark: Bool) -> RGB { RGB(dark ? 0xF07A6E : 0xC4352B) }
+}
+
+/// The app's own surfaces, apart from the terminal theme: paper by day, a blue-black night.
+public struct ChromePalette: Sendable {
+    public let paper: RGB, raised: RGB, sunken: RGB, bar: RGB
+    public let ink: RGB, muted: RGB, faint: RGB, line: RGB, hairline: RGB
+    /// Selection fill and its edge; the blue of links, focus and selected text.
+    public let tint: RGB, tintLine: RGB, blue: RGB
+    /// The squared paper's lines (drawn with `gridAlpha`).
+    public let grid: RGB
+    /// The sky, top to horizon.
+    public let sky: [(RGB, Double)]
+
+    public static let day = ChromePalette(
+        paper: RGB(0xFBFAF8), raised: RGB(0xFFFFFF), sunken: RGB(0xF3F1ED), bar: RGB(0xF4F2EE),
+        ink: RGB(0x15171C), muted: RGB(0x5D6169), faint: RGB(0x8B9099), line: RGB(0xE4E1DC), hairline: RGB(0xEEEBE6),
+        tint: RGB(0xE8EFF8), tintLine: RGB(0xC5D5EC), blue: RGB(0x2C5A9C), grid: RGB(0x2C5A9C),
+        sky: [(RGB(0x26498A), 0), (RGB(0x3F6DB0), 0.34), (RGB(0x86AADB), 0.66), (RGB(0xA9C3E6), 0.86), (RGB(0xBFD3EE), 1)])
+
+    public static let night = ChromePalette(
+        paper: RGB(0x0F141D), raised: RGB(0x161C27), sunken: RGB(0x0B0F16), bar: RGB(0x0C1018),
+        ink: RGB(0xECEFF4), muted: RGB(0x98A1B0), faint: RGB(0x6C7585), line: RGB(0x232B38), hairline: RGB(0x1B222D),
+        tint: RGB(0x16243A), tintLine: RGB(0x2A4266), blue: RGB(0x9DBDEA), grid: RGB(0x8CAFE6),
+        sky: [(RGB(0x060A14), 0), (RGB(0x0C1730), 0.38), (RGB(0x1A3160), 0.72), (RGB(0x2E4E86), 0.9), (RGB(0x3B5D95), 1)])
+
+    public static func of(dark: Bool) -> ChromePalette { dark ? night : day }
 }

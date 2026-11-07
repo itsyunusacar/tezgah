@@ -10,21 +10,22 @@ struct RootView: View {
 
     private var position: NavPosition { appearance.navPosition }
 
+    private var isHome: Bool {
+        switch store.selection {
+        case .welcome, .agents, .notifications, .settings, .terminals: true
+        case let .project(id): store.project(id) == nil
+        case let .session(id): store.session(id) == nil
+        }
+    }
+    private var fullFocus: Bool { if case .full = store.focus { true } else { false } }
+    /// The strip as a column: only when pinned (Settings › Appearance) and open.
+    private var columnVisible: Bool { position.isVertical && appearance.sidebarPinned && store.sidebarOpen && !fullFocus }
+    private var floatingVisible: Bool { position.isVertical && !appearance.sidebarPinned && store.sidebarOpen && !fullFocus }
+
     var body: some View {
-        VStack(spacing: 0) {
-            // With the strip on the right or at the bottom, the window's own buttons get a thin band of their own.
-            if position == .right || position == .bottom {
-                TitleBand()
-            }
-            layout {
-                if position == .right || position == .bottom {
-                    page.frame(maxWidth: .infinity, maxHeight: .infinity)
-                    nav
-                } else {
-                    nav
-                    page.frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
+        Group {
+            // Home has no bars: its projects are the page.
+            if isHome { page } else { workspace }
         }
         .background(look.base)
         .overlay(alignment: .bottom) { ToastView() }
@@ -37,40 +38,46 @@ struct RootView: View {
                 CommandPalette()
             }
         }
-        .overlay(alignment: .top) {
-            if case let .full(id) = store.focus, let p = store.project(id) {
-                Button { store.focus = .none } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "moon.fill").font(.system(size: 10))
-                        Text("Full focus · \(p.name) · ⌃⇧⌘F to leave").type(.caption)
-                    }
-                    .foregroundStyle(look.muted)
-                    .padding(.horizontal, 12).frame(height: 24)
-                    .background(look.ink.opacity(0.06), in: UnevenRoundedRectangle(bottomLeadingRadius: 10, bottomTrailingRadius: 10))
-                }
-                .buttonStyle(.plain)
-            }
-        }
         .animation(.easeOut(duration: Motion.quick), value: store.paletteOpen)
         .animation(.easeOut(duration: Motion.quick), value: store.newSessionPicker)
+        .onChange(of: store.selection) {
+            if !appearance.sidebarPinned { store.sidebarOpen = false }
+        }
         .ignoresSafeArea()
     }
 
-    private var layout: AnyLayout {
-        switch position {
-        case .left: AnyLayout(HStackLayout(spacing: 0))
-        case .right: AnyLayout(HStackLayout(spacing: 0))
-        case .top, .bottom: AnyLayout(VStackLayout(spacing: 0))
+    private var workspace: some View {
+        VStack(spacing: 0) {
+            if fullFocus || position == .bottom { TitleBand() } else { TopBar(atBottom: false) }
+            HStack(spacing: 0) {
+                if columnVisible && position == .left { VerticalNav(); Rectangle().fill(look.line).frame(width: 1) }
+                page.frame(maxWidth: .infinity, maxHeight: .infinity)
+                if columnVisible && position == .right { Rectangle().fill(look.line).frame(width: 1); VerticalNav() }
+            }
+            .overlay(alignment: position == .right ? .trailing : .leading) { floatingStrip }
+            if position == .bottom && !fullFocus { TopBar(atBottom: true) }
         }
     }
 
-    @ViewBuilder private var nav: some View {
-        if case .full = store.focus {
-            EmptyView()
-        } else if position.isVertical {
-            VerticalNav()
-        } else {
-            HorizontalNav(withWindowButtons: position == .top)
+    /// The strip floating over the page; the window's edge opens it too.
+    @ViewBuilder private var floatingStrip: some View {
+        if floatingVisible {
+            ZStack(alignment: position == .right ? .trailing : .leading) {
+                if !store.sidebarByHover {
+                    Color.black.opacity(0.001).onTapGesture { store.sidebarOpen = false }
+                }
+                VerticalNav(floating: true)
+                    .padding(8)
+                    .onHover { inside in
+                        if !inside && store.sidebarByHover { store.sidebarOpen = false }
+                    }
+                    .transition(.move(edge: position == .right ? .trailing : .leading).combined(with: .opacity))
+            }
+        } else if position.isVertical && !appearance.sidebarPinned && !fullFocus {
+            Color.clear.frame(width: 6).contentShape(Rectangle())
+                .onHover { inside in
+                    if inside { store.sidebarByHover = true; store.sidebarOpen = true }
+                }
         }
     }
 
@@ -105,7 +112,18 @@ struct TitleBand: View {
     var body: some View {
         HStack {
             Spacer()
-            Text(store.windowTitle).type(.caption).foregroundStyle(look.faint).lineLimit(1)
+            if case let .full(id) = store.focus, let p = store.project(id) {
+                Button { store.focus = .none } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "viewfinder").font(.system(size: 11))
+                        Text("Full focus · \(p.name) · ⌃⇧⌘F to leave").type(.small, .medium)
+                    }
+                    .foregroundStyle(look.accent)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text(store.windowTitle).type(.caption).foregroundStyle(look.faint).lineLimit(1)
+            }
             Spacer()
         }
         .frame(height: WindowChrome.compactBand)
