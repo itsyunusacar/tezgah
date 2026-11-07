@@ -3750,6 +3750,36 @@
           }
         }
       }
+    },
+    "On the left or right: ⌘\\ opens it any time": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solda ya da sağda: ⌘\\ ile her an açılır"
+          }
+        }
+      }
+    },
+    "Starts closed": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapalı başlasın"
+          }
+        }
+      }
+    },
+    "Always open": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hep açık"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

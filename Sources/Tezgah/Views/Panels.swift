@@ -33,9 +33,10 @@ struct NotificationsPanel: View {
                     ForEach(Filter.allCases, id: \.self) { f in
                         Button { filter = f } label: {
                             Text(title(f)).type(.caption, .medium)
-                                .foregroundStyle(filter == f ? look.onPrimary : look.soft)
+                                .foregroundStyle(filter == f ? look.accent : look.soft)
                                 .padding(.horizontal, 10).frame(height: 26)
-                                .background(filter == f ? look.ink : look.selected, in: Capsule())
+                                .background(filter == f ? look.selected : .clear, in: Capsule())
+                                .overlay(Capsule().strokeBorder(filter == f ? look.selectedEdge : .clear))
                         }
                         .buttonStyle(.plain)
                     }
@@ -178,7 +179,7 @@ enum SystemNotices {
 
 // MARK: - Menu bar
 
-/// The menu bar item: the mark, its cursor blinking while agents work and an orange dot when one waits.
+/// The menu bar item: the mark, its cursor blinking while an agent waits for you.
 @MainActor
 final class MenuBarController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -214,8 +215,9 @@ final class MenuBarController: NSObject {
         let working = !store.workingSessions.isEmpty
         let waiting = !store.waitingSessions.isEmpty
         let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        blinkOn = working && !reduce ? !blinkOn : true
-        item.button?.image = Self.icon(cursor: blinkOn, dot: waiting)
+        // The cursor blinks only while something waits for you, like the mark in the window's bar.
+        blinkOn = waiting && !reduce ? !blinkOn : true
+        item.button?.image = Self.icon(cursor: blinkOn, dot: false)
         item.button?.setAccessibilityValue(waiting ? "an agent is waiting for you" : working ? "agents working" : "")
         let badge = UserDefaults.standard.object(forKey: "notify.badge") as? Bool ?? true
         NSApp.dockTile.badgeLabel = waiting && badge ? "\(store.waitingSessions.count)" : nil

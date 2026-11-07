@@ -397,9 +397,10 @@ struct FocusPill: View {
                 Spacer()
                 Text("⇧⌘F").type(.caption, mono: true).opacity(0.7)
             }
-            .foregroundStyle(look.onPrimary)
+            .foregroundStyle(look.accent)
             .padding(.horizontal, 10).frame(height: 32)
-            .background(look.ink, in: RoundedRectangle(cornerRadius: Grid.Radius.control))
+            .background(look.selected, in: RoundedRectangle(cornerRadius: Grid.Radius.control))
+            .overlay(RoundedRectangle(cornerRadius: Grid.Radius.control).strokeBorder(look.selectedEdge))
         }
         .buttonStyle(.plain)
         .padding(.bottom, 8)

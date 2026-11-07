@@ -89,12 +89,11 @@ struct SettingsView: View {
                                 Text(s.title).type(.body, section == s ? .medium : .regular)
                                 Spacer()
                             }
-                            .foregroundStyle(section == s ? look.ink : look.soft)
+                            .foregroundStyle(section == s ? look.accent : look.soft)
                             .padding(.horizontal, 8).frame(height: 30)
                             .background {
                                 if section == s {
-                                    RoundedRectangle(cornerRadius: 7).fill(look.raised)
-                                        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(look.line))
+                                    RoundedRectangle(cornerRadius: 7).fill(look.selected)
                                 }
                             }
                             .contentShape(Rectangle())
@@ -250,11 +249,19 @@ private struct AppearanceSettings: View {
             }
         }
         SettingsGroup(title: "Layout") {
-            SettingsRow(title: "Navigation position", detail: "The projects and sessions strip", last: true) {
+            SettingsRow(title: "Navigation position", detail: "The projects and sessions strip") {
                 Picker("", selection: $a.navPosition) {
                     ForEach(NavPosition.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
+            }
+            SettingsRow(title: "Projects strip", detail: "On the left or right: ⌘\\ opens it any time", last: true) {
+                Picker("", selection: $a.sidebarPinned) {
+                    Text("Starts closed").tag(false)
+                    Text("Always open").tag(true)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                .onChange(of: a.sidebarPinned) { _, pinned in AppActions.store?.sidebarOpen = pinned }
             }
         }
     }

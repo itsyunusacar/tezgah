@@ -64,6 +64,12 @@ struct Snapshotter {
                 store.open(session: main.id)
                 await wait(4)
                 capture("session-\(position.rawValue)-\(mode)")
+                if position == .left {
+                    store.sidebarOpen = true
+                    await wait(0.8)
+                    capture("session-left-open-\(mode)")
+                    store.sidebarOpen = false
+                }
             }
             look.navPosition = .left
             store.selection = .welcome
