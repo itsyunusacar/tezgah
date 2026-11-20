@@ -34,7 +34,7 @@ extension AppStore {
     /// Opens a terminal tab with the install command typed, not run.
     func typeInstallCommand(for kind: AgentKind) {
         let comment = "# \(kind.name) · " + String(localized: "official install command. Press Enter to run it, or close the tab.")
-        let line = "clear; echo '\(comment.replacingOccurrences(of: "'", with: ""))'\n" + AgentCatalog.installCommand(kind) + "\u{0}"
+        let line = "clear; echo \(shellQuoted(comment))\n" + AgentCatalog.installCommand(kind) + "\u{0}"
         _ = newSession(projectId: nil, command: line, kind: .shell)
     }
 }
@@ -49,6 +49,7 @@ struct SheetFrame<Content: View>: View {
     let onDismiss: () -> Void
     @ViewBuilder var content: Content
     @Environment(\.look) private var look
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -61,7 +62,8 @@ struct SheetFrame<Content: View>: View {
                 .background(look.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(look.line))
                 .shadow(color: .black.opacity(0.24), radius: 32, y: 16)
-                .padding(.top, 140)
+                // Lower in a tall window, near the top of a short one: the whole sheet stays inside it.
+                .padding(.top, min(140, max(56, store.windowHeight * 0.14)))
                 .accessibilityAddTraits(.isModal)
         }
         .onKeyPress(.escape) { onDismiss(); return .handled }
@@ -74,28 +76,49 @@ struct SheetFrame<Content: View>: View {
 struct NewSessionSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
-    let projectId: String?
+    /// The project it starts in; the chip beside the message changes it without leaving where you are.
+    @State private var projectId: String?
     @State private var message = ""
     @State private var selected = 0
     @State private var placement: SplitAxis? = nil
     @FocusState private var focused: Bool
 
-    private enum Choice: Equatable { case agent(AgentKind), terminal }
+    init(projectId: String?) {
+        _projectId = State(initialValue: projectId)
+    }
 
-    private var choices: [Choice] { store.installedAgents.map { .agent($0.kind) } + [.terminal] }
+    private enum Choice: Equatable { case agent(AgentKind), own(OwnAgent), terminal }
+
+    private var choices: [Choice] { store.installedAgents.map { .agent($0.kind) } + store.ownAgents.map { .own($0) } + [.terminal] }
     private var missing: [AgentKind] { AgentKind.allCases.filter { k in !store.installedAgents.contains { $0.kind == k } } }
 
     var body: some View {
         SheetFrame(width: 560, onDismiss: close) {
             HStack(spacing: 12) {
-                if let p = store.project(projectId) {
+                Menu {
+                    ForEach(store.projects) { p in
+                        Button(p.name) { projectId = p.id }.disabled(store.missingProjects.contains(p.id))
+                    }
+                    if !store.projects.isEmpty { Divider() }
+                    Button("No Project (Home Folder)") { projectId = nil }
+                } label: {
                     HStack(spacing: 6) {
-                        Monogram(name: p.name, size: 16, active: true)
-                        Text(p.name).type(.caption, .medium).foregroundStyle(look.ink)
+                        if let p = store.project(projectId) {
+                            Monogram(name: p.name, size: 16, active: true)
+                            Text(p.name).type(.caption, .medium).foregroundStyle(look.ink).lineLimit(1)
+                        } else {
+                            Image(systemName: "house").font(.system(size: 10)).foregroundStyle(look.soft).frame(width: 16)
+                            Text("No Project").type(.caption, .medium).foregroundStyle(look.ink)
+                        }
+                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold)).foregroundStyle(look.faint)
                     }
                     .padding(.leading, 4).padding(.trailing, 8).frame(height: 24)
                     .background(look.base, in: RoundedRectangle(cornerRadius: 6))
+                    .contentShape(Rectangle())
                 }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .help(Text("Start it in another project"))
+                .accessibilityLabel(Text("Project"))
                 TextField(placeholder, text: $message)
                     .textFieldStyle(.plain)
                     .font(Typeface.sans(16))
@@ -141,7 +164,9 @@ struct NewSessionSheet: View {
                 } label: { chip(placementName) }
                 .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
                     .disabled(store.currentSession == nil)
-                chip(Paths.tilde(store.project(projectId)?.path ?? NSHomeDirectory()))
+                    .help(Text("Where it opens: a tab of its own, or beside the session you're in"))
+                Text(Paths.tilde(store.project(projectId)?.path ?? NSHomeDirectory()))
+                    .type(.caption, mono: true).foregroundStyle(look.faint).lineLimit(1).truncationMode(.head)
                 Spacer()
                 HStack(spacing: 6) {
                     Text(ctaTitle).type(.caption).foregroundStyle(look.soft)
@@ -180,6 +205,7 @@ struct NewSessionSheet: View {
         guard choices.indices.contains(selected) else { return "" }
         switch choices[selected] {
         case let .agent(k): return String(localized: "Start \(k.name)")
+        case let .own(a): return String(localized: "Start \(a.name)")
         case .terminal: return String(localized: "Open Terminal")
         }
     }
@@ -189,6 +215,7 @@ struct NewSessionSheet: View {
             Group {
                 switch c {
                 case let .agent(k): AgentLogo(kind: k, size: 18)
+                case .own: Image(systemName: "sparkle").font(.system(size: 14, weight: .medium)).foregroundStyle(look.soft)
                 case .terminal: Image(systemName: "chevron.forward.2").font(.system(size: 12, weight: .semibold)).foregroundStyle(look.ink)
                 }
             }
@@ -207,6 +234,7 @@ struct NewSessionSheet: View {
     private func name(_ c: Choice) -> String {
         switch c {
         case let .agent(k): k.name
+        case let .own(a): a.name
         case .terminal: String(localized: "Terminal")
         }
     }
@@ -214,11 +242,11 @@ struct NewSessionSheet: View {
     private func detail(_ c: Choice) -> String {
         switch c {
         case let .agent(k): k == store.lastAgent ? String(localized: "last used") : ""
+        case let .own(a): a.command
         case .terminal: Shell.programName(Shell.current)
         }
     }
 
-    private func chip(_ text: some StringProtocol) -> some View { chip(LocalizedStringKey(String(text))) }
     private func chip(_ text: LocalizedStringKey) -> some View {
         HStack(spacing: 6) {
             Text(text).type(.caption).foregroundStyle(look.soft).lineLimit(1)
@@ -232,19 +260,35 @@ struct NewSessionSheet: View {
         let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
         var command: String?
         var kind = SessionKind.shell
+        var hint: String?
+        var conversation: String?
         switch choices[selected] {
         case let .agent(k):
             command = text.isEmpty ? k.command : "\(k.command) \(shellQuoted(text))"
+            if Restore.namesItsConversation.contains(k.command) {
+                // Claude Code and Grok start under an id Tezgah picks, so the pane returns to this conversation after a restart.
+                let id = UUID().uuidString.lowercased()
+                conversation = id
+                command = Restore.start(k.command, conversation: id, message: text.isEmpty ? nil : shellQuoted(text))
+            }
             kind = .agent
+            hint = text.isEmpty ? nil : String(text.split(whereSeparator: \.isNewline).first ?? "").prefix(80).description
             store.lastAgent = k
+        case let .own(a):
+            command = text.isEmpty ? a.command : "\(a.command) \(shellQuoted(text))"
+            kind = .agent
+            hint = text.isEmpty ? nil : String(text.split(whereSeparator: \.isNewline).first ?? "").prefix(80).description
         case .terminal:
             command = text.isEmpty ? nil : text
         }
         close()
-        if let axis = placement, store.currentSession != nil {
-            store.split(axis, command: command)
+        if let axis = placement, let current = store.currentSession {
+            // Beside the session you're in; in the chosen project's folder when that is another one.
+            let elsewhere = current.projectId != projectId
+            store.split(axis, command: command, cwd: elsewhere ? store.project(projectId)?.path ?? NSHomeDirectory() : nil,
+                        conversation: conversation)
         } else {
-            _ = store.newSession(projectId: projectId, command: command, kind: kind)
+            _ = store.newSession(projectId: projectId, command: command, kind: kind, hint: hint, conversation: conversation)
         }
     }
 
@@ -293,10 +337,12 @@ struct CommandPalette: View {
             .padding(.horizontal, 18).frame(height: 56)
             Rectangle().fill(look.line).frame(height: 1)
 
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if items.isEmpty {
-                        Text("Nothing matches “\(query)”.").type(.body).foregroundStyle(look.muted).padding(16)
+                        (query.isEmpty ? Text("No projects or sessions yet.") : Text("Nothing matches “\(query)”."))
+                            .type(.body).foregroundStyle(look.muted).padding(16)
                     }
                     ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
                         if i == 0 || items[i - 1].group != item.group {
@@ -306,12 +352,16 @@ struct CommandPalette: View {
                         Button { selected = i; run(items) } label: { row(item, selected: i == selected) }
                             .buttonStyle(.plain)
                             .onHover { if $0 { selected = i } }
+                            .id(i)
                     }
                 }
                 .padding(.horizontal, 8).padding(.vertical, 6)
             }
-            .frame(maxHeight: 420)
+            .frame(maxHeight: min(420, max(140, store.windowHeight - 260)))
             .fixedSize(horizontal: false, vertical: true)
+            // The arrows keep what they select in sight.
+            .onChange(of: selected) { proxy.scrollTo(selected) }
+            }
 
             HStack(spacing: 16) {
                 Text("↑↓ select").type(.caption).foregroundStyle(look.faint)
@@ -390,7 +440,7 @@ struct CommandPalette: View {
                                    detail: store.project(s.projectId)?.name ?? String(localized: "Terminal"),
                                    icon: AnyView(ProgramMark(program: store.icon(of: s), size: 16)), state: state) { store.open(session: s.id) })
         }
-        for p in store.recentProjects {
+        for p in store.recentProjects where !store.missingProjects.contains(p.id) {
             out.append(PaletteItem(id: "p." + p.id, group: .projects, title: p.name, detail: Paths.tilde(p.path),
                                    icon: AnyView(Monogram(name: p.name, size: 18)), state: store.status(ofProject: p.id)) { store.openProject(p.id) })
         }
@@ -406,6 +456,8 @@ struct CommandPalette: View {
                                    icon: AnyView(RoundedRectangle(cornerRadius: 4).fill(Color(t.background)).frame(width: 14, height: 14)
                                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.black.opacity(0.15))))) {
                 if t.isDark { appearance.darkTheme = t.id } else { appearance.lightTheme = t.id }
+                // Picking a theme shows it: the app goes light or dark with it, unless it follows the system.
+                if appearance.mode != .system { appearance.mode = t.isDark ? .dark : .light }
             })
         }
         for p in NavPosition.allCases {
@@ -430,10 +482,12 @@ struct CommandPalette: View {
         }
         return [
             cmd("new", String(localized: "New Session"), "⌘T", "plus") { AppActions.newSessionHere() },
+            cmd("waiting", String(localized: "Next Agent Waiting"), "⌘J", "arrow.turn.down.right") { store.openNextWaiting() },
             cmd("split", String(localized: "Split Right"), "⌘D", "rectangle.split.2x1") { store.split(.row) },
             cmd("terminal", String(localized: "New Terminal"), "⌘N", "chevron.forward.2") { _ = store.newSession(projectId: nil) },
             cmd("splitdown", String(localized: "Split Down"), "⇧⌘D", "rectangle.split.1x2") { store.split(.column) },
             cmd("open", String(localized: "Open Folder…"), "⌘O", "folder") { AppActions.openFolder() },
+            cmd("newfolder", String(localized: "New Folder…"), "⇧⌘N", "folder.badge.plus") { AppActions.newFolder() },
             cmd("home", String(localized: "Home"), "⇧⌘H", "house") { store.selection = .welcome },
             cmd("settings", String(localized: "Settings…"), "⌘,", "gearshape") { AppActions.openSettings() },
         ]

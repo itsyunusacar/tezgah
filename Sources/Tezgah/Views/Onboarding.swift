@@ -189,7 +189,7 @@ private struct AppearancePage: View {
                 HStack(spacing: 10) {
                     ForEach(lightThemes + darkThemes, id: \.self) { id in
                         if let t = Themes.theme(id) {
-                            ThemeChip(theme: t, selected: (t.isDark ? appearance.darkTheme : appearance.lightTheme) == id && t.isDark == look.dark) {
+                            ThemeChip(theme: t, selected: (t.isDark ? appearance.darkTheme : appearance.lightTheme) == id) {
                                 if t.isDark { appearance.darkTheme = id } else { appearance.lightTheme = id }
                             }
                         }
@@ -202,6 +202,7 @@ private struct AppearancePage: View {
                         ForEach([12.0, 13, 14, 16], id: \.self) { Text("\(Int($0))").tag($0) }
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    .onChange(of: fontSize) { TerminalLook.apply(appearance) }
                     Text("Projects strip").type(.body, .medium).foregroundStyle(look.ink).padding(.leading, 12)
                     Picker("Projects strip", selection: $appearance.navPosition) {
                         ForEach(NavPosition.allCases) { Text($0.title).tag($0) }
@@ -301,32 +302,27 @@ private struct PermissionsPage: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let allGranted = permissions.notifications == .granted && permissions.screenRecording == .granted && permissions.finderAction == .granted
+        let allGranted = permissions.notifications == .granted && permissions.finderAction == .granted
         Page(horizon: 112, bench: 52) {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: 112 + 22)
-                Heading(title: "A few permissions", text: "Click one and System Settings opens on its page, on the left.")
+                Heading(title: "A few permissions", text: "Tezgah asks only for what it uses. Both can be changed later in Settings.")
                 VStack(spacing: 8) {
                     PermissionCard(title: "Notifications", detail: "Tells you when an agent waits for you",
                                    state: permissions.notifications) { permissions.requestNotifications() }
-                    PermissionCard(title: "Screen Recording", detail: "To show simulators and windows in a pane",
-                                   state: permissions.screenRecording) { permissions.openScreenRecordingSettings(); WindowPlacement.makeRoomForSettings() }
                     PermissionCard(title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder",
                                    state: permissions.finderAction) { permissions.installFinderAction() }
                 }
                 .padding(.top, 16)
-                if permissions.screenRecording != .granted { DragAppIcon().padding(.top, 10) }
             }
             .padding(.horizontal, 32)
             Footer(primary: allGranted ? "Continue" : "Later").padding(.horizontal, -16)
         }
         .onAppear {
             permissions.startWatching()
-            WindowPlacement.narrowToRight()
         }
         .onDisappear {
             permissions.stopWatching()
-            WindowPlacement.restoreOnboarding()
         }
         .onChange(of: allGranted) { _, now in
             if now { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { if flow.step == 2 { flow.next() } } }
@@ -354,24 +350,20 @@ private struct PermissionCard: View {
             }
             .padding(.horizontal, 14)
             .frame(height: 54)
-            .background(active ? look.selected : look.raised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(active ? look.selectedEdge : hover ? look.muted.opacity(0.4) : look.line))
+            .background(look.raised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(hover ? look.muted.opacity(0.4) : look.line))
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .accessibilityValue(Text(stateText))
     }
 
-    private var active: Bool { state == .needsRelaunch }
-
     @ViewBuilder private var trailing: some View {
         switch state {
         case .granted:
             HStack(spacing: 5) { DoneCheck(size: 13); Text("Granted").type(.small, .medium) }.foregroundStyle(look.done)
-        case .needsRelaunch:
-            Button("Reopen Tezgah") { Relauncher.relaunch() }.buttonStyle(TZButtonStyle(kind: .primary, small: true))
         case .denied:
-            Text("Turned off").type(.small).foregroundStyle(look.failed)
+            Text("Turn on in System Settings").type(.small, .medium).foregroundStyle(look.ink)
         case .unknown:
             Text("Open").type(.small, .medium).foregroundStyle(look.ink)
         }
@@ -380,7 +372,6 @@ private struct PermissionCard: View {
     private var stateText: LocalizedStringKey {
         switch state {
         case .granted: "granted"
-        case .needsRelaunch: "granted, reopen Tezgah to apply"
         case .denied: "turned off"
         case .unknown: "not yet"
         }
@@ -388,52 +379,6 @@ private struct PermissionCard: View {
 }
 
 /// The app's own icon, draggable into System Settings' list.
-private struct DragAppIcon: View {
-    @Environment(\.look) private var look
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable().frame(width: 36, height: 36)
-                .onDrag { NSItemProvider(contentsOf: Bundle.main.bundleURL) ?? NSItemProvider() }
-                .accessibilityLabel(Text("Tezgah app icon, drag it into the list"))
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Hold the icon, drop it in the list").type(.body, .medium).foregroundStyle(look.ink)
-                Text("Screen & System Audio Recording · open Tezgah").type(.small).foregroundStyle(look.muted)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 56)
-        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(look.line, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
-    }
-}
-
-enum WindowPlacement {
-    static var onboardingWindow: NSWindow? { NSApp.windows.first { $0.contentViewController is NSHostingController<AnyView> || $0.title == NSLocalizedString("Welcome to Tezgah", comment: "window") } }
-
-    /// On the permissions page the first-run window narrows to the right half, so System Settings has the left.
-    static func narrowToRight() {
-        guard let w = onboardingWindow, let screen = w.screen ?? NSScreen.main else { return }
-        let area = screen.visibleFrame
-        let width = 460.0, height = w.frame.height
-        let x = area.midX + max(Grid.Space.s6, (area.width / 2 - width) / 2)
-        w.setFrame(NSRect(x: min(x, area.maxX - width - Grid.Space.s6), y: area.midY - height / 2, width: width, height: height),
-                   display: true, animate: true)
-    }
-
-    static func restoreOnboarding() {
-        guard let w = onboardingWindow, let screen = w.screen ?? NSScreen.main else { return }
-        let area = screen.visibleFrame
-        let size = NSSize(width: OnboardingView.size.width, height: w.frame.height)
-        w.setFrame(NSRect(x: area.midX - size.width / 2, y: area.midY - size.height / 2, width: size.width, height: size.height),
-                   display: true, animate: true)
-    }
-
-    /// Before System Settings opens: make sure Tezgah sits on the right.
-    static func makeRoomForSettings() { narrowToRight() }
-}
-
 // MARK: - 04 Agents
 
 private struct AgentsPage: View {
@@ -493,9 +438,12 @@ private struct AgentRow: View {
                 }
             }
             Spacer()
-            Text("Notifications").type(.small).foregroundStyle(look.muted)
-            Toggle("Notifications", isOn: $reports).toggleStyle(.switch).controlSize(.small).labelsHidden().tint(look.accent)
-                .onChange(of: reports) { AgentHooks.install() }
+            // Only where Tezgah has a hook to add; the others show up when they report by themselves.
+            if AgentHooks.hooked.contains(found.kind) {
+                Text("Notifications").type(.small).foregroundStyle(look.muted)
+                Toggle("Notifications", isOn: $reports).toggleStyle(.switch).controlSize(.small).labelsHidden().tint(look.accent)
+                    .onChange(of: reports) { AgentHooks.install() }
+            }
         }
         .padding(.horizontal, 14)
         .frame(height: 52)
@@ -507,6 +455,7 @@ private struct AgentRow: View {
 private struct MissingAgentRow: View {
     let kind: AgentKind
     @Environment(AppStore.self) private var store
+    @Environment(Onboarding.self) private var flow
     @Environment(\.look) private var look
 
     var body: some View {
@@ -521,7 +470,8 @@ private struct MissingAgentRow: View {
             }
             Spacer()
             Button("Website") { NSWorkspace.shared.open(AgentCatalog.site(kind)) }.buttonStyle(TZButtonStyle(kind: .plain, small: true))
-            Button("Install") { store.typeInstallCommand(for: kind) }.buttonStyle(TZButtonStyle(small: true))
+            // The command is typed into a tab of the main window, so the first run ends here and the window opens on it.
+            Button("Install") { flow.finish(); store.typeInstallCommand(for: kind) }.buttonStyle(TZButtonStyle(small: true))
         }
         .padding(.horizontal, 14)
         .frame(height: 52)

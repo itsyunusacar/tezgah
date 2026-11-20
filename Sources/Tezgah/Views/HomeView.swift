@@ -11,18 +11,20 @@ struct HomeView: View {
     static let horizon: Double = 196
 
     var body: some View {
-        let waiting = store.sessions.filter { [.blocked, .error].contains(store.status(of: $0)) }
-        let working = store.sessions.filter { store.status(of: $0) == .working }
+        let waiting = store.waitingSessions
+        let working = store.workingSessions
+        let finished = store.sessions.filter { store.status(of: $0) == .done }
 
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header(waiting: waiting.count, working: working.count)
                 VStack(alignment: .leading, spacing: Grid.Space.s8) {
-                    HStack(spacing: Grid.Space.s2) {
-                        QuickAction(symbol: "plus", title: "New Session", keys: "⌘T") { AppActions.newSessionHere() }
-                        QuickAction(symbol: "folder", title: "Open Folder", keys: "⌘O") { AppActions.openFolder() }
-                        QuickAction(symbol: "chevron.forward.2", title: "Terminal", keys: "⌘N") { _ = store.newSession(projectId: nil) }
-                        QuickAction(symbol: "magnifyingglass", title: "Search Everything", keys: "⌘K") { store.paletteOpen = true }
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Grid.Space.s2) { projectActions; sessionActions }
+                        VStack(alignment: .leading, spacing: Grid.Space.s2) {
+                            HStack(spacing: Grid.Space.s2) { projectActions }
+                            HStack(spacing: Grid.Space.s2) { sessionActions }
+                        }
                     }
                     if !waiting.isEmpty {
                         VStack(alignment: .leading, spacing: Grid.Space.s3) {
@@ -33,13 +35,28 @@ struct HomeView: View {
                             }
                         }
                     }
+                    // Every agent at work, whichever project it is in.
+                    if !working.isEmpty {
+                        VStack(alignment: .leading, spacing: Grid.Space.s3) {
+                            SectionTitle(title: "Working", count: working.count)
+                            RowList(sessions: working)
+                        }
+                    }
+                    if !finished.isEmpty {
+                        VStack(alignment: .leading, spacing: Grid.Space.s3) {
+                            SectionTitle(title: "Finished", count: finished.count)
+                            RowList(sessions: finished)
+                        }
+                    }
                     VStack(alignment: .leading, spacing: Grid.Space.s3) {
                         SectionTitle(title: "Projects", count: store.projects.count)
                         if store.projects.isEmpty {
                             EmptyProjects()
                         } else {
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Grid.Space.s3, alignment: .top)], spacing: Grid.Space.s3) {
-                                ForEach(store.recentProjects) { ProjectCard(project: $0) }
+                                ForEach(Array(store.recentProjects.enumerated()), id: \.element.id) { i, p in
+                                    ProjectCard(project: p, number: i < 9 ? i + 1 : nil)
+                                }
                             }
                         }
                     }
@@ -51,19 +68,25 @@ struct HomeView: View {
             }
         }
         .scrollIndicators(.automatic)
-        .background(alignment: .top) {
-            VStack(spacing: 0) {
-                SkyView().frame(height: Self.horizon)
-                PaperGrid()
-            }
-        }
+        .background { PaperGrid() }
         .background(look.base)
+    }
+
+    @ViewBuilder private var projectActions: some View {
+        QuickAction(symbol: "folder", title: "Open Folder", keys: "⌘O") { AppActions.openFolder() }
+        QuickAction(symbol: "folder.badge.plus", title: "New Folder", keys: "⇧⌘N") { AppActions.newFolder() }
+    }
+
+    @ViewBuilder private var sessionActions: some View {
+        QuickAction(symbol: "plus", title: "New Session", keys: "⌘T") { AppActions.newSessionHere() }
+        QuickAction(symbol: "chevron.forward.2", title: "Terminal", keys: "⌘N") { _ = store.newSession(projectId: nil) }
+        QuickAction(symbol: "magnifyingglass", title: "Search", keys: "⌘K") { store.paletteOpen = true }
     }
 
     private func header(waiting: Int, working: Int) -> some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                Text(store.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                     .type(.body).foregroundStyle(.white.opacity(0.8))
                 Text(hello).type(.title1, .semibold).foregroundStyle(.white).accessibilityAddTraits(.isHeader)
                 Text(summary(waiting: waiting, working: working)).type(.lead).foregroundStyle(.white.opacity(0.88))
@@ -76,10 +99,13 @@ struct HomeView: View {
                 .padding(.trailing, 64)
         }
         .frame(height: Self.horizon)
+        // The sky is part of the page: it leaves with the greeting when you scroll, instead of staying
+        // behind as a blue band under the cards.
+        .background { SkyView() }
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 4) {
                 SkyButton(symbol: "magnifyingglass", label: "Search") { store.paletteOpen = true }
-                SkyButton(symbol: "bell", label: "Notifications") { store.notificationsOpen.toggle() }
+                SkyButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.toggleNotifications() }
                 SkyButton(symbol: "gearshape", label: "Settings") { AppActions.showSettings() }
             }
             .padding(.top, 12).padding(.trailing, 12)
@@ -87,7 +113,7 @@ struct HomeView: View {
     }
 
     private var hello: String {
-        switch Calendar.current.component(.hour, from: .now) {
+        switch Calendar.current.component(.hour, from: store.now) {
         case 5 ..< 12: String(localized: "Good morning")
         case 12 ..< 18: String(localized: "Good afternoon")
         default: String(localized: "Good evening")
@@ -107,6 +133,7 @@ struct HomeView: View {
 private struct SkyButton: View {
     let symbol: String
     let label: LocalizedStringKey
+    var badge = false
     let action: () -> Void
     @State private var hover = false
     var body: some View {
@@ -115,6 +142,9 @@ private struct SkyButton: View {
                 .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
                 .background(.white.opacity(hover ? 0.16 : 0), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(alignment: .topTrailing) {
+                    if badge { Circle().fill(.white).frame(width: 6, height: 6).padding(5) }
+                }
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
@@ -206,7 +236,7 @@ private struct WaitingCard: View {
     private var meta: String {
         let who = AgentKind(program: store.icon(of: session))?.command ?? store.sessionTitle(session)
         let project = store.project(session.projectId)?.name ?? String(localized: "Terminal")
-        return "\(who) · \(project) · \(Durations.short(Date.now.timeIntervalSince(store.statusSince(of: session))))"
+        return "\(who) · \(project) · \(Durations.local(store.now.timeIntervalSince(store.statusSince(of: session))))"
     }
 }
 
@@ -231,12 +261,12 @@ private struct RowList: View {
             HStack(spacing: Grid.Space.s3) {
                 LogoTile(program: store.icon(of: s), size: 28)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(lead?.statusMessage ?? store.sessionTitle(s)).type(.body, .medium).foregroundStyle(look.ink).lineLimit(1)
-                    Text("\(AgentKind(program: store.icon(of: s))?.command ?? store.sessionTitle(s)) · \(store.project(s.projectId)?.name ?? String(localized: "Terminal"))")
+                    Text(store.sessionTitle(s)).type(.body, .medium).foregroundStyle(look.ink).lineLimit(1)
+                    Text([store.project(s.projectId)?.name ?? String(localized: "Terminal"), lead?.statusMessage].compactMap { $0 }.joined(separator: " · "))
                         .type(.caption).foregroundStyle(look.muted).lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Text(Durations.short(Date.now.timeIntervalSince(store.statusSince(of: s)))).type(.caption, mono: true).foregroundStyle(look.faint)
+                Text(Durations.local(store.now.timeIntervalSince(store.statusSince(of: s)))).type(.caption, mono: true).foregroundStyle(look.faint)
                 StateMark(state: store.status(of: s))
             }
             if let p = lead?.progress {
@@ -283,25 +313,35 @@ private struct ProjectCard: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
     let project: ProjectRecord
+    /// The key that opens it from home (1–9).
+    var number: Int?
     @State private var branch: String?
     @State private var hover = false
 
     var body: some View {
         let sessions = store.sessions(in: project.id)
         let agents = Array(Set(sessions.compactMap { AgentKind(program: store.icon(of: $0)) })).sorted { $0.rawValue < $1.rawValue }
-        Button { store.openProject(project.id) } label: {
+        let missing = store.missingProjects.contains(project.id)
+        Button { if missing { store.relocateProject(project.id) } else { store.openProject(project.id) } } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    Text(project.name).type(.body, .semibold).foregroundStyle(look.ink).lineLimit(1)
+                    Text(project.name).type(.body, .semibold).foregroundStyle(missing ? look.muted : look.ink).lineLimit(1)
                     Spacer(minLength: 4)
-                    StateMark(state: store.status(ofProject: project.id))
+                    if missing {
+                        Image(systemName: "exclamationmark.triangle").font(.system(size: 12)).foregroundStyle(look.waiting)
+                    } else {
+                        StateMark(state: store.status(ofProject: project.id))
+                    }
                 }
-                Text(line(sessions)).type(.small).foregroundStyle(look.muted).lineLimit(2)
+                Text(missing ? String(localized: "The folder can't be found. Click to locate it.") : line(sessions))
+                    .type(.small).foregroundStyle(look.muted).lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 6)
                 HStack(spacing: 6) {
                     ForEach(agents) { AgentLogo(kind: $0, size: 13) }
                     if agents.isEmpty { Text(" ").type(.caption) }
+                    Spacer()
+                    if let number, !missing { KeyHint(keys: "\(number)").opacity(hover ? 1 : 0.6) }
                 }
             }
             .frame(minHeight: 84, alignment: .topLeading)
@@ -311,6 +351,17 @@ private struct ProjectCard: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
+        .contextMenu {
+            Button("New Session…") { store.refreshAgents(); store.newSessionPicker = project.id }
+            Button("Show Board") { store.showBoard(project.id) }
+            Divider()
+            if missing { Button("Locate Folder…") { store.relocateProject(project.id) } }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.path)]) }
+                .disabled(missing)
+            Divider()
+            Button("Remove from Tezgah") { store.confirmRemoveProject(project.id) }
+        }
+        .help(Text(Paths.tilde(project.path)))
         .task(id: project.path) { branch = await Git.branch(at: project.path) }
     }
 
@@ -334,8 +385,11 @@ private struct EmptyProjects: View {
     @Environment(\.look) private var look
     var body: some View {
         VStack(alignment: .leading, spacing: Grid.Space.s3) {
-            Text("Add a folder you work in. Its sessions, changes and agents gather here.").type(.body).foregroundStyle(look.soft)
-            Button("Open Folder…") { AppActions.openFolder() }.buttonStyle(TZButtonStyle(kind: .primary))
+            Text("Add a folder you work in. Its sessions, changes and conversations gather here.").type(.body).foregroundStyle(look.soft)
+            HStack(spacing: Grid.Space.s2) {
+                Button("Open Folder…") { AppActions.openFolder() }.buttonStyle(TZButtonStyle(kind: .primary))
+                Button("New Folder…") { AppActions.newFolder() }.buttonStyle(TZButtonStyle())
+            }
         }
         .padding(Grid.Space.s4)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -343,58 +397,77 @@ private struct EmptyProjects: View {
     }
 }
 
-/// A project's board: its agents, its changes. Services, resources and logs come in 0.2.
+/// A project's board: its sessions, its changes, and the conversations its agents have had here.
 struct BoardView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
     let project: ProjectRecord
     @State private var git: GitSummary?
+    @State private var gitRead = false
+    @State private var conversations: [ConversationInfo] = []
+    @State private var showAll = false
+
+    private static let shown = 8
 
     var body: some View {
         let sessions = store.sessions(in: project.id)
+        let missing = store.missingProjects.contains(project.id)
         ScrollView {
             VStack(alignment: .leading, spacing: Grid.Space.s6) {
-                HStack(spacing: Grid.Space.s4) {
-                    Monogram(name: project.name, size: 44, active: true)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(project.name).type(.title2, .semibold).foregroundStyle(look.ink)
+                HStack(spacing: Grid.Space.s3) {
+                    Monogram(name: project.name, size: 40, active: true)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(project.name).type(.title3, .semibold).foregroundStyle(look.ink).lineLimit(1)
                         Text([Paths.tilde(project.path), git?.branch].compactMap { $0 }.joined(separator: " · "))
-                            .type(.caption, mono: true).foregroundStyle(look.muted)
+                            .type(.caption, mono: true).foregroundStyle(look.muted).lineLimit(1).truncationMode(.middle)
                     }
-                    Spacer()
-                    Button { store.newSessionPicker = project.id } label: { Label("New Session", systemImage: "plus") }
-                        .buttonStyle(TZButtonStyle(kind: .primary))
+                    Spacer(minLength: Grid.Space.s4)
+                    if !missing {
+                        IconButton(symbol: "folder", label: "Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.path)])
+                        }
+                        Button { _ = store.newSession(projectId: project.id) } label: { Label("Terminal", systemImage: "chevron.forward.2") }
+                            .buttonStyle(TZButtonStyle())
+                        Button { store.refreshAgents(); store.newSessionPicker = project.id } label: { Label("New Session", systemImage: "plus") }
+                            .buttonStyle(TZButtonStyle(kind: .primary))
+                    }
                 }
 
-                if sessions.isEmpty {
-                    VStack(spacing: Grid.Space.s3) {
-                        TezgahMark(width: 56, blinking: true)
-                        Text("No open sessions in \(project.name)").type(.title3, .semibold).foregroundStyle(look.ink)
-                        Text("Start with an agent, or open a terminal.").type(.body).foregroundStyle(look.muted)
+                if missing {
+                    VStack(alignment: .leading, spacing: Grid.Space.s3) {
+                        Label { Text("The folder can't be found").type(.body, .semibold).foregroundStyle(look.ink) } icon: {
+                            Image(systemName: "exclamationmark.triangle").foregroundStyle(look.waiting)
+                        }
+                        Text("It was moved, renamed, or is on a disk that isn't connected. Show Tezgah where it is now, or take it off the list.")
+                            .type(.body).foregroundStyle(look.muted)
                         HStack(spacing: Grid.Space.s2) {
-                            Button("Terminal  ⌘N") { _ = store.newSession(projectId: project.id) }.buttonStyle(TZButtonStyle())
-                            Button("New Session  ⌘T") { store.newSessionPicker = project.id }.buttonStyle(TZButtonStyle(kind: .primary))
+                            Button("Locate Folder…") { store.relocateProject(project.id) }.buttonStyle(TZButtonStyle(kind: .primary))
+                            Button("Remove from Tezgah") { store.confirmRemoveProject(project.id) }.buttonStyle(TZButtonStyle())
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Grid.Space.s16)
-                    .background { PaperGrid() }
-                    .clipShape(RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous).strokeBorder(look.line))
+                    .padding(Grid.Space.s4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .card(look)
                 } else {
                     HStack(alignment: .top, spacing: Grid.Space.s3) {
-                        BoardCard(title: "Sessions", trailing: "\(sessions.count)") {
+                        BoardCard(title: "Sessions", trailing: sessions.isEmpty ? "" : "\(sessions.count)") {
+                            if sessions.isEmpty {
+                                Text(conversations.isEmpty ? "Nothing is open here yet. Start an agent or a terminal."
+                                    : "Nothing is open here yet. Start an agent or a terminal, or pick up a conversation below.")
+                                    .type(.body).foregroundStyle(look.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             ForEach(sessions) { s in
                                 Button { store.open(session: s.id) } label: {
                                     HStack(spacing: 10) {
                                         ProgramMark(program: store.icon(of: s), size: 16)
                                         VStack(alignment: .leading, spacing: 0) {
-                                            Text(store.sessionTitle(s)).type(.body, .medium).foregroundStyle(look.ink)
+                                            Text(store.sessionTitle(s)).type(.body, .medium).foregroundStyle(look.ink).lineLimit(1)
                                             (store.status(of: s).map { Text($0.spokenName) } ?? Text("idle"))
                                                 .type(.caption).foregroundStyle(look.muted)
                                         }
                                         Spacer()
-                                        Text(Durations.short(Date.now.timeIntervalSince(store.statusSince(of: s)))).type(.caption, mono: true).foregroundStyle(look.faint)
+                                        Text(Durations.local(store.now.timeIntervalSince(store.statusSince(of: s)))).type(.caption, mono: true).foregroundStyle(look.faint)
                                         StateMark(state: store.status(of: s))
                                     }
                                     .contentShape(Rectangle())
@@ -403,33 +476,91 @@ struct BoardView: View {
                                 if let p = store.leadPane(of: s)?.progress { ProgressBar(value: Double(p) / 100) }
                             }
                         }
-                        BoardCard(title: "Changes", trailing: git.map { "+\($0.added) −\($0.removed)" } ?? "") {
-                            if let git, !git.files.isEmpty {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.triangle.branch").font(.system(size: 12)).foregroundStyle(look.soft)
-                                    Text(git.branch ?? "").type(.body, .medium).foregroundStyle(look.ink)
-                                    Spacer()
-                                    Text("\(git.changedFiles) files").type(.caption).foregroundStyle(look.muted)
-                                }
-                                ForEach(git.files.prefix(8), id: \.self) { f in
-                                    HStack(spacing: 8) {
-                                        Text(f.status).type(.caption, .medium, mono: true).foregroundStyle(color(f.status)).frame(width: 16, alignment: .leading)
-                                        Text(f.path).type(.caption, mono: true).foregroundStyle(look.soft).lineLimit(1).truncationMode(.head)
-                                    }
-                                }
-                            } else if git != nil {
-                                Text("Nothing changed.").type(.body).foregroundStyle(look.muted)
-                            } else {
-                                Text("Not a git repository.").type(.body).foregroundStyle(look.muted)
-                            }
-                        }
+                        changes
+                    }
+                    if !conversations.isEmpty { history }
+                }
+            }
+            .padding(.horizontal, Grid.Space.s8)
+            .padding(.vertical, Grid.Space.s6)
+            .frame(maxWidth: 1080)
+            .frame(maxWidth: .infinity)
+        }
+        // Not into the title bar's safe area: there it would paint over the bar above.
+        .background(look.base, ignoresSafeAreaEdges: [])
+        // The board keeps up with what the agents do while you look at it.
+        .task(id: project.path) {
+            while !Task.isCancelled {
+                // Nobody is looking (another app in front, the window closed): nothing to keep up with.
+                if gitRead, !store.windowInSight() {
+                    try? await Task.sleep(for: .seconds(2))
+                    continue
+                }
+                let g = await Git.summary(at: project.path)
+                if g != git { git = g }
+                gitRead = true
+                let c = await ConversationList.all(for: project.path)
+                if c != conversations { conversations = c }
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
+    }
+
+    private var changes: some View {
+        BoardCard(title: "Changes", trailing: git.map { "+\($0.added) −\($0.removed)" } ?? "") {
+            if let git, !git.files.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.branch").font(.system(size: 12)).foregroundStyle(look.soft)
+                    Text(git.branch ?? "").type(.body, .medium).foregroundStyle(look.ink)
+                    Spacer()
+                    Text("\(git.changedFiles) files").type(.caption).foregroundStyle(look.muted)
+                }
+                ForEach(git.files.prefix(8), id: \.self) { f in
+                    HStack(spacing: 8) {
+                        Text(f.status).type(.caption, .medium, mono: true).foregroundStyle(color(f.status)).frame(width: 16, alignment: .leading)
+                        Text(f.path).type(.caption, mono: true).foregroundStyle(look.soft).lineLimit(1).truncationMode(.head)
+                    }
+                }
+                if git.files.count > 8 {
+                    Text("and \(git.files.count - 8) more").type(.caption).foregroundStyle(look.faint)
+                }
+            } else if git != nil {
+                Text("Nothing changed.").type(.body).foregroundStyle(look.muted)
+            } else if gitRead {
+                Text("Not a git repository.").type(.body).foregroundStyle(look.muted)
+            } else {
+                Text(" ").type(.body)
+            }
+        }
+    }
+
+    /// Every conversation an agent has had in this folder (Claude Code, Grok, Codex): they stay with the project.
+    private var history: some View {
+        let open = store.openConversations
+        let list = showAll ? conversations : Array(conversations.prefix(Self.shown))
+        return BoardCard(title: "Conversations", trailing: "\(conversations.count)") {
+            VStack(spacing: 2) {
+                ForEach(list) { c in
+                    ConversationRow(conversation: c, isOpen: open.contains(c.id)) {
+                        store.resume(c, in: project.id)
+                    } trash: {
+                        trash(c)
                     }
                 }
             }
-            .padding(Grid.Space.s6)
+            .padding(.horizontal, -8).padding(.vertical, -6)
+            if conversations.count > Self.shown {
+                Button(showAll ? "Show fewer" : "Show all \(conversations.count)") { showAll.toggle() }
+                    .buttonStyle(.plain).type(.caption, .medium).foregroundStyle(look.soft)
+            }
         }
-        .background(look.base)
-        .task(id: project.path) { git = await Git.summary(at: project.path) }
+    }
+
+    private func trash(_ c: ConversationInfo) {
+        if (try? FileManager.default.trashItem(at: c.url, resultingItemURL: nil)) != nil {
+            conversations.removeAll { $0.id == c.id }
+            AppActions.toast(String(localized: "Conversation moved to the Trash"))
+        }
     }
 
     private func color(_ status: String) -> Color {
@@ -438,6 +569,53 @@ struct BoardView: View {
         case "D": look.failed
         default: look.waiting
         }
+    }
+}
+
+/// One past conversation: what it was about, when, and a way back into it.
+private struct ConversationRow: View {
+    let conversation: ConversationInfo
+    let isOpen: Bool
+    let resume: () -> Void
+    let trash: () -> Void
+    @Environment(\.look) private var look
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: resume) {
+            HStack(spacing: 10) {
+                AgentLogo(kind: conversation.agent, size: 14).frame(width: 16)
+                Text(conversation.title).type(.body).foregroundStyle(look.ink).lineLimit(1)
+                Spacer(minLength: 12)
+                if isOpen {
+                    Text("open").type(.caption, .medium).foregroundStyle(look.accent)
+                        .padding(.horizontal, 6).frame(height: 18)
+                        .background(look.selected, in: Capsule())
+                } else if hover {
+                    Text("Resume").type(.caption, .medium).foregroundStyle(look.soft)
+                }
+                Text(conversation.modified.formatted(.relative(presentation: .named))).type(.caption).foregroundStyle(look.faint)
+                    .frame(minWidth: 72, alignment: .trailing)
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 32)
+            .background(hover ? look.selected : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .contextMenu {
+            Button(isOpen ? "Go to Session" : "Resume") { resume() }
+            Button("Copy Conversation ID") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(conversation.id, forType: .string)
+                AppActions.toast(String(localized: "Copied"))
+            }
+            Divider()
+            Button("Move to Trash") { trash() }.disabled(isOpen)
+        }
+        .accessibilityLabel(Text(conversation.title))
+        .accessibilityHint(Text(isOpen ? "Go to Session" : "Resume"))
     }
 }
 

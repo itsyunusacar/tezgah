@@ -1,66 +1,6 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "  Hi! What shall we work on?": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "  Merhaba! Ne üzerinde çalışalım?"
-          }
-        }
-      }
-    },
-    "02 · APPEARANCE": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "02 · GÖRÜNÜM"
-          }
-        }
-      }
-    },
-    "03 · PERMISSIONS": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "03 · İZİNLER"
-          }
-        }
-      }
-    },
-    "04 · AGENTS": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "04 · AJANLAR"
-          }
-        }
-      }
-    },
-    "05 · READY": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "05 · HAZIR"
-          }
-        }
-      }
-    },
-    "1 unit = 6 pt · square = 4 units": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 birim = 6 pt · kare = 4 birim"
-          }
-        }
-      }
-    },
     "=> and != join into one sign": {
       "localizations": {
         "tr": {
@@ -77,16 +17,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "> yalnızca komutlar"
-          }
-        }
-      }
-    },
-    "A terminal for your agents, a hub for your projects. Five steps and you're ready.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajanların için terminal, projelerin için merkez. Beş adımda hazırız."
           }
         }
       }
@@ -151,16 +81,6 @@
         }
       }
     },
-    "Add a folder you work in. Its sessions, changes and agents gather here.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Çalıştığın bir klasörü ekle. Oturumları, değişiklikleri ve ajanları burada toplanır."
-          }
-        }
-      }
-    },
     "Advanced": {
       "localizations": {
         "tr": {
@@ -221,16 +141,6 @@
         }
       }
     },
-    "Another tool": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Başka bir araç"
-          }
-        }
-      }
-    },
     "Appearance": {
       "localizations": {
         "tr": {
@@ -277,16 +187,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Davranış"
-          }
-        }
-      }
-    },
-    "Bigger text": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yazıyı büyüt"
           }
         }
       }
@@ -381,16 +281,6 @@
         }
       }
     },
-    "Choose Folder": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Klasör seç"
-          }
-        }
-      }
-    },
     "Choose a folder to work in.": {
       "localizations": {
         "tr": {
@@ -427,26 +317,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Terminali Temizle"
-          }
-        }
-      }
-    },
-    "Click one and System Settings opens on its page. Each card ticks itself when the permission arrives.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bir izne tıkla, Sistem Ayarları o sayfayla açılsın. İzin gelince kart kendiliğinden ✓ olur."
-          }
-        }
-      }
-    },
-    "Click one to open its page in System Settings.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bir izne tıklayınca Sistem Ayarları o sayfada açılır."
           }
         }
       }
@@ -821,16 +691,6 @@
         }
       }
     },
-    "Follows the system; change it per app in System Settings › General › Language & Region": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sistem dilini izler; uygulama başına Sistem Ayarları › Genel › Dil ve Bölge'den değişir"
-          }
-        }
-      }
-    },
     "Font": {
       "localizations": {
         "tr": {
@@ -881,52 +741,12 @@
         }
       }
     },
-    "Good afternoon.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İyi günler."
-          }
-        }
-      }
-    },
-    "Good evening.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İyi akşamlar."
-          }
-        }
-      }
-    },
-    "Good morning.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Günaydın."
-          }
-        }
-      }
-    },
     "Granted": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Verildi"
-          }
-        }
-      }
-    },
-    "Hello": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Merhaba"
           }
         }
       }
@@ -957,16 +777,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@'ı Gizle"
-          }
-        }
-      }
-    },
-    "Hold the icon, drop it in the list": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Simgeyi tut, listeye bırak"
           }
         }
       }
@@ -1017,26 +827,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bilgisayarında %lld ajan buldum."
-          }
-        }
-      }
-    },
-    "I found one agent.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bilgisayarında bir ajan buldum."
-          }
-        }
-      }
-    },
-    "In the strip it looks like this": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Şeritte böyle görünür"
           }
         }
       }
@@ -1161,26 +951,6 @@
         }
       }
     },
-    "Looking for agents.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajanlar aranıyor."
-          }
-        }
-      }
-    },
-    "Looking for agents…": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajanlar aranıyor…"
-          }
-        }
-      }
-    },
     "Make Text Bigger": {
       "localizations": {
         "tr": {
@@ -1197,16 +967,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Yazıyı Küçült"
-          }
-        }
-      }
-    },
-    "Make it yours.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sana göre ayarla."
           }
         }
       }
@@ -1261,32 +1021,12 @@
         }
       }
     },
-    "New Project…": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yeni Proje…"
-          }
-        }
-      }
-    },
     "New Session": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Yeni Oturum"
-          }
-        }
-      }
-    },
-    "New Session  ⌘T": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yeni oturum  ⌘T"
           }
         }
       }
@@ -1371,32 +1111,12 @@
         }
       }
     },
-    "No agent is working right now.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Şu an çalışan ajan yok."
-          }
-        }
-      }
-    },
     "No agents found": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Ajan bulunamadı"
-          }
-        }
-      }
-    },
-    "No agents yet.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Henüz ajan yok."
           }
         }
       }
@@ -1521,16 +1241,6 @@
         }
       }
     },
-    "Older than 30 days are removed automatically": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "30 günden eskiler kendiliğinden silinir"
-          }
-        }
-      }
-    },
     "Open": {
       "localizations": {
         "tr": {
@@ -1601,26 +1311,6 @@
         }
       }
     },
-    "Open your first project.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İlk projeni aç."
-          }
-        }
-      }
-    },
-    "Open your first project. These are the folders you worked in last:": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İlk projeni aç. Son çalıştığın klasörleri buldum:"
-          }
-        }
-      }
-    },
     "Open…": {
       "localizations": {
         "tr": {
@@ -1657,16 +1347,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "İzinler"
-          }
-        }
-      }
-    },
-    "Preview · changes as you choose": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Önizleme · seçtikçe değişir"
           }
         }
       }
@@ -1731,16 +1411,6 @@
         }
       }
     },
-    "Projects, sessions and panes as you left them": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Projeler, oturumlar ve bölmeler bıraktığın gibi"
-          }
-        }
-      }
-    },
     "Quick Switch…": {
       "localizations": {
         "tr": {
@@ -1801,16 +1471,6 @@
         }
       }
     },
-    "Recent projects": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Son projeler"
-          }
-        }
-      }
-    },
     "Redo": {
       "localizations": {
         "tr": {
@@ -1847,16 +1507,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Yeniden Adlandır…"
-          }
-        }
-      }
-    },
-    "Reopen Tezgah": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tezgah'ı yeniden aç"
           }
         }
       }
@@ -1927,26 +1577,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "İlk kurulumu yeniden çalıştır"
-          }
-        }
-      }
-    },
-    "Screen & System Audio Recording · open Tezgah": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ekran ve Sistem Ses Kaydı · Tezgah'ı aç"
-          }
-        }
-      }
-    },
-    "Screen Recording": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ekran Kaydı"
           }
         }
       }
@@ -2191,16 +1821,6 @@
         }
       }
     },
-    "Smaller text": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yazıyı küçült"
-          }
-        }
-      }
-    },
     "Split": {
       "localizations": {
         "tr": {
@@ -2291,16 +1911,6 @@
         }
       }
     },
-    "Start with an agent, or open a terminal.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bir ajanla başla ya da terminal aç."
-          }
-        }
-      }
-    },
     "Step %lld of %lld": {
       "localizations": {
         "tr": {
@@ -2341,16 +1951,6 @@
         }
       }
     },
-    "TEZGAH · 0.1 BETA": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TEZGAH · 0.1 BETA"
-          }
-        }
-      }
-    },
     "Tells you when an agent waits for you": {
       "localizations": {
         "tr": {
@@ -2367,26 +1967,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Terminal"
-          }
-        }
-      }
-    },
-    "Terminal  ⌘N": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Terminal  ⌘N"
-          }
-        }
-      }
-    },
-    "Terminal text": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Terminal yazısı"
           }
         }
       }
@@ -2431,16 +2011,6 @@
         }
       }
     },
-    "Tezgah app icon, drag it into the list": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tezgah simgesi, listeye sürükle"
-          }
-        }
-      }
-    },
     "Tezgah follows your system settings: Reduce Motion stops blinking and sliding; Increase Contrast darkens lines. States are never shown by colour alone.": {
       "localizations": {
         "tr": {
@@ -2457,16 +2027,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tezgah hiçbir yere veri göndermez"
-          }
-        }
-      }
-    },
-    "Tezgah\nis ready.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tezgah\nhazır."
           }
         }
       }
@@ -2501,62 +2061,12 @@
         }
       }
     },
-    "Three permissions, one drag.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Üç izin, tek sürükleme."
-          }
-        }
-      }
-    },
-    "To know when an agent is working or waiting for you, Tezgah adds a small hook to it. Nothing else in the agent's settings changes; you can remove it any time.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tezgah, bir ajanın çalıştığını ya da seni beklediğini bilmek için ona küçük bir bağlantı ekler. Ajanın ayarlarına başka hiçbir şey dokunmaz; istediğin an kaldırırsın."
-          }
-        }
-      }
-    },
-    "To show simulators and windows in a pane": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Simülatörü ve pencereleri gösterebilmek için"
-          }
-        }
-      }
-    },
     "Top": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Üst"
-          }
-        }
-      }
-    },
-    "Turned off": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kapalı"
-          }
-        }
-      }
-    },
-    "Type its command; Tezgah treats it as an agent too": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Komutunu yaz; Tezgah onu da ajan olarak tanır"
           }
         }
       }
@@ -2587,16 +2097,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Güncellemeler"
-          }
-        }
-      }
-    },
-    "Updates arrive with the first public build.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Güncellemeler ilk herkese açık sürümle gelecek."
           }
         }
       }
@@ -2691,16 +2191,6 @@
         }
       }
     },
-    "Welcome to\nTezgah.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tezgah'a\nhoş geldin."
-          }
-        }
-      }
-    },
     "When an agent waits for you or finishes its work, it shows up here.": {
       "localizations": {
         "tr": {
@@ -2741,16 +2231,6 @@
         }
       }
     },
-    "Where should the projects strip sit?": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Proje şeridi nerede dursun?"
-          }
-        }
-      }
-    },
     "Window": {
       "localizations": {
         "tr": {
@@ -2787,16 +2267,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Çalışıyor"
-          }
-        }
-      }
-    },
-    "You can change all of this later in Settings.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hepsini sonra Ayarlar'dan değiştirebilirsin."
           }
         }
       }
@@ -2951,16 +2421,6 @@
         }
       }
     },
-    "granted, reopen Tezgah to apply": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "verildi, geçerli olması için Tezgah'ı yeniden aç"
-          }
-        }
-      }
-    },
     "last used": {
       "localizations": {
         "tr": {
@@ -3051,16 +2511,6 @@
         }
       }
     },
-    "setup complete · 5 / 5": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "kurulum tamam · 5 / 5"
-          }
-        }
-      }
-    },
     "“Open in Tezgah” in Finder": {
       "localizations": {
         "tr": {
@@ -3111,52 +2561,12 @@
         }
       }
     },
-    "Website ": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sitesi"
-          }
-        }
-      }
-    },
     "Open in Tezgah": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Tezgah'ta aç"
-          }
-        }
-      }
-    },
-    "claude · working": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "claude · çalışıyor"
-          }
-        }
-      }
-    },
-    "codex · waiting for you": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "codex · seni bekliyor"
-          }
-        }
-      }
-    },
-    "antigravity · done": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "antigravity · bitti"
           }
         }
       }
@@ -3631,16 +3041,6 @@
         }
       }
     },
-    "Click one and System Settings opens on its page, on the left.": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Birine tıkla, Sistem Ayarları solda doğru sayfada açılır."
-          }
-        }
-      }
-    },
     "Looking for agents": {
       "localizations": {
         "tr": {
@@ -3741,26 +3141,6 @@
         }
       }
     },
-    "Projects  ⌘\\": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Projeler  ⌘\\"
-          }
-        }
-      }
-    },
-    "On the left or right: ⌘\\ opens it any time": {
-      "localizations": {
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Solda ya da sağda: ⌘\\ ile her an açılır"
-          }
-        }
-      }
-    },
     "Starts closed": {
       "localizations": {
         "tr": {
@@ -3777,6 +3157,906 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hep açık"
+          }
+        }
+      }
+    },
+    "%@  ⌘J": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@  ⌘J"
+          }
+        }
+      }
+    },
+    "Add a folder you work in. Its sessions, changes and conversations gather here.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalıştığın bir klasörü ekle. Oturumları, değişiklikleri ve konuşmaları burada toplanır."
+          }
+        }
+      }
+    },
+    "Board": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pano"
+          }
+        }
+      }
+    },
+    "Board: sessions, changes and conversations": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pano: oturumlar, değişiklikler ve konuşmalar"
+          }
+        }
+      }
+    },
+    "Choose": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seç"
+          }
+        }
+      }
+    },
+    "Conversation moved to the Trash": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konuşma Çöp Sepeti'ne taşındı"
+          }
+        }
+      }
+    },
+    "Conversations": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konuşmalar"
+          }
+        }
+      }
+    },
+    "Copy Conversation ID": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konuşma Kimliğini Kopyala"
+          }
+        }
+      }
+    },
+    "Copy Path": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yolu Kopyala"
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oluştur"
+          }
+        }
+      }
+    },
+    "Go to Session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturuma Git"
+          }
+        }
+      }
+    },
+    "Go to the next one  ⌘J": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sıradakine git  ⌘J"
+          }
+        }
+      }
+    },
+    "It was moved, renamed, or is on a disk that isn't connected. Show Tezgah where it is now, or take it off the list.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taşınmış, adı değişmiş ya da bağlı olmayan bir diskte. Tezgah'a şimdiki yerini göster ya da listeden çıkar."
+          }
+        }
+      }
+    },
+    "Its %lld open sessions will close. The folder and its conversations stay where they are.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açık %lld oturumu kapanır. Klasör ve konuşmaları yerinde kalır."
+          }
+        }
+      }
+    },
+    "Locate Folder…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasörü Bul…"
+          }
+        }
+      }
+    },
+    "Move Down": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aşağı Taşı"
+          }
+        }
+      }
+    },
+    "Move Up": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yukarı Taşı"
+          }
+        }
+      }
+    },
+    "Name:": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ad:"
+          }
+        }
+      }
+    },
+    "New Folder": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Klasör"
+          }
+        }
+      }
+    },
+    "New Folder…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Klasör…"
+          }
+        }
+      }
+    },
+    "New Session in %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ içinde yeni oturum"
+          }
+        }
+      }
+    },
+    "New Session…": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni Oturum…"
+          }
+        }
+      }
+    },
+    "Next Agent Waiting": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bekleyen Sıradaki Ajan"
+          }
+        }
+      }
+    },
+    "No Project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje Yok"
+          }
+        }
+      }
+    },
+    "No Project (Home Folder)": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje Yok (Ev Klasörü)"
+          }
+        }
+      }
+    },
+    "Project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje"
+          }
+        }
+      }
+    },
+    "Project Board": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proje Panosu"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaldır"
+          }
+        }
+      }
+    },
+    "Remove %@ from Tezgah?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Tezgah'tan kaldırılsın mı?"
+          }
+        }
+      }
+    },
+    "Resume": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devam et"
+          }
+        }
+      }
+    },
+    "Show Board": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panoyu Göster"
+          }
+        }
+      }
+    },
+    "Show all %lld": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld konuşmanın hepsini göster"
+          }
+        }
+      }
+    },
+    "Show fewer": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daha az göster"
+          }
+        }
+      }
+    },
+    "Start it in another project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başka bir projede başlat"
+          }
+        }
+      }
+    },
+    "Stopped with an error": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hatayla durdu"
+          }
+        }
+      }
+    },
+    "Tezgah makes the folder and opens it as a project.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah klasörü oluşturur ve proje olarak açar."
+          }
+        }
+      }
+    },
+    "That folder is already %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu klasör zaten %@ projesi"
+          }
+        }
+      }
+    },
+    "The folder can't be found": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör bulunamadı"
+          }
+        }
+      }
+    },
+    "The folder can't be found. Click to locate it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasör bulunamadı. Yerini göstermek için tıkla."
+          }
+        }
+      }
+    },
+    "Where is %@ now?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ şimdi nerede?"
+          }
+        }
+      }
+    },
+    "Where it opens: a tab of its own, or beside the session you're in": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nerede açılacağı: kendi sekmesinde ya da içinde olduğun oturumun yanında"
+          }
+        }
+      }
+    },
+    "and %lld more": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ve %lld tane daha"
+          }
+        }
+      }
+    },
+    "new-project": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yeni-proje"
+          }
+        }
+      }
+    },
+    "open": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "açık"
+          }
+        }
+      }
+    },
+    "Nothing is open here yet. Start an agent or a terminal.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada henüz açık bir şey yok. Bir ajan ya da terminal başlat."
+          }
+        }
+      }
+    },
+    "Nothing is open here yet. Start an agent or a terminal, or pick up a conversation below.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada henüz açık bir şey yok. Bir ajan ya da terminal başlat, ya da aşağıdaki bir konuşmaya dön."
+          }
+        }
+      }
+    },
+    "Close Session  ⌘W": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumu Kapat  ⌘W"
+          }
+        }
+      }
+    },
+    "Arrange Panes in a Grid": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölmeleri Izgaraya Diz"
+          }
+        }
+      }
+    },
+    "An agent is still at work. Quit Tezgah?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir ajan hâlâ çalışıyor. Tezgah kapatılsın mı?"
+          }
+        }
+      }
+    },
+    "%lld agents are still at work. Quit Tezgah?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ajan hâlâ çalışıyor. Tezgah kapatılsın mı?"
+          }
+        }
+      }
+    },
+    "They stop when Tezgah quits. Claude Code returns to its conversations when you open Tezgah again.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah kapanınca dururlar. Tezgah'ı yeniden açtığında Claude Code konuşmalarına geri döner."
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çık"
+          }
+        }
+      }
+    },
+    "Tezgah couldn't read its workspace file": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah çalışma alanı dosyasını okuyamadı"
+          }
+        }
+      }
+    },
+    "Your projects and sessions are in a file that is damaged. Nothing is saved over it. Start fresh and Tezgah sets the old file aside, or look at the file first.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projelerinin ve oturumlarının durduğu dosya bozulmuş. Üzerine hiçbir şey kaydedilmiyor. Sıfırdan başlarsan Tezgah eski dosyayı kenara ayırır; istersen önce dosyaya bak."
+          }
+        }
+      }
+    },
+    "Start Fresh": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sıfırdan Başla"
+          }
+        }
+      }
+    },
+    "Show the File": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosyayı Göster"
+          }
+        }
+      }
+    },
+    "Continue Without Saving": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydetmeden Devam Et"
+          }
+        }
+      }
+    },
+    "Close %lld sessions in %@?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ içindeki %1$lld oturum kapatılsın mı?"
+          }
+        }
+      }
+    },
+    "Their agents and shells stop. Conversations stay on the project's board.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanları ve kabukları durur. Konuşmalar projenin panosunda kalır."
+          }
+        }
+      }
+    },
+    "Close Sessions": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumları Kapat"
+          }
+        }
+      }
+    },
+    "Close %@?": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kapatılsın mı?"
+          }
+        }
+      }
+    },
+    "Its agent is still at work and stops with it. A Claude Code conversation stays on the project's board.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajanı hâlâ çalışıyor ve onunla birlikte durur. Claude Code konuşması projenin panosunda kalır."
+          }
+        }
+      }
+    },
+    "Projects  ⌘0": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projeler  ⌘0"
+          }
+        }
+      }
+    },
+    "No projects or sessions yet.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz proje ya da oturum yok."
+          }
+        }
+      }
+    },
+    "now": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "şimdi"
+          }
+        }
+      }
+    },
+    "%llds": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sn"
+          }
+        }
+      }
+    },
+    "%lldm": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld dk"
+          }
+        }
+      }
+    },
+    "%lldh": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sa"
+          }
+        }
+      }
+    },
+    "%lldh %lldm": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sa %lld dk"
+          }
+        }
+      }
+    },
+    "%lldd": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld g"
+          }
+        }
+      }
+    },
+    "That ssh link can't be opened": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu ssh bağlantısı açılamıyor"
+          }
+        }
+      }
+    },
+    "Tezgah asks only for what it uses. Both can be changed later in Settings.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah yalnızca kullandığı izinleri ister. İkisi de sonra Ayarlar'dan değiştirilebilir."
+          }
+        }
+      }
+    },
+    "Turn on in System Settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem Ayarları'ndan aç"
+          }
+        }
+      }
+    },
+    "On the left or right: ⌘0 opens it any time": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solda ya da sağda: ⌘0 ile her an açılır"
+          }
+        }
+      }
+    },
+    "Sessions and panes as you left them; off starts with your projects only": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturumlar ve bölmeler bıraktığın gibi; kapalıyken yalnızca projelerinle açılır"
+          }
+        }
+      }
+    },
+    "Reports by itself": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendi bildirir"
+          }
+        }
+      }
+    },
+    "Previous pane": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki bölme"
+          }
+        }
+      }
+    },
+    "Next session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki oturum"
+          }
+        }
+      }
+    },
+    "Previous session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önceki oturum"
+          }
+        }
+      }
+    },
+    "Tezgah asks only for what it uses.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezgah yalnızca kullandığı izinleri ister."
+          }
+        }
+      }
+    },
+    "macOS didn't change the default terminal": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS varsayılan terminali değiştirmedi"
+          }
+        }
+      }
+    },
+    "Default": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varsayılan"
+          }
+        }
+      }
+    },
+    "%lld pt": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pt"
+          }
+        }
+      }
+    },
+    "Couldn't start the shell": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kabuk başlatılamadı"
+          }
+        }
+      }
+    },
+    "Followed automatically": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendiliğinden izlenir"
+          }
+        }
+      }
+    },
+    "Your own agents": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendi ajanların"
+          }
+        }
+      }
+    },
+    "Any command-line agent: Aider, OpenCode, Gemini CLI, Cursor Agent… It appears in the new session picker, and Tezgah reads working, waiting for you and done from what it does in the terminal.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komut satırından çalışan her ajan: Aider, OpenCode, Gemini CLI, Cursor Agent… Yeni oturum seçicisinde görünür; Tezgah çalışıyor, seni bekliyor ve bitti durumlarını terminalde yaptıklarından okur."
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ad"
+          }
+        }
+      }
+    },
+    "Command, e.g. aider": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komut, örn. aider"
+          }
+        }
+      }
+    },
+    "Tezgah already has that one": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu zaten Tezgah'ta var"
           }
         }
       }

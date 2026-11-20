@@ -12,7 +12,7 @@ struct RootView: View {
 
     private var isHome: Bool {
         switch store.selection {
-        case .welcome, .agents, .notifications, .settings, .terminals: true
+        case .welcome: true
         case let .project(id): store.project(id) == nil
         case let .session(id): store.session(id) == nil
         }
@@ -28,7 +28,15 @@ struct RootView: View {
             if isHome { page } else { workspace }
         }
         .background(look.base)
-        .overlay(alignment: .bottom) { ToastView() }
+        .background {
+            GeometryReader { geo in
+                Color.clear.onChange(of: geo.size.height, initial: true) { store.windowHeight = geo.size.height }
+            }
+        }
+        // Clear of the bar when it sits at the bottom.
+        .overlay(alignment: .bottom) { ToastView().padding(.bottom, position == .bottom && !isHome ? 44 : 0) }
+        // A sheet closed: typing goes back to the terminal you were in.
+        .onChange(of: store.sheetOpen) { _, open in if !open { store.refocus() } }
         .overlay {
             if let sid = store.renaming, let session = store.session(sid) {
                 RenameSheet(session: session)
@@ -38,9 +46,14 @@ struct RootView: View {
                 CommandPalette()
             }
         }
+        .overlay {
+            if store.launching && store.selection == .welcome { LaunchView() }
+        }
         .animation(.easeOut(duration: Motion.quick), value: store.paletteOpen)
         .animation(.easeOut(duration: Motion.quick), value: store.newSessionPicker)
         .onChange(of: store.selection) {
+            // Something was opened straight away (a folder from Finder, a notification): no opening over it.
+            if store.selection != .welcome { store.launching = false }
             if !appearance.sidebarPinned { store.sidebarOpen = false }
         }
         .ignoresSafeArea()
@@ -48,14 +61,19 @@ struct RootView: View {
 
     private var workspace: some View {
         VStack(spacing: 0) {
-            if fullFocus || position == .bottom { TitleBand() } else { TopBar(atBottom: false) }
+            // Above the page in every sense: a page that scrolls reaches up into the title bar's safe
+            // area, and without this it paints over the bar and takes its clicks.
+            Group {
+                if fullFocus || position == .bottom { TitleBand() } else { TopBar(atBottom: false) }
+            }
+            .zIndex(2)
             HStack(spacing: 0) {
                 if columnVisible && position == .left { VerticalNav(); Rectangle().fill(look.line).frame(width: 1) }
                 page.frame(maxWidth: .infinity, maxHeight: .infinity)
                 if columnVisible && position == .right { Rectangle().fill(look.line).frame(width: 1); VerticalNav() }
             }
             .overlay(alignment: position == .right ? .trailing : .leading) { floatingStrip }
-            if position == .bottom && !fullFocus { TopBar(atBottom: true) }
+            if position == .bottom && !fullFocus { TopBar(atBottom: true).zIndex(2) }
         }
     }
 
@@ -81,20 +99,29 @@ struct RootView: View {
         }
     }
 
-    @ViewBuilder private var page: some View {
-        HStack(spacing: 0) {
-            pageContent
-            if store.notificationsOpen {
-                NotificationsPanel().padding(.vertical, Grid.Space.s2).padding(.trailing, Grid.Space.s2)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+    private var page: some View {
+        pageContent
+            .overlay(alignment: .topTrailing) {
+                if store.notificationsOpen {
+                    ZStack(alignment: .topTrailing) {
+                        // A click anywhere else puts it away.
+                        Color.black.opacity(0.001)
+                            .onTapGesture { store.notificationsOpen = false }
+                            .accessibilityHidden(true)
+                        // Under the bell: below home's sky buttons, or just under the bar.
+                        NotificationsPanel()
+                            .padding(.top, isHome ? 48 : Grid.Space.s2)
+                            .padding(.trailing, isHome ? 12 : Grid.Space.s2)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .topTrailing)))
+                }
             }
-        }
-        .animation(.easeOut(duration: Motion.standard), value: store.notificationsOpen)
+            .animation(.easeOut(duration: Motion.standard), value: store.notificationsOpen)
     }
 
     @ViewBuilder private var pageContent: some View {
         switch store.selection {
-        case .welcome, .agents, .notifications, .settings, .terminals:
+        case .welcome:
             HomeView()
         case let .project(id):
             if let p = store.project(id) { BoardView(project: p).id(p.id) } else { HomeView() }

@@ -5,7 +5,8 @@ import UserNotifications
 
 // MARK: - Notifications panel
 
-/// The side panel the bell opens: delete one, clear all, filter, read.
+/// What the bell opens: a small panel under it, as tall as what it has to show. It floats over the
+/// page (a click outside closes it) instead of pushing the page aside.
 struct NotificationsPanel: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
@@ -15,71 +16,78 @@ struct NotificationsPanel: View {
     enum Filter: CaseIterable { case all, waiting, done, failed }
 
     var body: some View {
-        let items = store.notifications.filter(matches)
+        // Only the kinds that have something are offered; with one kind there is nothing to filter.
+        let kinds = Filter.allCases.filter { f in f != .all && store.notifications.contains { matches($0, f) } }
+        let current = kinds.contains(filter) ? filter : .all
+        let items = store.notifications.filter { matches($0, current) }
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: 2) {
                 Text("Notifications").type(.body, .semibold).foregroundStyle(look.ink)
                 if store.unreadNotifications > 0 {
-                    Text("\(store.unreadNotifications) new").type(.caption, mono: true).foregroundStyle(look.faint)
+                    Text("\(store.unreadNotifications)").type(.caption, .medium, mono: true).foregroundStyle(look.accent)
+                        .padding(.horizontal, 6).frame(height: 18)
+                        .background(look.selected, in: Capsule())
+                        .padding(.leading, 6)
+                        .accessibilityLabel(Text("\(store.unreadNotifications) new"))
                 }
                 Spacer()
-                IconButton(symbol: "xmark", label: "Close Panel", size: 12) { store.notificationsOpen = false }
+                if store.unreadNotifications > 0 {
+                    IconButton(symbol: "checkmark.circle", label: "Mark All Read", size: 13) { store.markAllRead() }
+                }
+                if !store.notifications.isEmpty {
+                    IconButton(symbol: "trash", label: "Clear All", size: 12) { store.notifications.removeAll() }
+                }
+                IconButton(symbol: "xmark", label: "Close Panel", size: 11) { store.notificationsOpen = false }
             }
-            .padding(.leading, 16).padding(.trailing, 8).frame(height: 44)
-            Rectangle().fill(look.line).frame(height: 1)
+            .padding(.leading, 14).padding(.trailing, 6).frame(height: 42)
 
-            VStack(alignment: .leading, spacing: 10) {
+            if kinds.count > 1 {
                 HStack(spacing: 4) {
-                    ForEach(Filter.allCases, id: \.self) { f in
+                    ForEach([Filter.all] + kinds, id: \.self) { f in
                         Button { filter = f } label: {
                             Text(title(f)).type(.caption, .medium)
-                                .foregroundStyle(filter == f ? look.accent : look.soft)
-                                .padding(.horizontal, 10).frame(height: 26)
-                                .background(filter == f ? look.selected : .clear, in: Capsule())
-                                .overlay(Capsule().strokeBorder(filter == f ? look.selectedEdge : .clear))
+                                .foregroundStyle(current == f ? look.accent : look.soft)
+                                .padding(.horizontal, 10).frame(height: 24)
+                                .background(current == f ? look.selected : .clear, in: Capsule())
+                                .overlay(Capsule().strokeBorder(current == f ? look.selectedEdge : .clear))
+                                .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
                     }
-                }
-                HStack {
                     Spacer()
-                    Button("Mark All Read") { store.markAllRead() }.buttonStyle(.plain).type(.caption).foregroundStyle(look.soft)
-                        .disabled(store.unreadNotifications == 0)
                 }
+                .padding(.horizontal, 10).padding(.bottom, 8)
             }
-            .padding(16)
             Rectangle().fill(look.line).frame(height: 1)
 
             if items.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "bell").font(.system(size: 28, weight: .light)).foregroundStyle(look.faint)
-                    Text("No notifications").type(.lead, .semibold).foregroundStyle(look.ink)
+                VStack(spacing: 6) {
+                    Image(systemName: "bell").font(.system(size: 20, weight: .light)).foregroundStyle(look.faint)
+                        .padding(.bottom, 2)
+                    Text("No notifications").type(.body, .semibold).foregroundStyle(look.ink)
                     Text("When an agent waits for you or finishes its work, it shows up here.").type(.caption).foregroundStyle(look.muted)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(32).frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 28).padding(.vertical, 26)
+                .frame(maxWidth: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(items) { n in row(n) }
                     }
-                    .padding(8)
+                    .padding(6)
                 }
+                .frame(maxHeight: min(440, max(120, store.windowHeight - 220)))
+                .fixedSize(horizontal: false, vertical: true)
             }
-
-            Rectangle().fill(look.line).frame(height: 1)
-            HStack {
-                Text("Older than 30 days are removed automatically").type(.caption).foregroundStyle(look.faint)
-                Spacer()
-                Button("Clear All") { store.notifications.removeAll() }.buttonStyle(TZButtonStyle(small: true))
-                    .disabled(store.notifications.isEmpty)
-            }
-            .padding(.horizontal, 16).frame(height: 44)
-            .background(look.base)
         }
-        .frame(width: 380)
-        .card(look)
+        .frame(width: 360)
+        .background(look.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(look.line))
+        .shadow(color: .black.opacity(look.dark ? 0.5 : 0.16), radius: 24, y: 10)
         .onKeyPress(.escape) { store.notificationsOpen = false; return .handled }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Notifications"))
     }
 
     private func row(_ n: AppNotification) -> some View {
@@ -110,13 +118,16 @@ struct NotificationsPanel: View {
         .onHover { hover = $0 ? n.id : (hover == n.id ? nil : hover) }
         .onTapGesture {
             store.markRead(n.id)
-            if session != nil { store.open(session: n.sessionId, pane: n.paneId) }
+            if session != nil {
+                store.notificationsOpen = false
+                store.open(session: n.sessionId, pane: n.paneId)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAction(named: Text("Delete")) { store.notifications.removeAll { $0.id == n.id } }
     }
 
-    private func matches(_ n: AppNotification) -> Bool {
+    private func matches(_ n: AppNotification, _ filter: Filter) -> Bool {
         switch filter {
         case .all: true
         case .waiting: n.state == .blocked
@@ -146,7 +157,7 @@ struct NotificationsPanel: View {
     private func stateColor(_ s: AgentState) -> Color { s == .done ? look.done : s == .error ? look.failed : look.waiting }
 
     private func defaultText(_ s: AgentState) -> String {
-        s == .done ? String(localized: "Finished its work") : String(localized: "Waiting for your answer")
+        s == .done ? String(localized: "Finished its work") : s == .error ? String(localized: "Stopped with an error") : String(localized: "Waiting for your answer")
     }
 }
 
@@ -166,14 +177,37 @@ extension AppStore {
 
 /// System notifications for "waiting for you" and "done", when you aren't looking.
 enum SystemNotices {
+    /// The notices on screen for each session, so they go when you've seen it or it closes.
+    private static var delivered: [String: [String]] = [:]
+
     static func post(title: String, body: String, sessionId: String, sound: Bool) {
+        let id = UUID().uuidString
+        delivered[sessionId, default: []].append(id)
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            // Never asked (setup was skipped): the first notice is the moment to ask.
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                    if granted { deliver(id: id, title: title, body: body, sessionId: sessionId, sound: sound) }
+                }
+            } else {
+                deliver(id: id, title: title, body: body, sessionId: sessionId, sound: sound)
+            }
+        }
+    }
+
+    /// Built where it is sent: a request can't cross from the main actor to the settings callback's thread.
+    private nonisolated static func deliver(id: String, title: String, body: String, sessionId: String, sound: Bool) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.userInfo = ["session": sessionId]
         if sound { content.sound = .default }
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+    }
+
+    static func clear(sessionId: String) {
+        guard let ids = delivered.removeValue(forKey: sessionId), !ids.isEmpty else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ids)
     }
 }
 
@@ -187,6 +221,8 @@ final class MenuBarController: NSObject {
     private let store: AppStore
     private var timer: Timer?
     private var blinkOn = true
+    private struct Shown: Equatable { var cursor: Bool; var waiting: Bool; var working: Bool; var badge: String? }
+    private var last: Shown?
 
     init(store: AppStore, appearance: Appearance) {
         self.store = store
@@ -217,10 +253,15 @@ final class MenuBarController: NSObject {
         let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         // The cursor blinks only while something waits for you, like the mark in the window's bar.
         blinkOn = waiting && !reduce ? !blinkOn : true
-        item.button?.image = Self.icon(cursor: blinkOn, dot: false)
-        item.button?.setAccessibilityValue(waiting ? "an agent is waiting for you" : working ? "agents working" : "")
         let badge = UserDefaults.standard.object(forKey: "notify.badge") as? Bool ?? true
-        NSApp.dockTile.badgeLabel = waiting && badge ? "\(store.waitingSessions.count)" : nil
+        let label = waiting && badge ? "\(store.waitingSessions.count)" : nil
+        // Only when something changed: twice a second for ever is a lot of redrawing for a still icon.
+        let shown = Shown(cursor: blinkOn, waiting: waiting, working: working, badge: label)
+        guard shown != last else { return }
+        last = shown
+        item.button?.image = Self.icon(cursor: blinkOn, dot: false)
+        item.button?.setAccessibilityValue(waiting ? String(localized: "an agent is waiting for you") : working ? String(localized: "agents working") : "")
+        NSApp.dockTile.badgeLabel = label
     }
 
     /// The mark as a template image (follows the menu bar's colour); the waiting dot is drawn in orange.
@@ -275,39 +316,47 @@ struct MenuBarPopover: View {
             }
             .padding(.horizontal, 10).padding(.top, 8)
 
-            ForEach(store.waitingSessions) { s in
-                let lead = store.leadPane(of: s)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        WaitingBlock(size: 12)
-                        Text("WAITING FOR YOU").type(.caption, .medium, mono: true).foregroundStyle(look.waiting)
-                    }
-                    HStack(spacing: 12) {
-                        LogoTile(program: store.icon(of: s), size: 28)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(lead?.statusMessage ?? String(localized: "Waiting for your answer")).type(.body, .semibold).foregroundStyle(look.ink).lineLimit(2)
-                            Text("\(AgentKind(program: store.icon(of: s))?.command ?? "") · \(store.project(s.projectId)?.name ?? String(localized: "Terminal"))")
-                                .type(.caption).foregroundStyle(look.muted)
+            // However many sessions there are, Open, Settings and Quit stay on the screen.
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(store.waitingSessions) { s in
+                        let lead = store.leadPane(of: s)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                WaitingBlock(size: 12)
+                                Text("WAITING FOR YOU").type(.caption, .medium, mono: true).foregroundStyle(look.waiting)
+                            }
+                            HStack(spacing: 12) {
+                                LogoTile(program: store.icon(of: s), size: 28)
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(lead?.statusMessage ?? String(localized: "Waiting for your answer")).type(.body, .semibold).foregroundStyle(look.ink).lineLimit(2)
+                                    Text("\(AgentKind(program: store.icon(of: s))?.command ?? "") · \(store.project(s.projectId)?.name ?? String(localized: "Terminal"))")
+                                        .type(.caption).foregroundStyle(look.muted)
+                                }
+                            }
+                            HStack {
+                                Spacer()
+                                Button("Show") { show(s.id, pane: lead?.id) }.buttonStyle(TZButtonStyle(kind: .primary, small: true))
+                            }
                         }
+                        .padding(12)
+                        .background(look.waiting.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.waiting.opacity(0.35)))
                     }
-                    HStack {
-                        Spacer()
-                        Button("Show") { show(s.id, pane: lead?.id) }.buttonStyle(TZButtonStyle(kind: .primary, small: true))
+
+                    section("WORKING", store.workingSessions)
+                    section("DONE", store.sessions.filter { store.status(of: $0) == .done })
+                    if store.sessions.isEmpty {
+                        Text("No sessions yet.").type(.body).foregroundStyle(look.muted).padding(.horizontal, 10)
                     }
                 }
-                .padding(12)
-                .background(look.waiting.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.waiting.opacity(0.35)))
             }
-
-            section("WORKING", store.workingSessions)
-            section("DONE", store.sessions.filter { store.status(of: $0) == .done })
-            if store.sessions.isEmpty {
-                Text("No sessions yet.").type(.body).foregroundStyle(look.muted).padding(.horizontal, 10)
-            }
+            .scrollIndicators(.automatic)
+            .frame(maxHeight: 420)
+            .fixedSize(horizontal: false, vertical: true)
 
             Rectangle().fill(look.line).frame(height: 1).padding(.horizontal, -8)
-            menuRow("Open Tezgah", "") { NSApp.activate(); NSApp.windows.first { $0.isVisible || $0.isMiniaturized }?.makeKeyAndOrderFront(nil); close() }
+            menuRow("Open Tezgah", "") { (NSApp.delegate as? AppDelegate)?.showMainWindow(); close() }
             menuRow("Settings…", "⌘,") { NSApp.activate(); AppActions.openSettings(); close() }
             menuRow("Quit Tezgah", "⌘Q") { NSApp.terminate(nil) }
         }
@@ -352,9 +401,8 @@ struct MenuBarPopover: View {
     }
 
     private func show(_ id: String, pane: String?) {
-        NSApp.activate()
+        (NSApp.delegate as? AppDelegate)?.showMainWindow()
         store.open(session: id, pane: pane)
-        NSApp.windows.first { $0.contentViewController is NSHostingController<AnyView> || $0.title == "Tezgah" }?.makeKeyAndOrderFront(nil)
         close()
     }
 }

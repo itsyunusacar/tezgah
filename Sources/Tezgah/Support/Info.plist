@@ -43,6 +43,20 @@
 	<key>SUPublicEDKey</key><string>nChbk7NEP60B51l9rNcPbq7bcQr3JIPsODhvag/fuX4=</string>
 	<key>SUEnableAutomaticChecks</key><true/>
 	<key>SUScheduledCheckInterval</key><integer>86400</integer>
+	<key>NSAppleEventsUsageDescription</key><string>A program running in Tezgah wants to control another app.</string>
+	<key>NSMicrophoneUsageDescription</key><string>A program running in Tezgah wants to use the microphone.</string>
+	<key>NSCameraUsageDescription</key><string>A program running in Tezgah wants to use the camera.</string>
+	<key>NSDesktopFolderUsageDescription</key><string>A program running in Tezgah wants to use files on your Desktop.</string>
+	<key>NSDocumentsFolderUsageDescription</key><string>A program running in Tezgah wants to use files in your Documents folder.</string>
+	<key>NSDownloadsFolderUsageDescription</key><string>A program running in Tezgah wants to use files in your Downloads folder.</string>
+	<key>NSRemovableVolumesUsageDescription</key><string>A program running in Tezgah wants to use files on a removable disk.</string>
+	<key>NSNetworkVolumesUsageDescription</key><string>A program running in Tezgah wants to use files on a network disk.</string>
+	<key>NSLocalNetworkUsageDescription</key><string>A program running in Tezgah wants to reach devices on your local network.</string>
+	<key>NSSpeechRecognitionUsageDescription</key><string>A program running in Tezgah wants to use speech recognition.</string>
+	<key>NSContactsUsageDescription</key><string>A program running in Tezgah wants to read your contacts.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key><string>A program running in Tezgah wants to use your calendar.</string>
+	<key>NSRemindersFullAccessUsageDescription</key><string>A program running in Tezgah wants to use your reminders.</string>
+	<key>NSPhotoLibraryUsageDescription</key><string>A program running in Tezgah wants to use your photos.</string>
 	<key>NSSupportsAutomaticTermination</key><false/>
 	<key>NSSupportsSuddenTermination</key><false/>
 </dict>

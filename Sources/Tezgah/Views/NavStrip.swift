@@ -43,7 +43,7 @@ struct SidebarToggle: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
-        .help(Text("Projects  ⌘\\"))
+        .help(Text("Projects  ⌘0"))
         .accessibilityLabel(Text("Projects"))
     }
 }
@@ -54,9 +54,9 @@ struct WaitingPill: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let waiting = store.sessions.filter { let s = store.status(of: $0); return s == .blocked || s == .error }
+        let waiting = store.waitingSessions
         if let first = waiting.first {
-            Button { store.open(session: first.id) } label: {
+            Button { store.openNextWaiting() } label: {
                 HStack(spacing: 6) {
                     WaitingBlock(size: 11)
                     Text("\(waiting.count) waiting for you").type(.small, .medium)
@@ -68,7 +68,7 @@ struct WaitingPill: View {
                 .overlay(Capsule().strokeBorder(look.selectedEdge))
             }
             .buttonStyle(.plain)
-            .help(Text(store.sessionTitle(first)))
+            .help(Text(waiting.count == 1 ? "\(store.sessionTitle(first))  ⌘J" : "Go to the next one  ⌘J"))
         }
     }
 }
@@ -113,15 +113,14 @@ struct VerticalNav: View {
 
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 4) {
+                    // Every project with its sessions, always: what runs elsewhere stays in sight.
                     ForEach(store.navProjects) { project in
+                        let sessions = store.sessions(in: project.id)
                         ProjectRow(project: project)
-                        if store.currentProjectId == project.id {
-                            ForEach(store.sessions(in: project.id)) { session in
-                                SessionRow(session: session)
-                            }
-                            NewSessionRow(projectId: project.id)
-                            Spacer().frame(height: 8)
+                        ForEach(sessions) { session in
+                            SessionRow(session: session)
                         }
+                        if !sessions.isEmpty { Spacer().frame(height: 6) }
                     }
                     let loose = store.focusedProjectId == nil ? store.sessions(in: nil) : []
                     if !loose.isEmpty {
@@ -142,7 +141,7 @@ struct VerticalNav: View {
                 }
                 .buttonStyle(.plain)
                 IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) {
-                    store.notificationsOpen.toggle()
+                    store.toggleNotifications()
                 }
             }
         }
@@ -167,29 +166,60 @@ struct ProjectRow: View {
     @State private var hover = false
 
     private var open: Bool { store.currentProjectId == project.id }
+    private var missing: Bool { store.missingProjects.contains(project.id) }
+    private var onBoard: Bool { store.selection == .project(project.id) }
 
     var body: some View {
-        Button { store.openProject(project.id) } label: {
+        // A click enters the project where you left it; a click on the one you're in shows its board.
+        Button { if open { store.showBoard(project.id) } else { store.openProject(project.id) } } label: {
             HStack(spacing: 10) {
                 Monogram(name: project.name, size: 22, active: open)
-                Text(project.name).type(.body, open ? .semibold : .regular).foregroundStyle(open ? look.ink : look.soft).lineLimit(1)
-                Spacer(minLength: 4)
-                // A closed project only speaks up when something happens inside it.
-                if !open { StateMark(state: store.status(ofProject: project.id), size: 14) }
+                Text(project.name).type(.body, open ? .semibold : .regular)
+                    .foregroundStyle(missing ? look.faint : open ? look.ink : look.soft).lineLimit(1)
+                Spacer(minLength: 28)
             }
             .padding(.horizontal, 8)
             .frame(height: 32)
-            .background(hover && !open ? look.selected : .clear, in: RoundedRectangle(cornerRadius: Grid.Radius.control, style: .continuous))
+            .background(onBoard || hover ? look.selected : .clear, in: RoundedRectangle(cornerRadius: Grid.Radius.control, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .trailing) {
+            if missing {
+                Image(systemName: "exclamationmark.triangle").font(.system(size: 11)).foregroundStyle(look.waiting)
+                    .padding(.trailing, 10)
+                    .help(Text("The folder can't be found"))
+                    .accessibilityLabel(Text("The folder can't be found"))
+            } else if hover {
+                IconButton(symbol: "plus", label: "New Session in \(project.name)", size: 11) {
+                    store.refreshAgents()
+                    store.newSessionPicker = project.id
+                }
+                .padding(.trailing, 2)
+            }
+        }
         .onHover { hover = $0 }
         .contextMenu {
-            Button("New Session") { _ = store.newSession(projectId: project.id) }
-            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.path)]) }
+            Button("New Session…") { store.refreshAgents(); store.newSessionPicker = project.id }
+            Button("New Terminal") { _ = store.newSession(projectId: project.id) }
+            Button("Show Board") { store.showBoard(project.id) }
             Divider()
-            Button("Remove from Tezgah") { store.removeProject(project.id) }
+            if missing { Button("Locate Folder…") { store.relocateProject(project.id) } }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.path)]) }
+                .disabled(missing)
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(project.path, forType: .string)
+                AppActions.toast(String(localized: "Copied"))
+            }
+            Divider()
+            Button("Move Up") { store.moveProject(project.id, by: -1) }.disabled(store.projects.first?.id == project.id)
+            Button("Move Down") { store.moveProject(project.id, by: 1) }.disabled(store.projects.last?.id == project.id)
+            Divider()
+            Button("Remove from Tezgah") { store.confirmRemoveProject(project.id) }
         }
+        .accessibilityLabel(Text(project.name))
+        .accessibilityValue(missing ? Text("The folder can't be found") : Text(""))
     }
 }
 
@@ -229,32 +259,12 @@ struct SessionRow: View {
         .padding(.leading, indent)
         .onHover { hover = $0 }
         .contextMenu {
-            Button("Close Session") { store.closeSession(session.id) }
+            Button("Rename…") { store.renaming = session.id }
+            Divider()
+            Button("Close Session") { store.requestClose(session: session.id) }
         }
         .accessibilityLabel(Text("\(store.sessionTitle(session))"))
         .accessibilityValue(state.map { Text($0.spokenName) } ?? Text(""))
-    }
-}
-
-struct NewSessionRow: View {
-    @Environment(AppStore.self) private var store
-    @Environment(\.look) private var look
-    let projectId: String
-
-    var body: some View {
-        Button { store.newSessionPicker = projectId } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus").font(.system(size: 11)).frame(width: 14)
-                Text("New Session").type(.body)
-                Spacer()
-            }
-            .foregroundStyle(look.faint)
-            .padding(.horizontal, 8)
-            .frame(height: 28)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.leading, 20)
     }
 }
 
@@ -270,12 +280,17 @@ struct TopBar: View {
     var body: some View {
         HStack(spacing: 4) {
             if !atBottom { Color.clear.frame(width: WindowChrome.buttonsWidth - 12) }
-            if appearance.navPosition.isVertical { SidebarToggle() }
-            HomeButton()
-            Rectangle().fill(look.line).frame(width: 1, height: 18).padding(.horizontal, 8)
+            if appearance.navPosition.isVertical {
+                SidebarToggle()
+                Rectangle().fill(look.line).frame(width: 1, height: 18).padding(.horizontal, 8)
+            } else if !atBottom {
+                // Room between the window's buttons and the project's name.
+                Spacer().frame(width: 10)
+            }
             if let pid = store.currentProjectId, let project = store.project(pid) {
                 ProjectPicker(current: project)
-                Spacer().frame(width: 8)
+                BoardButton(projectId: pid)
+                Spacer().frame(width: 4)
                 tabs(store.sessions(in: pid), newIn: pid)
             } else {
                 Text("Terminals").type(.body, .semibold).foregroundStyle(look.ink)
@@ -283,9 +298,27 @@ struct TopBar: View {
                 tabs(store.sessions(in: nil), newIn: "")
             }
             Spacer(minLength: 8)
+            // Focus mode shows wherever the bar is, with the way out of it.
+            if let f = store.focusedProjectId, let p = store.project(f), !(appearance.navPosition.isVertical && store.sidebarOpen) {
+                Button { store.focus = .none } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "moon.fill").font(.system(size: 10))
+                        Text("Focus · \(p.name)").type(.small, .medium).lineLimit(1)
+                    }
+                    .foregroundStyle(look.accent)
+                    .padding(.horizontal, 10).frame(height: 26)
+                    .background(look.selected, in: Capsule())
+                    .overlay(Capsule().strokeBorder(look.selectedEdge))
+                }
+                .buttonStyle(.plain)
+                .help(Text("Leave focus"))
+            }
             WaitingPill()
             IconButton(symbol: "magnifyingglass", label: "Search") { store.paletteOpen = true }
-            IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.notificationsOpen.toggle() }
+            IconButton(symbol: "bell", label: "Notifications", badge: store.unreadNotifications > 0) { store.toggleNotifications() }
+            // The mark closes the bar, away from the window's own buttons: the way home.
+            Rectangle().fill(look.line).frame(width: 1, height: 18).padding(.horizontal, 6)
+            HomeButton()
         }
         .padding(.horizontal, 12)
         .frame(height: atBottom ? 44 : WindowChrome.band)
@@ -296,13 +329,19 @@ struct TopBar: View {
     }
 
     private func tabs(_ sessions: [Session], newIn: String) -> some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 4) {
-                ForEach(sessions) { SessionTab(session: $0) }
-                IconButton(symbol: "plus", label: "New Session") { store.newSessionPicker = newIn }
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 4) {
+                    ForEach(sessions) { SessionTab(session: $0).id($0.id) }
+                    IconButton(symbol: "plus", label: "New Session") { store.refreshAgents(); store.newSessionPicker = newIn }
+                }
+            }
+            .scrollIndicators(.never)
+            // The tab you're on is always in sight, however many there are.
+            .onChange(of: store.selection, initial: true) {
+                if case let .session(id) = store.selection { withAnimation(.easeOut(duration: Motion.standard)) { proxy.scrollTo(id) } }
             }
         }
-        .scrollIndicators(.never)
     }
 }
 
@@ -320,7 +359,8 @@ struct ProjectPicker: View {
             Button("Add Project…") { AppActions.openFolder() }
         } label: {
             HStack(spacing: 6) {
-                Text(current.name).type(.body, .semibold).foregroundStyle(look.ink)
+                Text(current.name).type(.body, .semibold).foregroundStyle(look.ink).lineLimit(1).truncationMode(.middle)
+                    .frame(maxWidth: 180)
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(look.faint)
             }
             .padding(.horizontal, 6)
@@ -339,42 +379,94 @@ struct ProjectPicker: View {
     }
 }
 
+/// The project's board: its sessions, changes and past conversations.
+struct BoardButton: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+    let projectId: String
+    @State private var hover = false
+
+    var body: some View {
+        let active = store.selection == .project(projectId)
+        Button { store.showBoard(projectId) } label: {
+            Image(systemName: "square.grid.2x2").font(.system(size: 13))
+                .foregroundStyle(active ? look.accent : look.muted)
+                .frame(width: 28, height: 28)
+                .background(active ? look.selected : hover ? look.ink.opacity(0.06) : .clear,
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help(Text("Board: sessions, changes and conversations"))
+        .accessibilityLabel(Text("Board"))
+    }
+}
+
 struct SessionTab: View {
     @Environment(AppStore.self) private var store
     @Environment(\.look) private var look
     let session: Session
+    @State private var hover = false
 
     var body: some View {
         let state = store.status(of: session)
         let active = store.selection == .session(session.id)
         let waiting = state == .blocked || state == .error
-        Button { store.open(session: session.id) } label: {
-            HStack(spacing: 8) {
-                ProgramMark(program: store.icon(of: session), size: 14)
-                Text(store.sessionTitle(session)).type(.body, active || waiting ? .medium : .regular)
-                    .foregroundStyle(waiting ? look.waiting : active ? look.ink : look.soft).lineLimit(1)
-                StateMark(state: state, size: 14)
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .background {
-                if active {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
-                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
-                        .shadow(color: .black.opacity(look.dark ? 0.3 : 0.05), radius: 2, y: 1)
+        HStack(spacing: 0) {
+            Button { store.open(session: session.id) } label: {
+                HStack(spacing: 8) {
+                    ProgramMark(program: store.icon(of: session), size: 14)
+                    Text(store.sessionTitle(session)).type(.body, active || waiting ? .medium : .regular)
+                        .foregroundStyle(waiting ? look.waiting : active ? look.ink : look.soft).lineLimit(1)
+                        .frame(maxWidth: 160)
+                    StateMark(state: state, size: 14)
                 }
+                .padding(.leading, 10)
+                .padding(.trailing, hover || active ? 4 : 10)
+                .frame(height: 30)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            // The tab you're on, and the one under the pointer, can be closed right here.
+            if hover || active {
+                Button { store.requestClose(session: session.id) } label: {
+                    Image(systemName: "xmark").font(.system(size: 8.5, weight: .bold))
+                        .foregroundStyle(look.muted)
+                        .frame(width: 18, height: 18)
+                        .background(hover ? look.ink.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 6)
+                .help(Text("Close Session  ⌘W"))
+                .accessibilityLabel(Text("Close Session"))
             }
         }
-        .buttonStyle(.plain)
-        .contextMenu { Button("Close Session") { store.closeSession(session.id) } }
+        .background {
+            if active {
+                RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
+                    .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
+                    .shadow(color: .black.opacity(look.dark ? 0.3 : 0.05), radius: 2, y: 1)
+            } else if hover {
+                RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.ink.opacity(0.05))
+            }
+        }
+        .onHover { hover = $0 }
+        .contextMenu {
+            Button("Rename…") { store.renaming = session.id }
+            Divider()
+            Button("Close Session") { store.requestClose(session: session.id) }
+        }
+        .help(Text(store.sessionTitle(session)))
     }
 }
 
 extension AppStore {
-    /// Projects in the strip: most recently opened first; only the focused one in focus mode.
+    /// Projects in the strip, in the order you keep them (it doesn't shuffle as you move around);
+    /// only the focused one in focus mode.
     var navProjects: [ProjectRecord] {
-        if let f = focusedProjectId { return recentProjects.filter { $0.id == f } }
-        return recentProjects
+        if let f = focusedProjectId { return projects.filter { $0.id == f } }
+        return projects
     }
 
     func othersBusy(than id: String) -> Bool {

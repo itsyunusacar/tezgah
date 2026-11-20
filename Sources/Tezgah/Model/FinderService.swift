@@ -278,7 +278,7 @@ enum FinderService {
         let key = "(null) - \(title) - runWorkflowAsService"
         let export = run("/usr/bin/defaults", ["export", "pbs", "-"]) ?? ""
         if !export.contains("<key>\(xml(key))</key>") {
-            _ = run("/usr/bin/defaults", ["write", "pbs", "NSServicesStatus", "-dict-add", "\"\(key)\"",
+            _ = run("/usr/bin/defaults", ["write", "pbs", "NSServicesStatus", "-dict-add", key,
                                           "{ \"enabled_context_menu\" = 1; \"enabled_services_menu\" = 1; \"presentation_modes\" = { ContextMenu = 1; ServicesMenu = 1; FinderPreview = 1; TouchBar = 1; }; }"])
         }
         refresh()

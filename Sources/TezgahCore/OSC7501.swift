@@ -24,10 +24,13 @@ public struct StatusRecord: Equatable, Sendable, Codable {
     public var message: String?
     /// 0…100 when the program reports how far along it is.
     public var progress: Int?
+    /// The agent's conversation (Claude Code's session id), so the pane can return to it.
+    public var conversation: String?
 
     public init(id: String = "", state: AgentState, kind: BlockKind? = nil, app: String? = nil, title: String? = nil, message: String? = nil,
-                progress: Int? = nil) {
+                progress: Int? = nil, conversation: String? = nil) {
         self.progress = progress
+        self.conversation = conversation
         self.id = id
         self.state = state
         self.kind = kind
@@ -72,7 +75,8 @@ public enum OSC7501 {
             app: app,
             title: fields["title"].flatMap { $0.isEmpty ? nil : decode($0, limit: 192) },
             message: fields["msg"].flatMap { $0.isEmpty ? nil : decode($0, limit: 2048) },
-            progress: fields["progress"].flatMap { Int($0) }.flatMap { (0...100).contains($0) ? $0 : nil }
+            progress: fields["progress"].flatMap { Int($0) }.flatMap { (0...100).contains($0) ? $0 : nil },
+            conversation: fields["sid"].flatMap { Conversations.validId($0) ? $0 : nil }
         ))
     }
 

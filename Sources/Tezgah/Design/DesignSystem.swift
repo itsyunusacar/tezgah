@@ -58,7 +58,8 @@ final class Appearance {
         separateDarkTheme = defaults.object(forKey: "appearance.separate") as? Bool ?? true
         accent = defaults.string(forKey: "appearance.accent") ?? "sky"
         navPosition = NavPosition(rawValue: defaults.string(forKey: "appearance.nav") ?? "") ?? .left
-        sidebarPinned = defaults.bool(forKey: "appearance.sidebarPinned")
+        // Open unless you close it: the strip is where every project's agents stay in sight.
+        sidebarPinned = defaults.object(forKey: "appearance.stripPinned") as? Bool ?? true
     }
 
     private func save() {
@@ -68,7 +69,7 @@ final class Appearance {
         defaults.set(separateDarkTheme, forKey: "appearance.separate")
         defaults.set(accent, forKey: "appearance.accent")
         defaults.set(navPosition.rawValue, forKey: "appearance.nav")
-        defaults.set(sidebarPinned, forKey: "appearance.sidebarPinned")
+        defaults.set(sidebarPinned, forKey: "appearance.stripPinned")
         NSApp.appearance = nsAppearance
         TerminalLook.apply(self)
     }

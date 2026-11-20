@@ -58,7 +58,20 @@ enum Git {
         }.value
     }
 
+    /// /usr/bin/git is a stub that asks to install the developer tools when they are missing: don't call it then.
+    nonisolated static let available: Bool = {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
+        p.arguments = ["-p"]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return false }
+        p.waitUntilExit()
+        return p.terminationStatus == 0
+    }()
+
     nonisolated static func run(_ args: [String], in dir: String) -> String? {
+        guard available else { return nil }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         p.arguments = ["-C", dir, "--no-optional-locks"] + args

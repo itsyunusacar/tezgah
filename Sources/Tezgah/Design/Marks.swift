@@ -3,34 +3,35 @@ import TezgahCore
 
 // MARK: - The Tezgah mark
 
-/// The bench without its cursor block, built from `MarkGeometry` in logo units.
+/// The bench without its cursor block, built from `MarkGeometry` in logo units: one outline, drawn in
+/// one piece. (Top, legs and fillets filled as separate shapes leave hairline seams where their edges meet.)
 struct BenchShape: Shape, Sendable {
     nonisolated func path(in rect: CGRect) -> Path {
         let vb = MarkGeometry.viewBox
         let s = min(rect.width / vb.width, rect.height / vb.height)
         let ox = rect.minX + (rect.width - vb.width * s) / 2 - vb.x * s
         let oy = rect.minY + (rect.height - vb.height * s) / 2 - vb.y * s
-        func r(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> CGRect { CGRect(x: ox + x * s, y: oy + y * s, width: w * s, height: h * s) }
+        func pt(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: ox + x * s, y: oy + y * s) }
+
+        let t = MarkGeometry.top, f = MarkGeometry.fillet
+        let legs = MarkGeometry.legs.sorted { $0.x < $1.x }
+        let under = t.y + t.height
+        // The corners, clockwise from the top's right end, each with the radius it is turned with:
+        // the top's own corners, then down and around each leg from right to left.
+        var corners: [(x: Double, y: Double, r: Double)] = [(t.x + t.width, t.y, t.radius), (t.x + t.width, under, t.radius)]
+        for l in legs.reversed() {
+            let foot = l.y + l.height
+            corners += [(l.x + l.width, under, f), (l.x + l.width, foot, l.radius), (l.x, foot, l.radius), (l.x, under, f)]
+        }
+        corners += [(t.x, under, t.radius), (t.x, t.y, t.radius)]
+
         var p = Path()
-        let t = MarkGeometry.top
-        p.addRoundedRect(in: r(t.x, t.y, t.width, t.height), cornerSize: CGSize(width: t.radius * s, height: t.radius * s))
-        for l in MarkGeometry.legs {
-            p.addRoundedRect(in: r(l.x, l.y, l.width, l.height), cornerSize: CGSize(width: l.radius * s, height: l.radius * s))
+        p.move(to: pt(t.x + t.radius, t.y))
+        for (i, c) in corners.enumerated() {
+            let next = i + 1 < corners.count ? corners[i + 1] : (x: t.x + t.radius, y: t.y, r: 0)
+            p.addArc(tangent1End: pt(c.x, c.y), tangent2End: pt(next.x, next.y), radius: c.r * s)
         }
-        // Fillets where the legs meet the top: quarter-circle inner corners.
-        let f = MarkGeometry.fillet, k = 0.552, bottom = t.y + t.height
-        for l in MarkGeometry.legs {
-            for (x, dir) in [(l.x, -1.0), (l.x + l.width, 1.0)] {
-                var q = Path()
-                q.move(to: CGPoint(x: ox + (x + dir * f) * s, y: oy + bottom * s))
-                q.addCurve(to: CGPoint(x: ox + x * s, y: oy + (bottom + f) * s),
-                           control1: CGPoint(x: ox + (x + dir * f * (1 - k)) * s, y: oy + bottom * s),
-                           control2: CGPoint(x: ox + x * s, y: oy + (bottom + f * (1 - k)) * s))
-                q.addLine(to: CGPoint(x: ox + x * s, y: oy + bottom * s))
-                q.closeSubpath()
-                p.addPath(q)
-            }
-        }
+        p.closeSubpath()
         return p
     }
 }
@@ -179,10 +180,18 @@ struct ProgramMark: View {
     let program: String?
     var size: Double = 14
     @Environment(\.look) private var look
+    @Environment(AppStore.self) private var store: AppStore?
 
     var body: some View {
         if let kind = AgentKind(program: program) {
             AgentLogo(kind: kind, size: size)
+        } else if store?.agentName(program) != nil {
+            // An agent you added yourself.
+            Image(systemName: "sparkle")
+                .font(.system(size: size * 0.8, weight: .medium))
+                .foregroundStyle(look.soft)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
         } else {
             Image(systemName: "chevron.forward.2")
                 .font(.system(size: size * 0.7, weight: .semibold))
@@ -200,15 +209,17 @@ struct Spinner: View {
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var turned = false
+
     var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { ctx in
-            let angle = reduceMotion ? 0 : ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360
-            ZStack {
-                Circle().stroke(look.selected, lineWidth: size / 7)
-                Circle().trim(from: 0, to: 0.25).stroke(look.working, style: StrokeStyle(lineWidth: size / 7, lineCap: .round))
-                    .rotationEffect(.degrees(angle))
-            }
+        // One animation the system runs by itself, not a redraw of the view on every frame for every working agent.
+        ZStack {
+            Circle().stroke(look.selected, lineWidth: size / 7)
+            Circle().trim(from: 0, to: 0.25).stroke(look.working, style: StrokeStyle(lineWidth: size / 7, lineCap: .round))
+                .rotationEffect(.degrees(turned ? 360 : 0))
+                .animation(reduceMotion ? nil : .linear(duration: 1).repeatForever(autoreverses: false), value: turned)
         }
+        .onAppear { if !reduceMotion { turned = true } }
         .frame(width: size * 0.8, height: size * 0.8)
         .frame(width: size, height: size)
     }

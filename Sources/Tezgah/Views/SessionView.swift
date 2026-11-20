@@ -11,6 +11,11 @@ struct SessionView: View {
     var body: some View {
         LayoutView(session: session, node: session.layout, path: [])
             .padding(Grid.Space.s2)
+            .background {
+                GeometryReader { geo in
+                    Color.clear.onChange(of: geo.size, initial: true) { store.sessionArea = geo.size }
+                }
+            }
     }
 }
 
@@ -24,7 +29,8 @@ private struct LayoutView: View {
         switch node {
         case let .pane(id):
             if let pane = store.panes[id] {
-                PaneView(session: session, pane: pane)
+                // One view per pane for as long as it lives: a slot never changes hands to another terminal.
+                PaneView(session: session, pane: pane).id(id)
             } else {
                 Color.clear
             }
@@ -50,7 +56,9 @@ private struct SplitView: View {
             let total = (axis == .row ? geo.size.width : geo.size.height) - Self.gap * CGFloat(children.count - 1)
             let layout = axis == .row ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
             layout {
-                ForEach(Array(children.enumerated()), id: \.offset) { i, child in
+                // Keyed by what each child is, not where it sits: closing the first of three must not leave
+                // its dead terminal under the second one's header.
+                ForEach(Array(children.enumerated()), id: \.element.key) { i, child in
                     let length = max(40, total * CGFloat(sizes[safe: i] ?? 0))
                     LayoutView(session: session, node: child, path: path + [i])
                         .frame(width: axis == .row ? length : nil, height: axis == .column ? length : nil)
@@ -67,9 +75,7 @@ private struct SplitView: View {
             .fill(Color.clear)
             .frame(width: axis == .row ? Self.gap : nil, height: axis == .column ? Self.gap : nil)
             .contentShape(Rectangle())
-            .onHover { inside in
-                if inside { (axis == .row ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).push() } else { NSCursor.pop() }
-            }
+            .pointerStyle(axis == .row ? .columnResize : .rowResize)
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .global)
                     .onChanged { value in
@@ -100,6 +106,9 @@ struct PaneView: View {
     let session: Session
     let pane: TerminalPane
     @State private var hover = false
+    /// Settings › Panes.
+    @AppStorage("panes.headers") private var headers = true
+    @AppStorage("panes.focusBorder") private var focusBorder = true
 
     private var isFocused: Bool { session.focusedPaneId == pane.id }
     private var single: Bool { session.layout.paneIds.count == 1 }
@@ -107,7 +116,7 @@ struct PaneView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            if headers { header }
             TerminalHost(pane: pane)
                 .overlay(alignment: .topTrailing) {
                     if pane.searching { FindBar(pane: pane).padding(8) }
@@ -117,7 +126,7 @@ struct PaneView: View {
         .clipShape(RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Grid.Radius.card, style: .continuous)
-                .strokeBorder(waiting ? look.waiting : isFocused && !single ? look.muted.opacity(0.5) : look.line,
+                .strokeBorder(waiting ? look.waiting : isFocused && !single && focusBorder ? look.muted.opacity(0.5) : look.line,
                               lineWidth: waiting ? 1.5 : 1)
         )
         .shadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
@@ -186,6 +195,8 @@ final class TerminalContainer: NSView {
     private weak var terminal: AppTerminalView?
 
     func attach(_ t: AppTerminalView) {
+        // One terminal per container.
+        for other in subviews where other !== t { other.removeFromSuperview() }
         terminal = t
         if t.superview !== self {
             t.removeFromSuperview()
@@ -219,7 +230,7 @@ struct FindBar: View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(look.muted)
             TextField("Find", text: $needle)
-                .textFieldStyle(.plain).font(Typeface.sans(13)).frame(width: 180)
+                .textFieldStyle(.plain).font(Typeface.sans(13)).frame(minWidth: 60, maxWidth: 180)
                 .focused($focused)
                 .onChange(of: needle) { pane.find(needle) }
                 .onSubmit { pane.findNext(!NSEvent.modifierFlags.contains(.shift)) }
@@ -233,6 +244,8 @@ struct FindBar: View {
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.line))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         .onAppear { focused = true }
+        // ⌘F again while it is open brings the cursor back to it.
+        .onChange(of: pane.findRequests) { focused = true }
         .onKeyPress(.escape) { pane.endFind(); return .handled }
     }
 

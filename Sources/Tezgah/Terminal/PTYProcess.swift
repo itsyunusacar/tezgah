@@ -58,7 +58,11 @@ nonisolated final class PTYProcess: @unchecked Sendable {
         let exit = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: readQueue)
         exit.setEventHandler { [weak self] in
             guard let self else { return }
-            _ = self.drain(onOutput)
+            // Only while the descriptor is still ours: once closed its number may belong to another pane.
+            self.lock.lock()
+            let open = !self.closed
+            self.lock.unlock()
+            if open { _ = self.drain(onOutput) }
             var status: Int32 = 0
             waitpid(self.pid, &status, 0)
             let code: Int32 = (status & 0x7f) == 0 ? (status >> 8) & 0xff : 128 + (status & 0x7f)
@@ -70,7 +74,13 @@ nonisolated final class PTYProcess: @unchecked Sendable {
             lock.lock()
             closed = true
             lock.unlock()
-            close(fd)
+            // After any write already under way (writes run on this queue, one at a time) and never during
+            // a resize: the descriptor's number can be handed to another pane the moment it is closed.
+            writeQueue.async { [self] in
+                lock.lock()
+                close(fd)
+                lock.unlock()
+            }
         }
         readSource = read
         exitSource = exit
@@ -126,14 +136,29 @@ nonisolated final class PTYProcess: @unchecked Sendable {
 
     func resize(cols: Int, rows: Int, widthPixels: Int = 0, heightPixels: Int = 0) {
         let c = UInt16(clamping: max(2, cols)), r = UInt16(clamping: max(2, rows))
+        lock.lock()
+        defer { lock.unlock() }
+        guard !closed else { return }
         _ = tz_pty_resize(fd, c, r, UInt16(clamping: widthPixels), UInt16(clamping: heightPixels))
     }
 
-    /// The program in the terminal's foreground ("node", "vim"), or nil while the shell has it.
-    var foregroundName: String? {
+    enum Foreground: Equatable {
+        /// The terminal couldn't say (a passing error): nothing is concluded from it.
+        case unknown
+        /// The shell is at its prompt.
+        case shell
+        /// A program other than the shell ("node", "vim", "claude").
+        case program(String)
+    }
+
+    var foreground: Foreground {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !closed else { return .unknown }
         let group = tz_pty_foreground(fd)
-        guard group > 0, group != pid else { return nil }
-        return Self.name(of: group)
+        guard group > 0 else { return .unknown }
+        if group == pid { return .shell }
+        return Self.name(of: group).map(Foreground.program) ?? .unknown
     }
 
     /// The shell's working directory.

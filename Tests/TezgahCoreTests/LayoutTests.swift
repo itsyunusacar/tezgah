@@ -10,7 +10,9 @@ import Testing
 
     @Test func splittingTheSameWayJoinsTheParent() {
         let l = LayoutNode.pane("a").splitting("a", axis: .row, newId: "b").splitting("a", axis: .row, newId: "c")
-        #expect(l == .split(.row, [.pane("a"), .pane("c"), .pane("b")], [0.25, 0.25, 0.5]))
+        let third: Double = 1.0 / 3
+        let expected = LayoutNode.split(.row, [.pane("a"), .pane("c"), .pane("b")], [third, third, third])
+        #expect(l == expected)
     }
 
     @Test func splittingTheOtherWayNests() {
@@ -70,14 +72,16 @@ import Testing
 }
 
 @Suite struct WorkspaceTests {
-    @Test func dropsSessionsWhoseLayoutAndPanesDisagree() throws {
+    @Test func mendsSessionsWhoseLayoutAndPanesDisagree() throws {
         var w = WorkspaceFile()
         w.sessions = [
             SessionRecord(projectId: nil, cwd: "/", layout: .pane("a"), panes: [PaneRecord(id: "a", cwd: "/")]),
             SessionRecord(projectId: nil, cwd: "/", layout: .pane("b"), panes: [PaneRecord(id: "c", cwd: "/")]),
         ]
         let back = try JSONDecoder().decode(WorkspaceFile.self, from: JSONEncoder().encode(w))
-        #expect(back.sessions.count == 1)
+        // The layout decides: the pane it shows is there (in the session's folder), the stray one is gone.
+        #expect(back.sessions.count == 2)
+        #expect(back.sessions[1].panes == [PaneRecord(id: "b", cwd: "/")])
     }
 
     @Test func legacyImportReadsProjectsOnly() {

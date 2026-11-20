@@ -32,6 +32,23 @@ struct SettingsView: View {
             }
         }
 
+        /// The title as text, in the app's language.
+        var name: String {
+            switch self {
+            case .general: String(localized: "General")
+            case .appearance: String(localized: "Appearance")
+            case .terminal: String(localized: "Terminal")
+            case .panes: String(localized: "Panes")
+            case .agents: String(localized: "Agents")
+            case .notifications: String(localized: "Notifications")
+            case .keyboard: String(localized: "Keyboard")
+            case .accessibility: String(localized: "Accessibility")
+            case .privacy: String(localized: "Privacy & Permissions")
+            case .updates: String(localized: "Updates")
+            case .advanced: String(localized: "Advanced")
+            }
+        }
+
         var symbol: String {
             switch self {
             case .general: "gearshape"
@@ -59,7 +76,7 @@ struct SettingsView: View {
             case .notifications: "notification bildirim sound ses badge rozet"
             case .keyboard: "shortcut kısayol keys tuş"
             case .accessibility: "motion hareket contrast kontrast voiceover"
-            case .privacy: "permission izin screen ekran recording kayıt debug hata"
+            case .privacy: "permission izin notification bildirim finder debug hata"
             case .updates: "update güncelleme version sürüm beta"
             case .advanced: "reset sıfırla folder klasör onboarding kurulum"
             }
@@ -68,7 +85,8 @@ struct SettingsView: View {
 
     private var visible: [Section] {
         guard !query.isEmpty else { return Section.allCases }
-        return Section.allCases.filter { CommandPalette.matches(String(localized: String.LocalizationValue($0.rawValue)) + " " + $0.keywords, query) }
+        // By the section's name as shown (in the app's language), its English name, and its keywords.
+        return Section.allCases.filter { CommandPalette.matches($0.name + " " + $0.rawValue + " " + $0.keywords, query) }
     }
 
     var body: some View {
@@ -255,7 +273,7 @@ private struct AppearanceSettings: View {
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
             }
-            SettingsRow(title: "Projects strip", detail: "On the left or right: ⌘\\ opens it any time", last: true) {
+            SettingsRow(title: "Projects strip", detail: "On the left or right: ⌘0 opens it any time", last: true) {
                 Picker("", selection: $a.sidebarPinned) {
                     Text("Starts closed").tag(false)
                     Text("Always open").tag(true)
@@ -315,15 +333,11 @@ private struct GeneralSettings: View {
     var body: some View {
         SettingsGroup(title: "Language and startup") {
             SettingsRow(title: "Language", detail: "Takes effect when Tezgah reopens") { LanguagePicker() }
-            SettingsRow(title: "Restore the last workspace", detail: "Projects, sessions and panes as you left them", last: true) { Switch("general.restore") }
+            SettingsRow(title: "Restore the last workspace", detail: "Sessions and panes as you left them; off starts with your projects only", last: true) { Switch("general.restore") }
         }
         SettingsGroup(title: "With macOS") {
             SettingsRow(title: "Default terminal", detail: ".command and .sh files and ssh:// links open in Tezgah") { DefaultTerminalControl() }
-            SettingsRow(title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder", last: true) {
-                Switch("finder.enabled") {
-                    if UserDefaults.standard.object(forKey: "finder.enabled") as? Bool ?? true { FinderService.install() } else { FinderService.remove() }
-                }
-            }
+            SettingsRow(title: "“Open in Tezgah” in Finder", detail: "When you right-click a folder", last: true) { FinderSwitch() }
         }
     }
 }
@@ -380,8 +394,13 @@ private struct AgentSettings: View {
                             last: i == store.installedAgents.count - 1) {
                     HStack(spacing: 10) {
                         AgentLogo(kind: a.kind, size: 16)
-                        Text("Report status").type(.caption).foregroundStyle(look.muted)
-                        Switch("agents.report.\(a.kind.rawValue)") { AgentHooks.install() }
+                        // Only where Tezgah has a hook to add; the others are shown when they report by themselves.
+                        if AgentHooks.hooked.contains(a.kind) {
+                            Text("Report status").type(.caption).foregroundStyle(look.muted)
+                            Switch("agents.report.\(a.kind.rawValue)") { AgentHooks.install() }
+                        } else {
+                            Text("Followed automatically").type(.caption).foregroundStyle(look.faint)
+                        }
                     }
                 }
             }
@@ -390,6 +409,44 @@ private struct AgentSettings: View {
             }
         }
         .onAppear { store.refreshAgents() }
+        OwnAgents()
+    }
+}
+
+/// Any other command-line agent: a name and the command that starts it.
+private struct OwnAgents: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.look) private var look
+    @State private var name = ""
+    @State private var command = ""
+
+    var body: some View {
+        SettingsGroup(title: "Your own agents", note: "Any command-line agent: Aider, OpenCode, Gemini CLI, Cursor Agent… It appears in the new session picker, and Tezgah reads working, waiting for you and done from what it does in the terminal.") {
+            ForEach(store.ownAgents) { a in
+                SettingsRow(title: LocalizedStringKey(a.name), detail: LocalizedStringKey(a.command)) {
+                    Button("Remove") { store.ownAgents.removeAll { $0.id == a.id } }.buttonStyle(TZButtonStyle(small: true))
+                }
+            }
+            HStack(spacing: 8) {
+                TextField("Name", text: $name)
+                    .textFieldStyle(.roundedBorder).font(Typeface.sans(13)).frame(width: 150)
+                TextField("Command, e.g. aider", text: $command)
+                    .textFieldStyle(.roundedBorder).font(Typeface.mono(12))
+                    .onSubmit(add)
+                Button("Add", action: add).buttonStyle(TZButtonStyle(kind: .primary, small: true))
+                    .disabled(command.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(16)
+        }
+    }
+
+    private func add() {
+        if store.addOwnAgent(name: name, command: command) {
+            name = ""
+            command = ""
+        } else {
+            AppActions.toast(String(localized: "Tezgah already has that one"))
+        }
     }
 }
 
@@ -407,8 +464,10 @@ private struct KeyboardSettings: View {
     @Environment(\.look) private var look
     private let rows: [(LocalizedStringKey, String)] = [
         ("New session", "⌘T"), ("New terminal", "⌘N"), ("Open folder", "⌘O"), ("Close session", "⌘W"),
-        ("Split right", "⌘D"), ("Split down", "⇧⌘D"), ("Next pane", "⌘]"), ("Search everything", "⌘K"),
-        ("Quick switch", "⌘P"), ("Home", "⇧⌘H"), ("Settings", "⌘,"),
+        ("Split right", "⌘D"), ("Split down", "⇧⌘D"), ("Next pane", "⌥⌘→"), ("Previous pane", "⌥⌘←"),
+        ("Arrange Panes in a Grid", "⇧⌘G"), ("Next session", "⌃⇥"), ("Previous session", "⌃⇧⇥"),
+        ("Next Agent Waiting", "⌘J"), ("Search everything", "⌘K"), ("Quick switch", "⌘P"),
+        ("Show Projects", "⌘0"), ("Project Board", "⇧⌘B"), ("Home", "⇧⌘H"), ("Settings", "⌘,"),
     ]
 
     var body: some View {
@@ -442,9 +501,8 @@ private struct PrivacySettings: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        SettingsGroup(title: "Permissions", note: "Click one to open its page in System Settings.") {
+        SettingsGroup(title: "Permissions", note: "Tezgah asks only for what it uses.") {
             row("Notifications", permissions.notifications) { permissions.requestNotifications() }
-            row("Screen Recording", permissions.screenRecording) { SystemSettings.open(.screenRecording) }
             row("“Open in Tezgah” in Finder", permissions.finderAction, last: true) { permissions.installFinderAction() }
         }
         .onAppear { permissions.refresh() }
@@ -537,6 +595,22 @@ private struct LanguagePicker: View {
 }
 
 
+/// On when the service is really there, whatever was last chosen.
+private struct FinderSwitch: View {
+    @State private var on = FinderService.isInstalled
+    @Environment(\.look) private var look
+
+    var body: some View {
+        Toggle("", isOn: Binding(get: { on }, set: { value in
+            on = value
+            UserDefaults.standard.set(value, forKey: "finder.enabled")
+            if value { FinderService.install() } else { FinderService.remove() }
+        }))
+        .toggleStyle(.switch).labelsHidden().controlSize(.small).tint(look.ink)
+        .onAppear { on = FinderService.isInstalled }
+    }
+}
+
 private struct DefaultTerminalControl: View {
     @State private var isDefault = DefaultTerminal.isDefault
     @Environment(\.look) private var look
@@ -549,6 +623,7 @@ private struct DefaultTerminalControl: View {
                 Task {
                     await DefaultTerminal.makeDefault()
                     isDefault = DefaultTerminal.isDefault
+                    if !isDefault { AppActions.toast(String(localized: "macOS didn't change the default terminal")) }
                     if isDefault { AppActions.toast(String(localized: "Tezgah is now your default terminal.")) }
                 }
             }

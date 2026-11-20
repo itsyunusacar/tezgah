@@ -15,12 +15,42 @@ enum AppActions {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "Add Project"
-        panel.message = "Choose a folder to work in."
+        panel.canCreateDirectories = true
+        panel.prompt = String(localized: "Add Project")
+        panel.message = String(localized: "Choose a folder to work in.")
         guard panel.runModal() == .OK else { return }
         var last: ProjectRecord?
         for url in panel.urls { last = store.addProject(path: url.path) }
-        if let last { store.selection = .project(last.id) }
+        store.checkFolders()
+        if let last { store.showBoard(last.id) }
+    }
+
+    /// ⇧⌘N: makes a new folder where you say and opens it as a project.
+    static func newFolder() {
+        guard let store else { return }
+        let panel = NSSavePanel()
+        panel.title = String(localized: "New Folder")
+        panel.prompt = String(localized: "Create")
+        panel.nameFieldLabel = String(localized: "Name:")
+        panel.nameFieldStringValue = String(localized: "new-project")
+        panel.message = String(localized: "Tezgah makes the folder and opens it as a project.")
+        panel.canCreateDirectories = true
+        panel.showsTagField = false
+        // Beside the project you opened last, where new work usually goes.
+        if let recent = store.recentProjects.first(where: { !store.missingProjects.contains($0.id) }) {
+            panel.directoryURL = URL(fileURLWithPath: recent.path).deletingLastPathComponent()
+        }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        } catch {
+            let alert = NSAlert(error: error)
+            alert.runModal()
+            return
+        }
+        let project = store.addProject(path: url.path)
+        store.checkFolders()
+        store.showBoard(project.id)
     }
 
     /// ⌘T: a session in the project you're in, else a terminal of its own.
@@ -67,8 +97,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         if let i = args.firstIndex(of: "--snapshot"), args.indices.contains(i + 1) {
             snapshotDir = URL(fileURLWithPath: args[i + 1], isDirectory: true)
         }
+        // `--workspace <dir>` keeps workspace.json there instead (trying things out without touching your own).
+        var directory = Persistence.defaultDirectory
+        if let i = args.firstIndex(of: "--workspace"), args.indices.contains(i + 1) {
+            directory = URL(fileURLWithPath: args[i + 1], isDirectory: true)
+        }
         // Snapshots use a throwaway workspace and never touch the saved one.
-        store = AppStore(persistence: snapshotDir == nil ? Persistence(directory: Persistence.defaultDirectory) : nil)
+        store = AppStore(persistence: snapshotDir == nil ? Persistence(directory: directory) : nil)
         AppActions.store = store
         store.sidebarOpen = appearance.sidebarPinned
         if let issue = TerminalLook.controller.lastConfigurationIssue {
@@ -76,24 +111,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
 
         NSApp.appearance = appearance.nsAppearance
+        // The saved text size, cursor and the rest apply from the first terminal on, not from the next change in Settings.
+        TerminalLook.apply(appearance)
         NSApp.mainMenu = MainMenu.make(target: self)
         window = makeWindow()
+        store.sidebarStaysOpen = { [weak self] in self?.appearance.sidebarPinned ?? true }
+        store.windowInSight = { [weak self] in
+            guard let w = self?.window else { return false }
+            return NSApp.isActive && w.isVisible && !w.isMiniaturized && w.isKeyWindow
+        }
         watchAppearance()
         if let snapshotDir {
             Task { await Snapshotter(store: store, window: window, look: appearance, app: self, directory: snapshotDir).run() }
         } else {
+            // Before any shell starts: the shims and the zsh integration they are found through.
+            AgentHooks.install()
             store.load()
             store.startPolling()
             store.refreshAgents()
-            AgentHooks.install()
             Updates.shared.start()
-            if FinderService.isRealBuild, UserDefaults.standard.object(forKey: "finder.enabled") as? Bool ?? true, FinderService.isInstalled {
-                FinderService.install() // rewrites the service if the app moved
+            // Rewrites the Finder service if the app moved; after the window is up, not in its way.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                if FinderService.isRealBuild, FinderService.isInstalled { FinderService.install() }
             }
             UNUserNotificationCenter.current().delegate = self
             menuBar = MenuBarController(store: store, appearance: appearance)
             if Onboarding.isDone {
+                store.launching = store.selection == .welcome && store.persistence?.unreadable != true
                 window.makeKeyAndOrderFront(nil)
+                DispatchQueue.main.async { [weak self] in self?.warnAboutUnreadableWorkspace() }
             } else {
                 showOnboarding()
             }
@@ -102,18 +148,112 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         // `kill` (logout, a script) quits like ⌘Q: the workspace is saved and the shells end.
         signal(SIGTERM, SIG_IGN)
         let term = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-        term.setEventHandler { NSApp.terminate(nil) }
+        term.setEventHandler { [weak self] in
+            // Nobody is there to answer a question.
+            self?.quitWithoutAsking = true
+            NSApp.terminate(nil)
+        }
         term.resume()
         termSource = term
         NSApp.activate()
+        // What macOS asked Tezgah to open as it started it (a folder from Finder, a script, an ssh link).
+        launched = true
+        let waiting = pendingOpens
+        pendingOpens = []
+        if !waiting.isEmpty { open(waiting) }
     }
 
+    private var launched = false
+    private var pendingOpens: [URL] = []
+
+    /// macOS can hand these over before the app has finished starting: they wait until it has.
     func application(_: NSApplication, open urls: [URL]) {
+        guard launched else { pendingOpens += urls; return }
+        open(urls)
+    }
+
+    private func open(_ urls: [URL]) {
         for url in urls { store.handleOpen(url) }
+        // During the first run they are opened behind it and shown when it ends.
+        if onboardingWindow == nil { showMainWindow() }
+    }
+
+    func applicationDidBecomeActive(_: Notification) {
+        // Back at the session you left: what arrived for it meanwhile has been seen.
+        guard launched, let store, case let .session(id) = store.selection, store.windowInSight() else { return }
+        for i in store.notifications.indices where store.notifications[i].sessionId == id { store.notifications[i].read = true }
+        SystemNotices.clear(sessionId: id)
+    }
+
+    func windowDidBecomeKey(_ note: Notification) {
+        if (note.object as? NSWindow) === window { applicationDidBecomeActive(note) }
+    }
+
+    /// Left full screen with the green button: full focus ends with it.
+    func windowDidExitFullScreen(_ note: Notification) {
+        if (note.object as? NSWindow) === window, case .full = store.focus { store.focus = .none }
+    }
+
+    func windowWillClose(_ note: Notification) {
+        // The first run closed with its red button counts as "later": the main window opens.
+        if let w = note.object as? NSWindow, w === onboardingWindow { onboarding.finish() }
+    }
+
+    /// Closing the window leaves Tezgah (and the agents in it) running: the Dock icon and the menu bar
+    /// icon bring the window back. ⌘Q quits.
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool { false }
+
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows visible: Bool) -> Bool {
+        if !visible, onboardingWindow == nil { showMainWindow() }
+        return true
+    }
+
+    func showMainWindow() {
+        guard onboardingWindow == nil else { return }
+        NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool { true }
+    private var quitWithoutAsking = false
+
+    /// Quitting ends every agent; ask first when some are in the middle of something.
+    func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
+        guard !quitWithoutAsking, snapshotDir == nil, let store else { return .terminateNow }
+        // Agents that say what they're doing, and programs that don't but are plainly running.
+        let busy = store.sessions.filter { s in
+            let state = store.status(of: s)
+            return state == .working || state == .blocked || (state == nil && store.panes(of: s).contains(where: \.busy))
+        }.count
+        guard busy > 0 else { return .terminateNow }
+        showMainWindow()
+        let alert = NSAlert()
+        alert.messageText = busy == 1 ? String(localized: "An agent is still at work. Quit Tezgah?")
+            : String(localized: "\(busy) agents are still at work. Quit Tezgah?")
+        alert.informativeText = String(localized: "They stop when Tezgah quits. Claude Code returns to its conversations when you open Tezgah again.")
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
+
+    /// workspace.json is there but can't be read: say so instead of opening empty and quietly not saving.
+    private func warnAboutUnreadableWorkspace() {
+        guard let persistence = store.persistence, persistence.unreadable else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(localized: "Tezgah couldn't read its workspace file")
+        alert.informativeText = String(localized: "Your projects and sessions are in a file that is damaged. Nothing is saved over it. Start fresh and Tezgah sets the old file aside, or look at the file first.")
+        alert.addButton(withTitle: String(localized: "Start Fresh"))
+        alert.addButton(withTitle: String(localized: "Show the File"))
+        alert.addButton(withTitle: String(localized: "Continue Without Saving"))
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            persistence.startFresh()
+            store.scheduleSave()
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.activateFileViewerSelecting([persistence.fileURL])
+        default: break
+        }
+    }
 
     func applicationWillTerminate(_: Notification) {
         store.saveNow()
@@ -147,6 +287,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         w.setFrameAutosaveName("TezgahMain")
         if w.frame.origin == .zero { w.center() }
         w.delegate = self
+        // Closed is only out of sight: the window (and its terminals) come back as they were.
+        w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
         w.backgroundColor = NSColor(name: nil) { ap in
             NSColor(ChromePalette.of(dark: ap.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua).paper)
@@ -170,12 +312,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         w.titleVisibility = .hidden
         w.titlebarAppearsTransparent = true
         w.isMovableByWindowBackground = true
+        w.isReleasedWhenClosed = false
+        w.delegate = self
         w.setContentSize(OnboardingView.size)
         w.center()
         onboarding.onFinish = { [weak self, weak w] in
+            guard let self, self.onboardingWindow != nil else { return }
+            self.onboardingWindow = nil
             w?.orderOut(nil)
-            self?.window.makeKeyAndOrderFront(nil)
-            self?.onboardingWindow = nil
+            self.store.launching = self.store.selection == .welcome
+            self.window.makeKeyAndOrderFront(nil)
         }
         onboardingWindow = w
         w.makeKeyAndOrderFront(nil)
@@ -202,6 +348,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private func installKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let store = self.store else { return event }
+            // Only in the main window, with nothing over it.
+            guard event.window === self.window, !store.sheetOpen, !store.launching else { return event }
             // On the welcome page, 1–9 open recent projects.
             if store.selection == .welcome,
                event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
@@ -233,26 +381,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     // MARK: - Menu actions
 
-    @objc func newSession(_: Any?) { AppActions.newSessionHere() }
-    @objc func newTerminal(_: Any?) { store.newSession(projectId: nil) }
-    @objc func openFolder(_: Any?) { AppActions.openFolder() }
+    @objc func newSession(_: Any?) { showMainWindow(); AppActions.newSessionHere() }
+    @objc func newTerminal(_: Any?) { showMainWindow(); store.newSession(projectId: nil) }
+    @objc func openFolder(_: Any?) { showMainWindow(); AppActions.openFolder() }
+    @objc func newFolder(_: Any?) { showMainWindow(); AppActions.newFolder() }
+    @objc func nextWaiting(_: Any?) { store.openNextWaiting() }
+    @objc func showBoard(_: Any?) {
+        guard let id = store.currentProjectId else { return NSSound.beep() }
+        store.showBoard(id)
+    }
     @objc func splitRight(_: Any?) { store.split(.row) }
     @objc func splitDown(_: Any?) { store.split(.column) }
+    /// The main window is the one in front, with no sheet over it: session shortcuts mean what they say.
+    private var sessionInFront: Bool { NSApp.keyWindow === window && !store.sheetOpen }
+
+    /// ⌘W closes what is in front: Settings or another window, else the pane or session, else the window.
     @objc func closeSessionOrPane(_: Any?) {
-        guard let s = store.currentSession else { return NSSound.beep() }
-        if s.layout.paneIds.count > 1 { store.closeFocusedPane() } else { store.closeSession(s.id) }
+        guard let key = NSApp.keyWindow else { return NSSound.beep() }
+        if key !== window { key.performClose(nil); return }
+        if store.sheetOpen { store.paletteOpen = false; store.newSessionPicker = nil; store.renaming = nil; return }
+        guard let s = store.currentSession else { window.performClose(nil); return }
+        if s.layout.paneIds.count > 1 { store.closeFocusedPane() } else { store.requestClose(session: s.id) }
     }
     @objc func closeProject(_: Any?) {
         guard let id = store.currentProjectId else { return NSSound.beep() }
-        for s in store.sessions(in: id) { store.closeSession(s.id) }
+        let sessions = store.sessions(in: id)
+        // Several sessions, or an agent in the middle of something, don't go on one keystroke.
+        if sessions.count > 1 || sessions.contains(where: { store.agent(of: $0) != nil }) {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Close \(sessions.count) sessions in \(store.project(id)?.name ?? "")?")
+            alert.informativeText = String(localized: "Their agents and shells stop. Conversations stay on the project's board.")
+            alert.addButton(withTitle: String(localized: "Close Sessions"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        for s in sessions { store.closeSession(s.id) }
         store.selection = .welcome
     }
+    @objc func arrangeGrid(_: Any?) { store.arrangeGrid() }
     @objc func nextPane(_: Any?) { store.cyclePane(1) }
     @objc func previousPane(_: Any?) { store.cyclePane(-1) }
     @objc func selectTab(_ sender: NSMenuItem) { store.selectTab(sender.tag) }
     @objc func nextTab(_: Any?) { store.cycleTab(1) }
     @objc func previousTab(_: Any?) { store.cycleTab(-1) }
-    @objc func showHome(_: Any?) { store.selection = .welcome }
+    @objc func showHome(_: Any?) { showMainWindow(); store.selection = .welcome }
     @objc func showSettings(_: Any?) { openSettings() }
 
     private var settingsWindow: NSWindow?
@@ -283,10 +455,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         w.makeKeyAndOrderFront(nil)
     }
     @objc func search(_: Any?) {
+        showMainWindow()
         store.paletteScope = .all
         store.paletteOpen = true
     }
     @objc func quickSwitch(_: Any?) {
+        showMainWindow()
         store.paletteScope = .go
         store.paletteOpen = true
     }
@@ -311,8 +485,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         store.focus = .full(id)
         if !window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
     }
-    @objc func toggleSidePanel(_: Any?) { store.notificationsOpen.toggle() }
+    @objc func toggleSidePanel(_: Any?) { store.toggleNotifications() }
     @objc func toggleProjects(_: Any?) {
+        // Home has no strip, nor has the bar at the top or bottom: nothing to flip unseen.
+        guard store.selection != .welcome, appearance.navPosition.isVertical else { return NSSound.beep() }
         store.sidebarByHover = false
         store.sidebarOpen.toggle()
     }
@@ -325,8 +501,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
     @objc func renameSession(_: Any?) { store.renaming = store.currentSession?.id }
     @objc func clearNotifications(_: Any?) { store.notifications.removeAll() }
-    @objc func showShortcuts(_: Any?) {
-        UserDefaults.standard.set("keyboard", forKey: "settings.section")
+    @objc func showShortcuts(_: Any?) { openSettings(section: "keyboard") }
+
+    /// Settings, on one of its sections.
+    func openSettings(section: String) {
+        UserDefaults.standard.set(section, forKey: "settings.section")
         settingsWindow?.close()
         settingsWindow = nil
         openSettings()
@@ -340,8 +519,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         guard let pid = store.currentProjectId, let project = store.project(pid) else { return NSSound.beep() }
         let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/projects")
             .appendingPathComponent(Conversations.claudeFolderName(for: project.path))
+        // Not the ones open in a pane right now: their agents would lose the conversation they're in.
+        let open = store.openConversations
         let files = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
-            .filter { $0.pathExtension == "jsonl" }
+            .filter { $0.pathExtension == "jsonl" && !open.contains($0.deletingPathExtension().lastPathComponent) }
         let alert = NSAlert()
         if files.isEmpty {
             alert.messageText = String(localized: "No conversations in \(project.name)")
@@ -362,13 +543,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
-        case #selector(splitRight(_:)), #selector(splitDown(_:)), #selector(closeSessionOrPane(_:)),
-             #selector(nextPane(_:)), #selector(previousPane(_:)):
-            return store.currentSession != nil
-        case #selector(closeProject(_:)), #selector(deleteConversations(_:)):
-            return store.currentProjectId != nil
+        case #selector(closeSessionOrPane(_:)):
+            return NSApp.keyWindow != nil
+        case #selector(splitRight(_:)), #selector(splitDown(_:)), #selector(nextPane(_:)), #selector(previousPane(_:)):
+            return sessionInFront && store.currentSession != nil
+        case #selector(closeProject(_:)), #selector(deleteConversations(_:)), #selector(showBoard(_:)):
+            return sessionInFront && store.currentProjectId != nil
+        case #selector(nextWaiting(_:)):
+            return !store.waitingSessions.isEmpty
         case #selector(find(_:)), #selector(clearTerminal(_:)), #selector(renameSession(_:)):
-            return store.currentSession != nil
+            return sessionInFront && store.currentSession != nil
+        case #selector(arrangeGrid(_:)):
+            return sessionInFront && (store.currentSession?.layout.paneIds.count ?? 0) > 1
         case #selector(toggleFocus(_:)):
             item.state = { if case .project = store.focus { return .on } else { return .off } }()
             return store.currentProjectId != nil || store.focus != .none
@@ -376,9 +562,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             item.state = { if case .full = store.focus { return .on } else { return .off } }()
             return store.currentProjectId != nil || store.focus != .none
         case #selector(selectTab(_:)):
-            return store.tabSessions.indices.contains(item.tag)
+            return sessionInFront && store.tabSessions.indices.contains(item.tag)
         case #selector(nextTab(_:)), #selector(previousTab(_:)):
-            return store.tabSessions.count > 1
+            return sessionInFront && !store.tabSessions.isEmpty
         case #selector(setNavPosition(_:)):
             item.state = NavPosition.allCases[item.tag] == appearance.navPosition ? .on : .off
             return true
@@ -400,6 +586,15 @@ enum MainMenu {
             i.tag = tag
             return i
         }
+        /// The same command under a second shortcut, not shown: the brackets and backslash of a US keyboard
+        /// need ⌥ on others (Turkish, German…), so the listed shortcuts are ones every layout can type.
+        func also(_ title: String, _ action: Selector?, _ key: String, _ mods: NSEvent.ModifierFlags = [.command]) -> NSMenuItem {
+            let i = item(title, action, key, mods)
+            i.isHidden = true
+            i.allowsKeyEquivalentWhenHidden = true
+            return i
+        }
+        let right = String(UnicodeScalar(NSRightArrowFunctionKey)!), left = String(UnicodeScalar(NSLeftArrowFunctionKey)!)
         @discardableResult
         func submenu(_ title: String, _ items: [NSMenuItem], into parent: NSMenu? = nil) -> NSMenu {
             let m = NSMenu(title: NSLocalizedString(title, comment: "menu"))
@@ -423,8 +618,8 @@ enum MainMenu {
         submenu("File", [
             item("New Session", #selector(AppDelegate.newSession(_:)), "t"),
             item("New Terminal", #selector(AppDelegate.newTerminal(_:)), "n"),
-            item("New Project…", #selector(AppDelegate.openFolder(_:)), "n", [.command, .shift]),
             item("Open Folder…", #selector(AppDelegate.openFolder(_:)), "o"),
+            item("New Folder…", #selector(AppDelegate.newFolder(_:)), "n", [.command, .shift]),
             .separator(),
             item("Close Session", #selector(AppDelegate.closeSessionOrPane(_:)), "w"),
             item("Close Project", #selector(AppDelegate.closeProject(_:)), "w", [.command, .shift]),
@@ -443,7 +638,9 @@ enum MainMenu {
         ])
         let view = submenu("View", [
             item("Home", #selector(AppDelegate.showHome(_:)), "h", [.command, .shift]),
-            item("Show Projects", #selector(AppDelegate.toggleProjects(_:)), "\\"),
+            item("Project Board", #selector(AppDelegate.showBoard(_:)), "b", [.command, .shift]),
+            item("Show Projects", #selector(AppDelegate.toggleProjects(_:)), "0"),
+            also("Show Projects", #selector(AppDelegate.toggleProjects(_:)), "\\"),
             .separator(),
             item("Focus Mode", #selector(AppDelegate.toggleFocus(_:)), "f", [.command, .shift]),
             item("Full Focus", #selector(AppDelegate.toggleFullFocus(_:)), "f", [.command, .shift, .control]),
@@ -461,12 +658,15 @@ enum MainMenu {
         }
         let navItem = NSMenuItem(title: nav.title, action: nil, keyEquivalent: "")
         navItem.submenu = nav
-        view.insertItem(navItem, at: 3)
+        view.insertItem(navItem, at: 4)
         submenu("Session", [
             item("Split Right", #selector(AppDelegate.splitRight(_:)), "d"),
             item("Split Down", #selector(AppDelegate.splitDown(_:)), "d", [.command, .shift]),
-            item("Next Pane", #selector(AppDelegate.nextPane(_:)), "]"),
-            item("Previous Pane", #selector(AppDelegate.previousPane(_:)), "["),
+            item("Next Pane", #selector(AppDelegate.nextPane(_:)), right, [.command, .option]),
+            item("Previous Pane", #selector(AppDelegate.previousPane(_:)), left, [.command, .option]),
+            also("Next Pane", #selector(AppDelegate.nextPane(_:)), "]"),
+            also("Previous Pane", #selector(AppDelegate.previousPane(_:)), "["),
+            item("Arrange Panes in a Grid", #selector(AppDelegate.arrangeGrid(_:)), "g", [.command, .shift]),
             .separator(),
             item("Rename…", #selector(AppDelegate.renameSession(_:))),
             item("Delete Conversation History…", #selector(AppDelegate.deleteConversations(_:))),
@@ -477,9 +677,12 @@ enum MainMenu {
             item("Zoom", #selector(NSWindow.performZoom(_:)), "", target: nil),
             .separator(),
             item("Quick Switch…", #selector(AppDelegate.quickSwitch(_:)), "p"),
+            item("Next Agent Waiting", #selector(AppDelegate.nextWaiting(_:)), "j"),
             .separator(),
-            item("Previous Session", #selector(AppDelegate.previousTab(_:)), "[", [.command, .shift]),
-            item("Next Session", #selector(AppDelegate.nextTab(_:)), "]", [.command, .shift]),
+            item("Previous Session", #selector(AppDelegate.previousTab(_:)), "\t", [.control, .shift]),
+            item("Next Session", #selector(AppDelegate.nextTab(_:)), "\t", [.control]),
+            also("Previous Session", #selector(AppDelegate.previousTab(_:)), "[", [.command, .shift]),
+            also("Next Session", #selector(AppDelegate.nextTab(_:)), "]", [.command, .shift]),
             .separator(),
         ] + (1...9).map { n in item(String(localized: "Session \(n)"), #selector(AppDelegate.selectTab(_:)), "\(n)", tag: n - 1) } + [
             .separator(),

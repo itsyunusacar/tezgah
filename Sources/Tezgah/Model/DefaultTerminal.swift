@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// Making Tezgah the terminal macOS opens: shell scripts (.command, .sh, executables) and ssh:// links.
 enum DefaultTerminal {
-    static let types: [UTType] = [UTType("com.apple.terminal.shell-script"), .unixExecutable].compactMap { $0 }
+    static let types: [UTType] = [UTType("com.apple.terminal.shell-script"), UTType("public.shell-script"), .unixExecutable].compactMap { $0 }
 
     /// Default only when everything Make Default sets still points here.
     static var isDefault: Bool {
@@ -26,25 +26,36 @@ enum DefaultTerminal {
 
 extension AppStore {
     /// Something macOS handed to Tezgah: a folder opens as a project, a script runs in a new tab, ssh:// connects.
+    /// What arrives is typed into a shell, so nothing with a control character in it (which would act as a key
+    /// press: Ctrl-C, Return) is typed at all, and an ssh target can't pass itself off as an option.
     func handleOpen(_ url: URL) {
+        func typeable(_ s: String) -> Bool { !s.unicodeScalars.contains { $0.value < 0x20 || $0.value == 0x7f } }
         if url.scheme == "ssh" {
-            var target = url.host ?? ""
-            if let user = url.user { target = "\(user)@\(target)" }
+            let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:[]%")
+            guard let host = url.host, !host.isEmpty, !host.hasPrefix("-"), host.unicodeScalars.allSatisfy(allowed.contains),
+                  url.user.map({ !$0.isEmpty && !$0.hasPrefix("-") && $0.unicodeScalars.allSatisfy(allowed.contains) }) ?? true else {
+                AppActions.toast(String(localized: "That ssh link can't be opened"))
+                return
+            }
+            let target = url.user.map { "\($0)@\(host)" } ?? host
             let port = url.port.map { " -p \($0)" } ?? ""
-            _ = newSession(projectId: nil, command: "ssh\(port) \(shellQuoted(target))")
+            _ = newSession(projectId: nil, command: "ssh\(port) -- \(shellQuoted(target))")
             return
         }
-        guard url.isFileURL else { return }
+        guard url.isFileURL, typeable(url.path) else { return }
         var isDir: ObjCBool = false
-        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
         if isDir.boolValue {
             let p = addProject(path: url.path)
+            checkFolders()
             openProject(p.id)
         } else {
             let folder = url.deletingLastPathComponent().path
-            let project = projects.first { folder.hasPrefix($0.path) }
-            let s = newSession(projectId: project?.id, command: "cd \(shellQuoted(folder)) && \(shellQuoted(url.path))")
-            _ = s
+            // The project the file is in: its folder or one below it ("/app-v2" is not inside "/app"), the deepest one.
+            let project = projects.filter { folder == $0.path || folder.hasPrefix($0.path + "/") }.max { $0.path.count < $1.path.count }
+            // A script without its execute bit still runs.
+            let run = FileManager.default.isExecutableFile(atPath: url.path) ? shellQuoted(url.path) : "/bin/sh \(shellQuoted(url.path))"
+            _ = newSession(projectId: project?.id, command: "cd \(shellQuoted(folder)) && \(run)")
         }
     }
 }

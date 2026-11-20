@@ -24,10 +24,49 @@ final class TerminalPane: Identifiable {
     private(set) var focused = false
     /// The shell couldn't start.
     private(set) var failure: String?
+    /// The agent Tezgah started here; it comes back after a restart while it is still running.
+    private(set) var launched: AgentKind?
+    /// The same as the word that starts it ("claude", "cursor-agent"): this also names agents you added yourself.
+    private(set) var launchedWord: String?
+    /// The agent's conversation (Claude Code reports it), to return to after a restart.
+    private(set) var conversation: String?
+    /// Whether a program has stayed in the foreground (TezgahCore.AgentLifecycle).
+    @ObservationIgnored private var lifecycle = AgentLifecycle()
+    private var agentAlive: Bool { lifecycle.alive }
+    /// The state of an agent that doesn't report its own, read from what its screen does (TezgahCore.ActivityStatus).
+    @ObservationIgnored private var activity = ActivityStatus()
+    private(set) var inferred: AgentState?
+    /// The agent here speaks for itself (OSC 7501): nothing is guessed about it.
+    @ObservationIgnored private var reportsItself = false
+    @ObservationIgnored private let typed = Flag()
+    /// A pane brought back at launch waits for you to open its session before it starts its agent again:
+    /// fifteen saved sessions are not fifteen agents the moment Tezgah opens.
+    @ObservationIgnored private var asleep = false
+    /// The folder it was meant to start in wasn't there (a disk not connected, a folder renamed): the shell
+    /// started at home instead, and home must not be written down as this pane's folder.
+    @ObservationIgnored private var displacedFrom: String?
+    /// The shell tells Tezgah when it is ready for a command (see AgentHooks.zshenv); until it has, or a
+    /// few seconds have passed without a word, nothing is typed into it.
+    @ObservationIgnored private var waitsForReady = false
+    @ObservationIgnored private var shellReady = false
 
-    var status: AgentState? { records.summary }
-    /// The agent that reports here ("claude", "codex"), if any.
-    var agentApp: String? { records.primary?.app ?? records.last(where: { $0.app != nil })?.app }
+    var status: AgentState? { records.summary ?? inferred }
+    /// The agent here: the one that reports ("claude", "codex"), else the one known to be running.
+    var agentApp: String? {
+        if agentGone { return nil }
+        return records.primary?.app ?? records.last(where: { $0.app != nil })?.app ?? (agentAlive ? agentWord : nil)
+    }
+    /// The word that starts the agent in this pane, when there is one: started by Tezgah, or typed by you
+    /// and recognized by its name.
+    var agentWord: String? {
+        if let launchedWord { return launchedWord }
+        if let program, store?.agentWords.contains(program) == true { return program }
+        return nil
+    }
+    /// The agent whose records these were has left; what it left behind ("done") no longer names a running agent.
+    private var agentGone = false
+    /// A program is running here that isn't the shell and has stayed (an agent, a dev server).
+    var busy: Bool { agentAlive }
     var statusMessage: String? { records.primary?.message ?? records.primary?.title }
     /// Find in the scrollback (⌘F): shown while searching, with Ghostty's match count.
     private(set) var searching = false
@@ -44,19 +83,26 @@ final class TerminalPane: Identifiable {
     @ObservationIgnored private var reader: OutputReader?
     @ObservationIgnored private(set) lazy var view: AppTerminalView = makeView()
 
-    init(id: String, sessionId: String, cwd: String, command: String?, store: AppStore) {
+    init(id: String, sessionId: String, cwd: String, command: String?, conversation: String? = nil, asleep: Bool = false, store: AppStore) {
+        self.asleep = asleep && command != nil
         self.id = id
         self.sessionId = sessionId
         self.cwd = cwd
         self.command = command
         self.store = store
+        self.conversation = conversation
+        if let word = command?.split(separator: " ").first.map(String.init), store.agentWords.contains(word) {
+            launchedWord = word
+            launched = AgentKind.allCases.first { $0.command == word }
+        }
 
         let start = FileManager.default.fileExists(atPath: cwd) ? cwd : NSHomeDirectory()
+        if start != cwd { displacedFrom = start }
         let shell = Shell.current
         let process: PTYProcess?
         var failure: String?
         do {
-            process = try PTYProcess.spawn(path: shell, args: ["-l"], env: Shell.environment(paneId: id, sessionId: sessionId),
+            process = try PTYProcess.spawn(path: shell, args: Shell.arguments, env: Shell.environment(paneId: id, sessionId: sessionId),
                                            cwd: start, label: id)
         } catch {
             process = nil
@@ -64,16 +110,29 @@ final class TerminalPane: Identifiable {
         }
         pty = process
         self.failure = failure
+        let typed = self.typed
         session = InMemoryTerminalSession(
-            write: { data in process?.write(data) },
+            write: { data in
+                typed.raise()
+                process?.write(data)
+            },
             resize: { viewport in
                 process?.resize(cols: Int(viewport.columns), rows: Int(viewport.rows),
                                 widthPixels: Int(viewport.widthPixels), heightPixels: Int(viewport.heightPixels))
             }
         )
         pendingCommand = command
+        waitsForReady = process != nil && Shell.integrates
+        if waitsForReady {
+            // An rc file that never reaches a prompt hook (it replaces the shell, say) must not keep the command waiting for ever.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
+                guard let self, !self.shellReady else { return }
+                self.shellReady = true
+                if self.pendingCommand != nil, !self.asleep { self.typeCommandSoon() }
+            }
+        }
         if let failure {
-            session.receive("\r\n  \u{1b}[31mCouldn't start the shell\u{1b}[0m  \(failure)\r\n")
+            session.receive("\r\n  \u{1b}[31m\(String(localized: "Couldn't start the shell"))\u{1b}[0m  \(failure)\r\n")
         }
         startReading()
     }
@@ -83,7 +142,7 @@ final class TerminalPane: Identifiable {
         v.controller = TerminalLook.controller
         v.delegate = self
         v.configuration = TerminalSurfaceOptions(backend: .inMemory(session))
-        v.setAccessibilityLabel("Terminal")
+        v.setAccessibilityLabel(String(localized: "Terminal"))
         return v
     }
 
@@ -114,15 +173,28 @@ final class TerminalPane: Identifiable {
     }
 
     private func didOutput() {
-        // Type the startup command once the shell has gone quiet after its first output (its prompt).
-        guard pendingCommand != nil else { return }
+        // Type the startup command once the shell has gone quiet after its first output (its prompt);
+        // a shell that says when it is ready (zsh, through Tezgah's integration) is waited for instead.
+        guard pendingCommand != nil, !asleep, shellReady || !waitsForReady else { return }
+        typeCommandSoon()
+    }
+
+    /// You came to this pane's session: its agent starts now.
+    func wake() {
+        guard asleep else { return }
+        asleep = false
+        if pendingCommand != nil, shellReady || !waitsForReady { typeCommandSoon() }
+    }
+
+    private func typeCommandSoon(after delay: Double = 0.15) {
         commandTimer?.invalidate()
-        commandTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: false) { [weak self] _ in
+        commandTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, let command = self.pendingCommand else { return }
                 self.pendingCommand = nil
                 self.reader?.wantsOutputNotice = false
                 // A trailing "\u{0}" marks a command to type but not run (install commands wait for Enter).
+                self.typed.raise()
                 if command.hasSuffix("\u{0}") {
                     self.pty?.write(String(command.dropLast()))
                 } else {
@@ -137,9 +209,20 @@ final class TerminalPane: Identifiable {
         switch event {
         case .probed:
             break
+        case .ready:
+            shellReady = true
+            if pendingCommand != nil, !asleep { typeCommandSoon(after: 0.03) }
         case let .report(report):
             let before = status
+            agentGone = false
+            // It speaks for itself from here on.
+            reportsItself = true
+            inferred = nil
             records = OSC7501.applyOutput(records, report)
+            if case let .record(r) = report, let c = r.conversation, c != conversation {
+                conversation = c
+                store?.scheduleSave()
+            }
             let after = status
             if before != after {
                 statusSince = Date()
@@ -160,9 +243,76 @@ final class TerminalPane: Identifiable {
 
     func poll() {
         guard let pty, !exited else { return }
-        let name = pty.foregroundName.map(Shell.programName)
+        let foreground = pty.foreground
+        // A passing error says nothing about what is running.
+        if foreground == .unknown { return }
+        var name: String?
+        if case let .program(raw) = foreground { name = Shell.programName(raw) }
         if name != program { program = name }
-        if let dir = pty.shellDirectory, dir != cwd { cwd = dir }
+        if let dir = pty.shellDirectory, dir != cwd {
+            // Still where it was put for want of its own folder: the saved folder stays.
+            if dir == displacedFrom { } else {
+                displacedFrom = nil
+                cwd = dir
+                store?.scheduleSave()
+            }
+        }
+        let bytes = reader?.takeBytes() ?? 0
+        let wasTyped = typed.lower()
+        // Nothing has been started here yet (the command waits for the prompt, or for you).
+        guard pendingCommand == nil else { return }
+        switch lifecycle.look(programRunning: name != nil, expecting: launchedWord != nil) {
+        case .ended: agentEnded()
+        case .started: store?.scheduleSave()
+        case .none: break
+        }
+        // An agent that says nothing about itself: its state is read from what its screen does.
+        guard agentAlive, !reportsItself, agentWord != nil else { return }
+        let before = status
+        if activity.look(bytes: bytes, typed: wasTyped, asks: { ActivityStatus.asks(self.viewportText() ?? "") }) {
+            inferred = activity.state
+            statusSince = Date()
+            store?.paneStatusChanged(self, from: before, to: status)
+        }
+    }
+
+    /// The project's folder moved: this pane's saved folder follows it.
+    func moved(from old: String, to new: String) {
+        if cwd == old { cwd = new } else if cwd.hasPrefix(old + "/") { cwd = new + cwd.dropFirst(old.count) }
+    }
+
+    /// The shell is back at its prompt and stayed there: whatever ran is gone. Nothing is brought back
+    /// at the next launch, and a state it left behind ("waiting for you") no longer speaks for anyone.
+    private func agentEnded() {
+        let before = status
+        // Read before it is forgotten: what it leaves behind keeps only a finished turn.
+        let finished = inferred == .done
+        if launchedWord != nil || conversation != nil {
+            launched = nil
+            launchedWord = nil
+            conversation = nil
+            store?.scheduleSave()
+        }
+        agentGone = true
+        reportsItself = false
+        activity.reset()
+        inferred = nil
+        records = records.filter { $0.state == .done }
+        _ = finished
+        if before != status {
+            statusSince = Date()
+            store?.paneStatusChanged(self, from: before, to: status)
+        }
+    }
+
+    /// The agent to start again in this pane at the next launch, if one is running in it.
+    var agentToRestore: AgentKind? { launched ?? (agentAlive ? AgentKind(program: agentApp) : nil) }
+
+    /// The same as the word that starts it, which also covers agents you added yourself.
+    var wordToRestore: String? {
+        if let launchedWord { return launchedWord }
+        guard agentAlive else { return nil }
+        return AgentKind(program: agentApp)?.command ?? agentWord
     }
 
     // MARK: - Actions
@@ -178,10 +328,15 @@ final class TerminalPane: Identifiable {
 
     /// Writes straight to the program, as keystrokes.
     func send(_ text: String) {
+        typed.raise()
         pty?.write(text)
     }
 
+    /// Bumped each time ⌘F is pressed, so an open find bar takes the cursor again.
+    private(set) var findRequests = 0
+
     func startFind() {
+        findRequests += 1
         searching = true
         _ = view.performBindingAction("start_search")
     }
@@ -218,11 +373,20 @@ final class TerminalPane: Identifiable {
     /// The user looked: a finished agent's "done" stops asking for attention.
     func acknowledge() {
         guard status == .done else { return }
+        if records.isEmpty, inferred == .done {
+            activity.acknowledge()
+            inferred = activity.state
+            statusSince = Date()
+            store?.paneStatusChanged(self, from: .done, to: status)
+            return
+        }
         records = records.map { r in
             var r = r
             if r.state == .done { r.state = .idle }
             return r
         }
+        // Its agent has left: nothing remains to say about it.
+        if agentGone { records.removeAll { $0.state == .idle } }
         statusSince = Date()
         store?.paneStatusChanged(self, from: .done, to: status)
     }
@@ -257,6 +421,8 @@ nonisolated final class OutputReader: @unchecked Sendable {
     enum Event: Sendable {
         case probed
         case report(OSCReport)
+        /// The shell has read its rc files and is about to show its first prompt (Tezgah's zsh integration says so).
+        case ready
     }
 
     private let pty: PTYProcess
@@ -268,6 +434,15 @@ nonisolated final class OutputReader: @unchecked Sendable {
         set { lock.withLock { _wantsOutputNotice = newValue } }
     }
     private var scanner = OSCScanner(codes: [7501])
+    private var bytes = 0
+
+    /// What the program has written since this was last asked.
+    func takeBytes() -> Int {
+        lock.withLock {
+            defer { bytes = 0 }
+            return bytes
+        }
+    }
     private var probed = false
     /// Reports carrying this pane's secret come from Tezgah's own agent hooks and need no probe.
     private let token: String
@@ -279,12 +454,15 @@ nonisolated final class OutputReader: @unchecked Sendable {
 
     /// Called on the reader's serial queue only.
     func scan(_ data: Data) -> [Event] {
+        lock.withLock { bytes += data.count }
         var events: [Event] = []
         for seq in scanner.scan(data) {
             if seq.payload == "?" {
                 probed = true
                 pty.write(OSC7501.probeReply)
                 events.append(.probed)
+            } else if seq.payload == "ready=1:token=\(token)" {
+                events.append(.ready)
             } else if probed || seq.payload.split(separator: ":").contains(Substring("token=\(token)")),
                       let report = OSC7501.parse(seq.payload) {
                 events.append(.report(report))
@@ -294,12 +472,45 @@ nonisolated final class OutputReader: @unchecked Sendable {
     }
 }
 
+/// Raised from wherever keys are written to the terminal; lowered by the pane's once-a-second look.
+nonisolated final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var up = false
+    func raise() { lock.withLock { up = true } }
+    func lower() -> Bool {
+        lock.withLock {
+            defer { up = false }
+            return up
+        }
+    }
+}
+
 enum Shell {
     static let current: String = {
         if let s = ProcessInfo.processInfo.environment["SHELL"], FileManager.default.isExecutableFile(atPath: s) { return s }
         if let pw = getpwuid(getuid()), let sh = pw.pointee.pw_shell { return String(cString: sh) }
         return "/bin/zsh"
     }()
+
+    /// A login shell. fish is also told, after its own configuration, to put Tezgah's folder first on the
+    /// PATH and to say when its first prompt is up (the same two things AgentHooks.zshenv does for zsh).
+    static var arguments: [String] {
+        guard programName(current) == "fish" else { return ["-l"] }
+        return ["-l", "-C", #"""
+        if test -n "$TEZGAH_BIN"; set -gx PATH $TEZGAH_BIN (string match -v -- $TEZGAH_BIN $PATH); end
+        function __tezgah_ready --on-event fish_prompt; printf '\e]7501;ready=1:token=%s\a' $TEZGAH_PANE_TOKEN; functions -e __tezgah_ready; end
+        """#]
+    }
+
+    /// bash has no file of ours to read first, so the same two things ride on PROMPT_COMMAND (kept in
+    /// front of the user's own, when their profile adds to it rather than replacing it).
+    static let bashPrompt = #"[ "${PATH%%:*}" = "$TEZGAH_BIN" ] || PATH="$TEZGAH_BIN:${PATH//"$TEZGAH_BIN":/}"; [ -n "$__tezgah_ready" ] || { __tezgah_ready=1; printf '\033]7501;ready=1:token=%s\007' "$TEZGAH_PANE_TOKEN"; }"#
+
+    /// The shell is zsh and Tezgah's integration file is in place.
+    static var integrates: Bool {
+        guard programName(current) == "zsh", let dir = AgentHooks.zshDirectory else { return false }
+        return FileManager.default.fileExists(atPath: dir.appendingPathComponent(".zshenv").path)
+    }
 
     static let shells: Set<String> = ["zsh", "bash", "fish", "sh", "dash", "ksh", "tcsh", "csh", "nu", "xonsh", "elvish", "pwsh", "login"]
 
@@ -352,6 +563,14 @@ enum Shell {
         if let bin = AgentHooks.binDirectory?.path {
             env["TEZGAH_BIN"] = bin
             env["PATH"] = [bin, env["PATH"]].compactMap { $0 }.joined(separator: ":")
+        }
+        // zsh reads Tezgah's .zshenv first, which hands ZDOTDIR back and reads the user's own files (AgentHooks.zshenv).
+        if integrates, let zsh = AgentHooks.zshDirectory?.path {
+            if let own = env["ZDOTDIR"] { env["TEZGAH_ZDOTDIR"] = own }
+            env["ZDOTDIR"] = zsh
+        }
+        if programName(current) == "bash", env["TEZGAH_BIN"] != nil {
+            env["PROMPT_COMMAND"] = [bashPrompt, env["PROMPT_COMMAND"]].compactMap { $0 }.joined(separator: "; ")
         }
         // Launched from Finder, an app's PATH is minimal; the login shell rebuilds it.
         if env["PATH"] == nil { env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin" }

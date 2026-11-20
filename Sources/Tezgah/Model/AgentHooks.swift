@@ -14,6 +14,44 @@ enum AgentHooks {
         return support.appendingPathComponent(name, isDirectory: true).appendingPathComponent("bin", isDirectory: true)
     }
 
+    /// The agents Tezgah has a hook for; the others are seen only if they report by themselves.
+    static let hooked: Set<AgentKind> = [.claude, .codex]
+
+    /// Where zsh is pointed (ZDOTDIR) for its first file only; see `zshenv`.
+    static var zshDirectory: URL? {
+        binDirectory?.deletingLastPathComponent().appendingPathComponent("shell/zsh", isDirectory: true)
+    }
+
+    /// Tezgah's one line of say in a zsh pane. zsh reads `.zshenv` from ZDOTDIR first: this one hands
+    /// ZDOTDIR straight back (to what it was, or unset), runs the user's own `.zshenv`, and zsh goes on
+    /// to read the user's `.zprofile`, `.zshrc` and `.zlogin` as always: none of the user's files is touched.
+    /// Just before the first prompt, after every rc file has had its say about PATH, it puts Tezgah's
+    /// folder first (so `claude` and `codex` are the ones that report their state; installers that
+    /// prepend to PATH in `.zshrc` would otherwise hide them) and tells the pane the shell is ready.
+    static let zshenv = #"""
+    # Tezgah: zsh integration. Your own files are read as usual; see Settings › Agents.
+    if [[ -n "${TEZGAH_ZDOTDIR+x}" ]]; then
+      builtin export ZDOTDIR="$TEZGAH_ZDOTDIR"
+      builtin unset TEZGAH_ZDOTDIR
+    else
+      builtin unset ZDOTDIR
+    fi
+    if [[ -f "${ZDOTDIR:-$HOME}/.zshenv" ]]; then
+      builtin source "${ZDOTDIR:-$HOME}/.zshenv"
+    fi
+    if [[ -o interactive && -n "$TEZGAH_PANE_TOKEN" ]]; then
+      _tezgah_ready() {
+        if [[ -n "$TEZGAH_BIN" && -d "$TEZGAH_BIN" ]]; then
+          path=("$TEZGAH_BIN" "${(@)path:#$TEZGAH_BIN}")
+        fi
+        builtin printf '\033]7501;ready=1:token=%s\007' "$TEZGAH_PANE_TOKEN"
+        precmd_functions=("${(@)precmd_functions:#_tezgah_ready}")
+        builtin unfunction _tezgah_ready 2>/dev/null
+      }
+      precmd_functions+=(_tezgah_ready)
+    fi
+    """#
+
     static func reports(_ kind: AgentKind) -> Bool {
         UserDefaults.standard.object(forKey: "agents.report.\(kind.rawValue)") as? Bool ?? true
     }
@@ -24,6 +62,10 @@ enum AgentHooks {
         let fm = FileManager.default
         try? fm.createDirectory(at: bin, withIntermediateDirectories: true)
         write(bin.appendingPathComponent("tezgah-report"), report, executable: true)
+        if let zsh = zshDirectory {
+            try? fm.createDirectory(at: zsh, withIntermediateDirectories: true)
+            write(zsh.appendingPathComponent(".zshenv"), zshenv, executable: false)
+        }
         write(bin.appendingPathComponent("claude-hooks.json"), claudeSettings(bin: bin.path), executable: false)
         for (kind, shim) in [(AgentKind.claude, claudeShim), (.codex, codexShim)] {
             let url = bin.appendingPathComponent(kind.command)
@@ -44,12 +86,20 @@ enum AgentHooks {
     # Tezgah: reports an agent's state to the pane it runs in (OSC 7501). Silent outside Tezgah.
     [ -n "$TEZGAH_PANE_TOKEN" ] || exit 0
     state=$1; app=$2
-    msg=""
+    msg=""; sid=""
     if [ ! -t 0 ]; then
-      msg=$(head -c 65536 | /usr/bin/sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1 | cut -c1-300 | /usr/bin/base64 | tr -d '\n')
+      input=$(head -c 65536)
+      msg=$(printf '%s' "$input" | /usr/bin/sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1 | cut -c1-300 | /usr/bin/base64 | tr -d '\n')
+      # The conversation, so Tezgah can come back to it after a restart.
+      sid=$(printf '%s' "$input" | /usr/bin/sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([A-Za-z0-9-]*\)".*/\1/p' | head -n 1 | cut -c1-64)
+    fi
+    if [ "$state" = "blocked" ]; then
+      # Claude Code also sends a notification when its prompt has sat idle for a minute: that is not waiting on a permission.
+      case "$input" in *'"notification_type":"idle_prompt"'*|*'"notification_type": "idle_prompt"'*|*'waiting for your input'*) exit 0 ;; esac
     fi
     kind=""
     [ "$state" = "blocked" ] && kind=":kind=permission"
+    [ -n "$sid" ] && kind="$kind:sid=$sid"
     printf '\033]7501;state=%s:app=%s%s:msg=%s:token=%s\007' "$state" "$app" "$kind" "$msg" "$TEZGAH_PANE_TOKEN" > /dev/tty 2>/dev/null
     exit 0
     """#
@@ -58,7 +108,7 @@ enum AgentHooks {
         let r = bin + "/tezgah-report"
         func hook(_ state: String) -> String { #"[{"hooks":[{"type":"command","command":"'\#(r)' \#(state) claude","timeout":5}]}]"# }
         return """
-        {"hooks":{"UserPromptSubmit":\(hook("working")),"PreToolUse":\(hook("working")),"Notification":\(hook("blocked")),\
+        {"hooks":{"SessionStart":\(hook("idle")),"UserPromptSubmit":\(hook("working")),"PreToolUse":\(hook("working")),"PostToolUse":\(hook("working")),"Notification":\(hook("blocked")),\
         "Stop":\(hook("done")),"SubagentStop":\(hook("working")),"SessionEnd":\(hook("clear"))}}
         """
     }
