@@ -129,7 +129,7 @@ struct PaneView: View {
                 .strokeBorder(waiting ? look.waiting : isFocused && !single && focusBorder ? look.muted.opacity(0.5) : look.line,
                               lineWidth: waiting ? 1.5 : 1)
         )
-        .shadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
+        .softShadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
         .onHover { hover = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("\(name) pane"))
@@ -242,7 +242,7 @@ struct FindBar: View {
         .padding(.leading, 10).padding(.trailing, 4).frame(height: 36)
         .background(look.raised, in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(look.line))
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        .softShadow(color: .black.opacity(0.12), radius: 8, y: 3)
         .onAppear { focused = true }
         // ⌘F again while it is open brings the cursor back to it.
         .onChange(of: pane.findRequests) { focused = true }

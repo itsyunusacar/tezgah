@@ -153,7 +153,7 @@ struct VerticalNav: View {
         .overlay {
             if floating { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(look.line) }
         }
-        .shadow(color: .black.opacity(floating ? (look.dark ? 0.5 : 0.16) : 0), radius: 22, y: 10)
+        .softShadow(color: .black.opacity(floating ? (look.dark ? 0.5 : 0.16) : 0), radius: floating ? 22 : 0, y: floating ? 10 : 0)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Projects and sessions"))
     }
@@ -446,7 +446,7 @@ struct SessionTab: View {
             if active {
                 RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.raised)
                     .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(look.line))
-                    .shadow(color: .black.opacity(look.dark ? 0.3 : 0.05), radius: 2, y: 1)
+                    .softShadow(color: .black.opacity(look.dark ? 0.3 : 0.05), radius: 2, y: 1)
             } else if hover {
                 RoundedRectangle(cornerRadius: 7, style: .continuous).fill(look.ink.opacity(0.05))
             }

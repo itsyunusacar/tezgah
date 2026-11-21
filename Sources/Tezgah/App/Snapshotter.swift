@@ -13,7 +13,9 @@ struct Snapshotter {
     let app: AppDelegate
     let directory: URL
 
-    static let fakeAgent = "/Users/yunusacar/Project/tezgah/docs/demo/fake-agent.mjs"
+    /// scripts/demo/fake-agent.mjs in this repository, found from where this file was compiled.
+    static let fakeAgent = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("scripts/demo/fake-agent.mjs").path
 
     /// `--click-test`: a real click on the bar while a project's board (a scrolling page) is showing.
     private func clickTest() async {
@@ -114,6 +116,10 @@ struct Snapshotter {
     func run() async {
         if ProcessInfo.processInfo.arguments.contains("--click-test") {
             await clickTest()
+            exit(0)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--demo") {
+            await demo()
             exit(0)
         }
         store.logsStatus = true
@@ -273,11 +279,11 @@ struct Snapshotter {
         exit(0)
     }
 
-    private func wait(_ seconds: Double) async {
+    func wait(_ seconds: Double) async {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
-    private func capture(_ name: String, in target: NSWindow? = nil) {
+    func capture(_ name: String, in target: NSWindow? = nil) {
         let window = target ?? self.window
         window.displayIfNeeded()
         guard let view = window.contentView?.superview ?? window.contentView,
@@ -292,7 +298,8 @@ struct Snapshotter {
 
     /// cacheDisplay can't see what Metal drew. Where a terminal came out blank, draw its
     /// viewport text (read back from Ghostty) in the theme's colors instead.
-    private func drawTerminalText(into rep: NSBitmapImageRep, root: NSView) -> Int {
+    @discardableResult
+    func drawTerminalText(into rep: NSBitmapImageRep, root: NSView) -> Int {
         var terminals: [AppTerminalView] = []
         func walk(_ v: NSView) {
             if let t = v as? AppTerminalView { terminals.append(t) } else { v.subviews.forEach(walk) }

@@ -217,7 +217,7 @@ extension View {
     func card(_ look: Look, radius: Double = Grid.Radius.card, ring: Color? = nil, ringWidth: Double = 1) -> some View {
         background(look.raised, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(ring ?? look.line, lineWidth: ringWidth))
-            .shadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
+            .softShadow(color: .black.opacity(look.dark ? 0.2 : 0.05), radius: 2, y: 1)
     }
 }
 
@@ -286,6 +286,19 @@ struct HorizonView<Standing: View>: View {
             SkyView().frame(height: horizon)
             standing.frame(maxWidth: .infinity).frame(height: horizon, alignment: .bottom)
         }
+    }
+}
+
+/// How the window is being drawn. A recording draws frame by frame in software, where every blurred
+/// shadow costs a great deal; it draws without them.
+enum Rendering {
+    nonisolated(unsafe) static var flat = false
+}
+
+extension View {
+    /// A shadow, except in a recording.
+    func softShadow(color: Color, radius: Double, y: Double = 0) -> some View {
+        shadow(color: Rendering.flat ? .clear : color, radius: Rendering.flat ? 0 : radius, y: Rendering.flat ? 0 : y)
     }
 }
 

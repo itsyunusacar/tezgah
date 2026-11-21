@@ -84,7 +84,7 @@ struct NotificationsPanel: View {
         .frame(width: 360)
         .background(look.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(look.line))
-        .shadow(color: .black.opacity(look.dark ? 0.5 : 0.16), radius: 24, y: 10)
+        .softShadow(color: .black.opacity(look.dark ? 0.5 : 0.16), radius: 24, y: 10)
         .onKeyPress(.escape) { store.notificationsOpen = false; return .handled }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Notifications"))

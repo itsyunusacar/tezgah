@@ -4060,6 +4060,16 @@
           }
         }
       }
+    },
+    "1 session": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 oturum"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

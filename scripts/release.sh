@@ -41,4 +41,9 @@ ZIP="$OUT/Tezgah-$VERSION.zip"
 ditto -c -k --keepParent "$APP" "$ZIP"
 SPARKLE=build/DD-release/SourcePackages/artifacts/sparkle/Sparkle/bin
 "$SPARKLE/generate_appcast" --download-url-prefix "https://github.com/itsyunusacar/tezgah/releases/download/v$VERSION/" "$OUT"
-echo "ready: $ZIP and $OUT/appcast.xml (not uploaded)"
+# A copy for installing by hand, then the build's own copies go: every Tezgah.app on the disk shows up in Launchpad.
+rm -rf "$OUT/Tezgah.app" && ditto "$APP" "$OUT/Tezgah.app.noindex/Tezgah.app"
+LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+for a in build/DD-release/Build/Products/*/*.app; do "$LSREG" -u "$PWD/$a" 2>/dev/null || true; done
+rm -rf build/DD-release/Build/Products
+echo "ready: $ZIP and $OUT/appcast.xml (not uploaded); the app itself: $OUT/Tezgah.app.noindex/Tezgah.app"

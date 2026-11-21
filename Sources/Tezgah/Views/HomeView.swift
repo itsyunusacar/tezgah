@@ -375,7 +375,8 @@ private struct ProjectCard: View {
     private func subtitle(_ count: Int) -> String {
         var parts: [String] = []
         if let branch { parts.append(branch) }
-        if count > 0 { parts.append(String(localized: "\(count) sessions")) }
+        if count == 1 { parts.append(String(localized: "1 session")) }
+        if count > 1 { parts.append(String(localized: "\(count) sessions")) }
         if let d = project.lastOpened { parts.append(d.formatted(.relative(presentation: .named))) }
         return parts.joined(separator: " · ")
     }

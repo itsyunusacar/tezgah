@@ -145,6 +145,8 @@ final class AppStore {
     }
 
     @ObservationIgnored private var detecting = false
+    /// Set by the demo recording (`--demo`): what the picker starts instead of the real agent.
+    @ObservationIgnored var demoAgent: ((AgentKind) -> String?)?
 
     /// Settings › Agents › Your own.
     var ownAgents: [OwnAgent] = AppStore.readOwnAgents() {

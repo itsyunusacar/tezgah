@@ -54,7 +54,7 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Tezgah/Support/Bridging.h
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         ENABLE_HARDENED_RUNTIME: NO
-        MARKETING_VERSION: "0.1.0"
+        MARKETING_VERSION: "0.2.0"
         CURRENT_PROJECT_VERSION: "1"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
       configs:

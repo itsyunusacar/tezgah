@@ -61,7 +61,7 @@ struct SheetFrame<Content: View>: View {
                 .frame(width: width)
                 .background(look.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(look.line))
-                .shadow(color: .black.opacity(0.24), radius: 32, y: 16)
+                .softShadow(color: .black.opacity(0.24), radius: 32, y: 16)
                 // Lower in a tall window, near the top of a short one: the whole sheet stays inside it.
                 .padding(.top, min(140, max(56, store.windowHeight * 0.14)))
                 .accessibilityAddTraits(.isModal)
@@ -270,6 +270,11 @@ struct NewSessionSheet: View {
                 let id = UUID().uuidString.lowercased()
                 conversation = id
                 command = Restore.start(k.command, conversation: id, message: text.isEmpty ? nil : shellQuoted(text))
+            }
+            // The demo recording runs a stand-in that prints like the agent and reports like it.
+            if let stand = store.demoAgent?(k) {
+                command = stand
+                conversation = nil
             }
             kind = .agent
             hint = text.isEmpty ? nil : String(text.split(whereSeparator: \.isNewline).first ?? "").prefix(80).description
