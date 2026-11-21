@@ -18,7 +18,9 @@ enum AppActions {
         panel.canCreateDirectories = true
         panel.prompt = String(localized: "Add Project")
         panel.message = String(localized: "Choose a folder to work in.")
-        guard panel.runModal() == .OK else { return }
+        let answer = panel.runModal()
+        (NSApp.delegate as? AppDelegate)?.rekey()
+        guard answer == .OK else { return }
         var last: ProjectRecord?
         for url in panel.urls { last = store.addProject(path: url.path) }
         store.checkFolders()
@@ -40,7 +42,9 @@ enum AppActions {
         if let recent = store.recentProjects.first(where: { !store.missingProjects.contains($0.id) }) {
             panel.directoryURL = URL(fileURLWithPath: recent.path).deletingLastPathComponent()
         }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let answer = panel.runModal()
+        (NSApp.delegate as? AppDelegate)?.rekey()
+        guard answer == .OK, let url = panel.url else { return }
         do {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         } catch {
@@ -348,6 +352,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private func installKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let store = self.store else { return event }
+            do {
+                let responder = event.window?.firstResponder.map { String(describing: type(of: $0)) } ?? "nil"
+                KeyLog.note("monitor keyDown mods=\(event.modifierFlags.intersection(.deviceIndependentFlagsMask).rawValue) window=\(event.window === self.window ? "main" : event.window?.title ?? "nil") key=\(NSApp.keyWindow === self.window ? "main" : NSApp.keyWindow?.title ?? "nil") responder=\(responder) sheet=\(store.sheetOpen) launching=\(store.launching) active=\(NSApp.isActive)")
+            }
             // Only in the main window, with nothing over it.
             guard event.window === self.window, !store.sheetOpen, !store.launching else { return event }
             // On the welcome page, 1–9 open recent projects.
@@ -511,6 +519,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         openSettings()
     }
     @objc func checkForUpdates(_: Any?) { Updates.shared.checkNow() }
+
+    /// Help › Copy Keyboard Diagnostics: where the last key presses went, and what holds the keyboard now.
+    @objc func copyKeyboardDiagnostics(_: Any?) {
+        let responder = window.firstResponder.map { String(describing: type(of: $0)) } ?? "nil"
+        let now = "Tezgah \(Bundle.main.shortVersion) · now: app active \(NSApp.isActive), key window \(NSApp.keyWindow === window ? "main" : NSApp.keyWindow?.title ?? "none"), "
+            + "modal \(NSApp.modalWindow != nil), first responder \(responder), sheet \(store.sheetOpen), panes \(store.panes.count)"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(now + "\n" + KeyLog.report, forType: .string)
+        AppActions.toast(String(localized: "Copied"))
+    }
+
+    /// The main window takes the keyboard back (after a system panel or an alert, which don't always hand it back).
+    func rekey() {
+        guard onboardingWindow == nil, NSApp.isActive, NSApp.modalWindow == nil, window.isVisible, !window.isKeyWindow else { return }
+        KeyLog.note("rekey: the main window was not key (key was \(NSApp.keyWindow?.title ?? "none"))")
+        window.makeKeyAndOrderFront(nil)
+    }
     @objc func openDocs(_: Any?) { NSWorkspace.shared.open(URL(string: "https://tezgah.itsyunusacar.com")!) }
     @objc func reportProblem(_: Any?) { NSWorkspace.shared.open(URL(string: "https://github.com/itsyunusacar/tezgah/issues")!) }
 
@@ -694,6 +719,7 @@ enum MainMenu {
             item("Keyboard Shortcuts", #selector(AppDelegate.showShortcuts(_:)), "/"),
             .separator(),
             item("Tezgah Documentation", #selector(AppDelegate.openDocs(_:))),
+            item("Copy Keyboard Diagnostics", #selector(AppDelegate.copyKeyboardDiagnostics(_:))),
             item("Report a Problem…", #selector(AppDelegate.reportProblem(_:))),
         ])
         NSApp.helpMenu = help

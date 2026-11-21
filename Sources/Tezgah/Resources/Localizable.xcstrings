@@ -4070,6 +4070,16 @@
           }
         }
       }
+    },
+    "Copy Keyboard Diagnostics": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klavye Tanılamasını Kopyala"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

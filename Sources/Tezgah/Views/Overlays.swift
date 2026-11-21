@@ -82,6 +82,9 @@ struct NewSessionSheet: View {
     @State private var selected = 0
     @State private var placement: SplitAxis? = nil
     @FocusState private var focused: Bool
+    /// Where the pointer was when the sheet opened: a row that appears under a resting pointer is not a choice.
+    @State private var pointerAtOpen = NSEvent.mouseLocation
+    private var pointerMoved: Bool { hypot(NSEvent.mouseLocation.x - pointerAtOpen.x, NSEvent.mouseLocation.y - pointerAtOpen.y) > 3 }
 
     init(projectId: String?) {
         _projectId = State(initialValue: projectId)
@@ -228,7 +231,7 @@ struct NewSessionSheet: View {
         .padding(.horizontal, 12).frame(height: 40)
         .background(i == selected ? look.selected : .clear, in: RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
-        .onHover { if $0 { selected = i } }
+        .onHover { if $0, pointerMoved { selected = i } }
     }
 
     private func name(_ c: Choice) -> String {
@@ -321,6 +324,8 @@ struct CommandPalette: View {
     @State private var query = ""
     @State private var selected = 0
     @FocusState private var focused: Bool
+    @State private var pointerAtOpen = NSEvent.mouseLocation
+    private var pointerMoved: Bool { hypot(NSEvent.mouseLocation.x - pointerAtOpen.x, NSEvent.mouseLocation.y - pointerAtOpen.y) > 3 }
 
     private var goOnly: Bool { store.paletteScope == .go }
 
@@ -356,7 +361,7 @@ struct CommandPalette: View {
                         }
                         Button { selected = i; run(items) } label: { row(item, selected: i == selected) }
                             .buttonStyle(.plain)
-                            .onHover { if $0 { selected = i } }
+                            .onHover { if $0, pointerMoved { selected = i } }
                             .id(i)
                     }
                 }

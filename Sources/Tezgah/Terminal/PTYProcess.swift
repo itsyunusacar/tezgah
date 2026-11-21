@@ -111,7 +111,10 @@ nonisolated final class PTYProcess: @unchecked Sendable {
             lock.lock()
             let isClosed = closed
             lock.unlock()
-            if isClosed { return }
+            if isClosed {
+                KeyLog.note("pty write dropped: closed")
+                return
+            }
             data.withUnsafeBytes { raw in
                 guard var p = raw.baseAddress else { return }
                 var left = raw.count

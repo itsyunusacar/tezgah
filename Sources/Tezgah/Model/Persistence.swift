@@ -19,7 +19,7 @@ final class Persistence {
 
     /// Each build keeps its own: "Tezgah Dev" for the debug build; the release build's folder is "Tezgah",
     /// where Tezgah 0.1 keeps its workspace.json too, so this one lives in a folder of its own inside it.
-    static var defaultDirectory: URL {
+    nonisolated static var defaultDirectory: URL {
         let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Tezgah"
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(name, isDirectory: true)

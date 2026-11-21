@@ -17,6 +17,15 @@ struct Snapshotter {
     static let fakeAgent = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("scripts/demo/fake-agent.mjs").path
 
+    /// What a test found: to stderr, and to results.txt in the run's folder (a run started by `open` has no terminal).
+    func report(_ line: String) {
+        FileHandle.standardError.write(Data((line + "\n").utf8))
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("results.txt")
+        let old = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        try? (old + line + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
     /// `--click-test`: a real click on the bar while a project's board (a scrolling page) is showing.
     private func clickTest() async {
         let saved = look.navPosition
@@ -70,6 +79,99 @@ struct Snapshotter {
             FileHandle.standardError.write(Data("claude test: started through Tezgah's shim (hooks for this run): \(mine.contains("claude-hooks.json"))\n".utf8))
             let pane = store.leadPane(of: c)
             FileHandle.standardError.write(Data("claude test: reports as \(pane?.agentApp ?? "-"), state \(pane?.status?.rawValue ?? "none"), conversation kept: \(pane?.conversation == id), program \(pane?.program ?? "-")\n".utf8))
+        }
+        // Real key presses: the keyboard must reach the terminal, after everything a person does on the way there.
+        do {
+            store.startPolling()
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            func key(_ chars: String, _ code: UInt16, _ flags: NSEvent.ModifierFlags = []) {
+                for kind in [NSEvent.EventType.keyDown, .keyUp] {
+                    if let e = NSEvent.keyEvent(with: kind, location: .zero, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime,
+                                                windowNumber: window.windowNumber, context: nil, characters: chars,
+                                                charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code) {
+                        // Through the event queue, as the keyboard's own events come: past the app's key monitor too.
+                        NSApp.postEvent(e, atStart: false)
+                    }
+                }
+            }
+            /// Types `k`, Return into the focused pane of the current session, where `k` was made to leave a file.
+            func typing(_ label: String) async -> String {
+                guard let s = store.currentSession, let pane = s.focusedPaneId.flatMap({ store.panes[$0] }) else { return "\(label): no pane" }
+                let mark = directory.appendingPathComponent("typed-\(UUID().uuidString.prefix(6))")
+                try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                pane.send(" alias k='touch \(mark.path)'\n")
+                await wait(0.5)
+                key("k", 40)
+                await wait(0.15)
+                key("\r", 36)
+                await wait(0.9)
+                let ok = FileManager.default.fileExists(atPath: mark.path)
+                try? FileManager.default.removeItem(at: mark)
+                let mine = window.firstResponder === pane.view
+                let screen = (pane.viewportText() ?? "").split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3).joined(separator: " ⏎ ")
+                return "\(label) \(ok ? "ok" : "FAILED\(mine ? "" : " (the keyboard is not on this pane)") [screen: \(screen)] [responder: \(window.firstResponder.map { String(describing: type(of: $0)) } ?? "nil"), sheet \(store.sheetOpen), panes in session \(s.layout.paneIds.count)]")"
+            }
+            var steps: [String] = []
+            let first = store.newSession(projectId: project.id)
+            await wait(2.5)
+            steps.append(await typing("a new terminal"))
+            key("k", 40, .command) // ⌘K
+            await wait(0.7)
+            steps.append("⌘K \(store.paletteOpen ? "opens" : "FAILED")")
+            key("\u{1b}", 53) // esc
+            await wait(0.7)
+            steps.append(await typing("after the palette"))
+            // Session shortcuts only act when Tezgah's window is the one in front; while you work in another app, this run can't tell.
+            let inFront = NSApp.isActive && window.isKeyWindow
+            key("d", 2, .command) // ⌘D
+            await wait(1.6)
+            steps.append("⌘D \(first.layout.paneIds.count == 2 ? "splits" : inFront ? "FAILED" : "not tried (another app is in front)")")
+            steps.append(await typing("in the new pane"))
+            // The system's own panel (File › New Folder…), cancelled after a moment: typing must still work afterwards.
+            let closer = Timer(timeInterval: 1.5, repeats: false) { _ in
+                MainActor.assumeIsolated {
+                    if let panel = NSApp.modalWindow as? NSSavePanel { panel.cancel(nil) } else { NSApp.abortModal() }
+                }
+            }
+            RunLoop.main.add(closer, forMode: .modalPanel)
+            RunLoop.main.add(closer, forMode: .common)
+            AppActions.newFolder()
+            await wait(1.0)
+            steps.append("after the New Folder panel: key window \(window.isKeyWindow)")
+            steps.append(await typing("typing after the panel"))
+            store.selection = .project(project.id)
+            await wait(0.6)
+            let count = store.sessions.count
+            // Whatever row the pointer happens to rest on, the picker starts a plain shell here.
+            store.demoAgent = { _ in " true" }
+            key("t", 17, .command) // ⌘T
+            await wait(0.8)
+            key("\r", 36)
+            await wait(2.5)
+            steps.append("⌘T ↩ \(store.sessions.count == count + 1 ? "starts a session" : "FAILED")")
+            steps.append(await typing("after the picker"))
+            store.demoAgent = nil
+            report("keyboard test: " + steps.joined(separator: "; "))
+            if ProcessInfo.processInfo.arguments.contains("--with-claude") {
+                // The real thing, the way a person does it: ⌘T, Return, then letters into Claude Code's prompt (never sent).
+                store.selection = .project(project.id)
+                await wait(0.6)
+                let id = UUID().uuidString.lowercased()
+                store.demoAgent = { _ in Restore.start("claude", conversation: id, message: nil) }
+                key("t", 17, .command)
+                await wait(0.8)
+                key("\r", 36)
+                store.demoAgent = nil
+                await wait(9)
+                for (c, code) in [("w", UInt16(13)), ("a", 0), ("s", 1), ("d", 2)] { key(c, code); await wait(0.12) }
+                await wait(1.2)
+                let pane = store.currentSession.flatMap { store.leadPane(of: $0) }
+                let screen = pane?.viewportText() ?? ""
+                let tail = screen.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(5).joined(separator: " ⏎ ")
+                report("claude typing test: letters typed into Claude Code \(screen.contains("wasd") ? "appear: ok" : "DO NOT APPEAR: FAILED") [responder is its pane \(window.firstResponder === pane?.view), state \(pane?.status?.rawValue ?? "none")] [screen: \(tail.prefix(400))]")
+            }
+            for s in store.sessions(in: project.id) { store.closeSession(s.id) }
         }
         if ProcessInfo.processInfo.arguments.contains("--with-agents") {
             store.startPolling()

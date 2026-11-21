@@ -114,6 +114,7 @@ final class TerminalPane: Identifiable {
         session = InMemoryTerminalSession(
             write: { data in
                 typed.raise()
+                KeyLog.note("terminal wrote \(data.count) bytes to pane \(id.prefix(6)) (pty \(process == nil ? "missing" : "there"))")
                 process?.write(data)
             },
             resize: { viewport in
@@ -318,7 +319,18 @@ final class TerminalPane: Identifiable {
     // MARK: - Actions
 
     func focus() {
-        view.window?.makeFirstResponder(view)
+        guard let window = view.window else {
+            KeyLog.note("focus: pane \(id.prefix(6)) is not in a window yet")
+            return
+        }
+        // The keyboard goes to the key window: a terminal that is given the focus while its window isn't key
+        // (a system panel or an alert just closed) would look focused and hear nothing.
+        if NSApp.isActive, NSApp.modalWindow == nil, window.isVisible, !window.isKeyWindow {
+            KeyLog.note("focus: window was not key; making it key")
+            window.makeKey()
+        }
+        let took = window.makeFirstResponder(view)
+        if !took { KeyLog.note("focus: pane \(id.prefix(6)) could not take the keyboard") }
     }
 
     /// Types text as if pasted (bracketed paste when the program asked for it).

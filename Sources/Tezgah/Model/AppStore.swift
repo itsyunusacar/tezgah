@@ -246,6 +246,8 @@ final class AppStore {
     }
 
     func startPolling() {
+        // Once: two timers would each see half of what a pane wrote and read an agent at work as idle.
+        guard pollTimer == nil else { return }
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.poll() }
         }
@@ -442,7 +444,9 @@ final class AppStore {
         panel.canCreateDirectories = true
         panel.prompt = String(localized: "Choose")
         panel.message = String(localized: "Where is \(projects[i].name) now?")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let answer = panel.runModal()
+        (NSApp.delegate as? AppDelegate)?.rekey()
+        guard answer == .OK, let url = panel.url else { return }
         let path = (url.path as NSString).standardizingPath
         if let other = projects.first(where: { $0.path == path && $0.id != id }) {
             AppActions.toast(String(localized: "That folder is already \(other.name)"))
